@@ -5174,7 +5174,15 @@ var auth = firebase.auth();
 var db   = firebase.firestore();
 
 // ── Force Firebase to persist login locally forever ──────────────────────
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
+// NOTE: onAuthStateChanged is registered INSIDE .then() to ensure
+// persistence is set BEFORE auth state is checked
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){
+  // Persistence set — now safe to listen for auth state
+  initAuthListener();
+}).catch(function(){
+  // Fallback — init anyway even if persistence fails
+  initAuthListener();
+});
 
 var COLORS = ['#166534','#16a34a','#0f766e','#854d0e','#1d4ed8','#7e22ce','#be123c'];
 var PAYSTACK_KEY = 'pk_live_1a3a25c1a562f8a054e34167dded3e1268f6c28c';
@@ -5285,6 +5293,7 @@ function doRegister(){
 document.getElementById('btn-reg').addEventListener('click',doRegister);
 document.getElementById('r-confirm').addEventListener('keydown',function(e){ if(e.key==='Enter') doRegister(); });
 
+function initAuthListener(){
 auth.onAuthStateChanged(function(user){
   if(user){
     state.user=user;
@@ -5327,6 +5336,7 @@ auth.onAuthStateChanged(function(user){
     if(state.notifsUnsub){ state.notifsUnsub(); state.notifsUnsub=null; }
   }
 });
+} // end initAuthListener
 
 function mountApp(){
   if(!state.profile) return;
