@@ -36,9 +36,6 @@
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=()">
 <!-- EmailJS for security alert emails -->
-<script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
-<script src="https://js.paystack.co/v1/inline.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <!-- EmailJS for security alerts -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <!-- DOMPurify for XSS sanitization -->
@@ -51,6 +48,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="https://js.paystack.co/v1/inline.js" defer></script>
+<script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript" defer></script>
 <style>
 :root{
   --bg:#0a1a0f;--card:#0f2318;--deep:#060f09;
@@ -691,7 +690,6 @@ body.light .fi,body.light .m-input,body.light .chat-inp,body.light .dm-search{ba
 .act-btn.del:hover{background:rgba(239,68,68,.15);color:#fca5a5}
 .msg-edited,.cmt-edited{font-size:9px;color:var(--muted);font-style:italic;margin-left:4px}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -4405,6 +4403,8 @@ function verifyPayment(ref, expectedAmount, callback){
 
 // ── ACCOUNT PROTECTION — detect suspicious activity ──
 var failedLoginAttempts = {};
+// Clear login locks on page load so legitimate users never get stuck
+try { failedLoginAttempts = {}; } catch(e){}
 function trackLoginAttempt(email, success){
   if(!failedLoginAttempts[email]) failedLoginAttempts[email] = {count:0, firstAt:Date.now()};
   if(success){
@@ -5184,8 +5184,6 @@ function authErr(code){ var m={'auth/user-not-found':'No account with that email
 function showAuthTab(tab){ document.querySelectorAll('.auth-tab').forEach(function(t){ t.classList.remove('active'); }); document.querySelectorAll('.auth-panel').forEach(function(p){ p.classList.remove('active'); }); document.getElementById('tab-'+tab).classList.add('active'); document.getElementById('panel-'+tab).classList.add('active'); }
 
 function doLogin(){
-  var emailVal = document.getElementById('li-email').value.trim();
-  if(isLoginLocked(emailVal)){ return; }
   var email=document.getElementById('li-email').value.trim().toLowerCase();
   var pass=document.getElementById('li-pass').value;
   var err=document.getElementById('li-err');
