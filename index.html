@@ -5320,12 +5320,13 @@ auth.onAuthStateChanged(function(user){
 });
 
 function mountApp(){
+  if(!state.profile) return;
   var p=state.profile,color=p.color||COLORS[0],init=(p.name||'Z').charAt(0).toUpperCase();
   var grad='linear-gradient(135deg,'+color+','+COLORS[1]+')';
   ['tb-av','sb-av','comp-av','cmt-av'].forEach(function(id){ var el=document.getElementById(id); if(el){ el.textContent=init; el.style.background=grad; } });
   document.getElementById('sb-name').innerHTML=esc(p.name||'Mindvora user')+(p.mood?' <span style="font-size:16px" title="'+esc(p.mood.label)+'">'+p.mood.emoji+'</span>':'')+(p.isPremium?'<span class="sb-verified">✦ PRO</span>':'');
   document.getElementById('sb-handle').textContent='@'+(p.handle||'user');
-  document.getElementById('ref-link').value='https://zync.vercel.app?ref='+state.user.uid;
+  var refEl=document.getElementById('ref-link'); if(refEl) refEl.value='https://mindvora-vf8e.vercel.app?ref='+state.user.uid;
   if(p.isPremium) document.getElementById('prem-widget').style.display='none';
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
