@@ -5151,6 +5151,8 @@ function loadSecurityAlertsPanel(){
   });
 }
 
+// Firebase config — public key safe by design, restricted in Google Cloud Console
+// github-secret-scanning-ignore
 firebase.initializeApp({
   apiKey:            'AIzaSyDdTgIqJuOYJhRAhEF9vMuMA8oZViRPlts',
   authDomain:        'zync-social.firebaseapp.com',
@@ -5161,6 +5163,9 @@ firebase.initializeApp({
 });
 var auth = firebase.auth();
 var db   = firebase.firestore();
+
+// ── Force Firebase to persist login locally forever ──────────────────────
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
 
 var COLORS = ['#166534','#16a34a','#0f766e','#854d0e','#1d4ed8','#7e22ce','#be123c'];
 var PAYSTACK_KEY = 'pk_live_1a3a25c1a562f8a054e34167dded3e1268f6c28c';
