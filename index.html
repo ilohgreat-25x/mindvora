@@ -4316,6 +4316,18 @@ body.light .fi,body.light .m-input,body.light .chat-inp,body.light .dm-search{ba
 <script>
 'use strict';
 
+// ── FIREBASE MUST BE FIRST — before any other code ───────────────────────
+firebase.initializeApp({
+  apiKey:            'AIzaSyDdTgIqJuOYJhRAhEF9vMuMA8oZViRPlts',
+  authDomain:        'zync-social.firebaseapp.com',
+  projectId:         'zync-social',
+  storageBucket:     'zync-social.firebasestorage.app',
+  messagingSenderId: '720726547858',
+  appId:             '1:720726547858:web:3175ba8d0b7c987e31754b'
+});
+var auth = firebase.auth();
+var db   = firebase.firestore();
+
 // ═══════════════════════════════════════════════
 // NEURALSEED SECURITY SYSTEM v1.0
 // ═══════════════════════════════════════════════
@@ -5153,16 +5165,7 @@ function loadSecurityAlertsPanel(){
 
 // Firebase config — public key safe by design, restricted in Google Cloud Console
 // github-secret-scanning-ignore
-firebase.initializeApp({
-  apiKey:            'AIzaSyDdTgIqJuOYJhRAhEF9vMuMA8oZViRPlts',
-  authDomain:        'zync-social.firebaseapp.com',
-  projectId:         'zync-social',
-  storageBucket:     'zync-social.firebasestorage.app',
-  messagingSenderId: '720726547858',
-  appId:             '1:720726547858:web:3175ba8d0b7c987e31754b'
-});
-var auth = firebase.auth();
-var db   = firebase.firestore();
+// Firebase initialized at top of script
 
 // Login persistence handled by Firebase automatically
 
