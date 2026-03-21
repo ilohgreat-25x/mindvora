@@ -669,6 +669,255 @@ body.light .fi,body.light .m-input,body.light .chat-inp,body.light .dm-search{ba
 .act-btn:hover{background:var(--deep);color:var(--moon)}
 .act-btn.del:hover{background:rgba(239,68,68,.15);color:#fca5a5}
 .msg-edited,.cmt-edited{font-size:9px;color:var(--muted);font-style:italic;margin-left:4px}
+
+/* ══════════════════════════════════════════════════════════════
+   MINDVORA RESPONSIVE DESIGN — All screen sizes
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Base responsive meta setup ── */
+* { box-sizing: border-box; }
+img, video { max-width: 100%; height: auto; }
+
+/* ── Extra large screens (1400px+) ── */
+@media (min-width: 1400px) {
+  .app-layout { max-width: 1200px; margin: 0 auto; }
+  .feed-col { max-width: 640px; }
+  .right-sidebar { width: 320px; }
+}
+
+/* ── Large screens (1200px - 1400px) ── */
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .app-layout { max-width: 1100px; }
+}
+
+/* ── Tablet landscape (1024px - 1199px) ── */
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .right-sidebar { display: none; }
+  .feed-col { max-width: 700px; flex: 1; }
+}
+
+/* ── Tablet portrait (768px - 1023px) ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .right-sidebar { display: none; }
+  .left-sidebar { width: 200px; }
+  .left-sidebar .nav-item span:not(.nav-ic) { display: none; }
+  .left-sidebar .nav-item { justify-content: center; padding: 12px; }
+  .nav-ic { font-size: 22px; margin: 0; }
+  .feed-col { flex: 1; }
+  .modal-box { max-width: 90vw !important; }
+  .sk-media { max-height: 400px !important; }
+}
+
+/* ── Mobile (up to 767px) ── */
+@media (max-width: 767px) {
+  /* Hide sidebars on mobile */
+  .right-sidebar { display: none !important; }
+  .left-sidebar { display: none !important; }
+  
+  /* Bottom navigation on mobile */
+  .bottom-nav {
+    display: flex !important;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    padding: 6px 0 env(safe-area-inset-bottom, 6px);
+    justify-content: space-around;
+    align-items: center;
+  }
+  
+  .bottom-nav .nav-item {
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 8px;
+    font-size: 10px;
+    min-width: 50px;
+    gap: 2px;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-radius: 0;
+  }
+  
+  .bottom-nav .nav-item.active {
+    color: var(--green3);
+  }
+  
+  .bottom-nav .nav-ic {
+    font-size: 20px;
+    margin: 0;
+  }
+  
+  /* Main feed area takes full width on mobile */
+  .feed-col {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-bottom: 70px; /* space for bottom nav */
+    padding-top: 0;
+  }
+  
+  /* Topbar on mobile */
+  .topbar {
+    padding: 8px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 90;
+  }
+  
+  .topbar .tb-logo {
+    font-size: 24px !important;
+  }
+  
+  /* Modals full screen on mobile */
+  .modal-overlay.open .modal-box,
+  .modal-overlay.open .modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 90vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Spark cards on mobile */
+  .spark-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin: 0;
+  }
+  
+  /* Feed container */
+  #feed-cont {
+    padding: 0;
+  }
+  
+  /* Compose box */
+  .compose-box {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    margin: 0;
+    padding: 12px;
+  }
+  
+  /* Stories bar */
+  .stories-bar {
+    padding: 10px 8px;
+    gap: 10px;
+  }
+  
+  /* Video media on mobile */
+  .sk-media-wrap,
+  .sk-media-main {
+    max-height: 260px !important;
+  }
+  
+  /* DM modal full screen on mobile */
+  #modal-dm .modal-box {
+    flex-direction: column !important;
+    height: 90vh !important;
+  }
+  
+  .dm-left {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 40% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+  }
+  
+  .dm-right {
+    flex: 1 !important;
+    height: 60% !important;
+  }
+  
+  /* Admin panel full screen */
+  #modal-admin .modal-box {
+    height: 90vh !important;
+  }
+  
+  /* Plan cards stack on mobile */
+  .plan-card {
+    margin-bottom: 8px;
+  }
+  
+  /* Game container full screen */
+  .game-container {
+    padding-top: 0 !important;
+  }
+  
+  /* Font sizes for mobile */
+  .sk-name { font-size: 13px !important; }
+  .sk-body { font-size: 14px !important; line-height: 1.5 !important; }
+  .m-title { font-size: 15px !important; }
+  
+  /* Buttons on mobile */
+  .btn-auth {
+    padding: 14px !important;
+    font-size: 15px !important;
+  }
+  
+  /* Auth box on mobile */
+  .auth-box {
+    width: 90% !important;
+    padding: 20px 16px !important;
+  }
+  
+  /* Reel grid on mobile */
+  .reel-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Marketplace grid */
+  .mkt-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Action buttons wrap on mobile */
+  .sk-actions {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  
+  /* Emoji picker on mobile */
+  .reaction-picker-full {
+    width: calc(100vw - 12px) !important;
+    left: 6px !important;
+    right: 6px !important;
+  }
+}
+
+/* ── Small mobile (up to 400px) ── */
+@media (max-width: 400px) {
+  .auth-logo { font-size: 56px !important; }
+  .auth-sub { font-size: 13px !important; }
+  .tb-logo span { font-size: 32px !important; }
+  .s-btn { font-size: 11px !important; padding: 4px 7px !important; }
+  .pkg-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ── iPhone notch / safe areas ── */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .topbar {
+    padding-top: calc(8px + env(safe-area-inset-top));
+  }
+  .bottom-nav {
+    padding-bottom: calc(6px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ── Print styles ── */
+@media print {
+  .left-sidebar, .right-sidebar, .topbar, .bottom-nav { display: none !important; }
+  .feed-col { width: 100% !important; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -849,6 +1098,25 @@ body.light .fi,body.light .m-input,body.light .chat-inp,body.light .dm-search{ba
     </aside>
   </div>
 </div>
+
+<!-- BOTTOM NAVIGATION (mobile only) -->
+<nav class="bottom-nav" style="display:none">
+  <button class="nav-item" id="m-nav-feed" onclick="document.getElementById('nav-feed').click();setMobileNav(this)">
+    <span class="nav-ic">🏠</span><span>Feed</span>
+  </button>
+  <button class="nav-item" id="m-nav-disc" onclick="document.getElementById('nav-disc').click();setMobileNav(this)">
+    <span class="nav-ic">🔭</span><span>Explore</span>
+  </button>
+  <button class="nav-item" id="m-nav-dm" onclick="document.getElementById('nav-dm').click();setMobileNav(this)">
+    <span class="nav-ic">💬</span><span>DMs</span>
+  </button>
+  <button class="nav-item" id="m-nav-notif" onclick="document.getElementById('notif-btn').click();setMobileNav(this)">
+    <span class="nav-ic">🔔</span><span>Alerts</span>
+  </button>
+  <button class="nav-item" id="m-nav-earn" onclick="document.getElementById('nav-earn').click();setMobileNav(this)">
+    <span class="nav-ic">💰</span><span>Earn</span>
+  </button>
+</nav>
 
 <!-- STORY VIEWER -->
 <div class="sv-overlay" id="sv-overlay">
@@ -5718,7 +5986,12 @@ function sendMsg(dmId,otherId,otherName,otherColor){
   if(!checkRateLimit('dm',20)){ return; } var inp=document.getElementById('ci-'+dmId); if(!inp) return; var text=inp.value.trim(); if(!text||!state.user) return; inp.value=''; var batch=db.batch(),dmRef=db.collection('dms').doc(dmId),msgRef=dmRef.collection('messages').doc(),names={},colors={}; names[state.user.uid]=state.profile.name||'User'; names[otherId]=otherName; colors[state.user.uid]=state.profile.color||COLORS[0]; colors[otherId]=otherColor||COLORS[0]; batch.set(dmRef,{members:[state.user.uid,otherId],names:names,colors:colors,lastMsg:text,lastAt:firebase.firestore.FieldValue.serverTimestamp(),unread:true},{merge:true}); batch.set(msgRef,{text:text,fromId:state.user.uid,fromName:state.profile.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); batch.commit().then(function(){ openChat(dmId,otherId,otherName,otherColor||COLORS[0]); db.collection('notifications').add({toUid:otherId,fromName:state.profile.name,type:'dm',text:state.profile.name+' sent you a message',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }); }
 
 function selPlan(id,amount,name){ state.plan={id:id,amount:amount,name:name}; document.querySelectorAll('.plan-card').forEach(function(c){ c.classList.remove('sel'); }); document.getElementById('pc-'+id).classList.add('sel'); document.getElementById('co-name').textContent=name; document.getElementById('co-price').textContent='$'+amount.toLocaleString(); }
-document.getElementById('btn-pay').addEventListener('click',function(){ if(!state.user) return; if(typeof PaystackPop==='undefined'){ showToast('Payment loading, try again.'); return; } PaystackPop.setup({key:PAYSTACK_KEY,email:state.user.email,amount:state.plan.amount*100,currency:'USD',ref:'ZP-'+Date.now(),callback:function(r){ db.collection('users').doc(state.user.uid).update({isPremium:true,plan:state.plan.id,premiumRef:r.reference}).then(function(){ state.profile.isPremium=true; closeModal('modal-prem'); var pw=document.getElementById('prem-widget'); if(pw) pw.style.display='none'; showToast('Welcome to '+state.plan.name+'! 💎'); }).catch(function(){ showToast('Payment received but activation failed. Contact support.'); }); },onClose:function(){ showToast('Payment cancelled'); }}).openIframe(); });
+document.getElementById('btn-pay').addEventListener('click',function(){ if(!state.user) return; if(typeof PaystackPop==='undefined'){ showToast('Payment loading, try again.'); return; } // Convert USD to NGN for Paystack (1 USD ≈ 1600 NGN)
+  var usdAmount = state.plan.amount;
+  var ngnAmount = Math.round(usdAmount * 1600 * 100); // in kobo
+  PaystackPop.setup({key:PAYSTACK_KEY,email:state.user.email,amount:ngnAmount,currency:'NGN',ref:'ZP-'+Date.now(),
+  metadata:{plan:state.plan.id,planName:state.plan.name,amountUSD:usdAmount},
+  callback:function(r){ db.collection('users').doc(state.user.uid).update({isPremium:true,plan:state.plan.id,premiumRef:r.reference}).then(function(){ state.profile.isPremium=true; closeModal('modal-prem'); var pw=document.getElementById('prem-widget'); if(pw) pw.style.display='none'; showToast('Welcome to '+state.plan.name+'! 💎'); }).catch(function(){ showToast('Payment received but activation failed. Contact support.'); }); },onClose:function(){ showToast('Payment cancelled'); }}).openIframe(); });
 
 function buyVerifiedBadge(){
   if(!state.user){ showToast('Please login first'); return; }
@@ -5729,8 +6002,8 @@ function buyVerifiedBadge(){
   PaystackPop.setup({
     key: PAYSTACK_KEY,
     email: state.user.email,
-    amount: 30 * 100,
-    currency: 'USD',
+    amount: 30 * 1600 * 100, // $30 in NGN kobo
+    currency: 'NGN',
     ref: 'ZVB-' + Date.now(),
     callback: function(){
       db.collection('users').doc(state.user.uid).update({ isVerified: true }).then(function(){
@@ -5753,7 +6026,7 @@ function buyVerifiedBadge(){
 
 function openTip(authorId,authorName){ state.tipTarget={id:authorId,name:authorName}; document.getElementById('tip-name').textContent=authorName; document.getElementById('tip-amt').value=''; document.getElementById('tip-err').textContent=''; openModal('modal-tip'); }
 function setTip(amount){ document.getElementById('tip-amt').value=amount; }
-document.getElementById('btn-tip').addEventListener('click',function(){ var amount=parseInt(document.getElementById('tip-amt').value)||0; if(amount<100){ document.getElementById('tip-err').textContent='Minimum tip is $1'; return; } if(!state.user||!state.tipTarget) return; if(typeof PaystackPop==='undefined'){ showToast('Payment loading, try again.'); return; } PaystackPop.setup({key:PAYSTACK_KEY,email:state.user.email,amount:amount*100,currency:'USD',ref:'ZT-'+Date.now(),callback:function(){ db.collection('users').doc(state.tipTarget.id).update({tips:firebase.firestore.FieldValue.increment(amount)}); db.collection('notifications').add({toUid:state.tipTarget.id,fromName:state.profile.name,type:'tip',text:state.profile.name+' tipped you $'+amount.toLocaleString(),read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); closeModal('modal-tip'); showToast('Tip sent! 💝'); },onClose:function(){ showToast('Tip cancelled'); }}).openIframe(); });
+document.getElementById('btn-tip').addEventListener('click',function(){ var amount=parseInt(document.getElementById('tip-amt').value)||0; if(amount<100){ document.getElementById('tip-err').textContent='Minimum tip is $1'; return; } if(!state.user||!state.tipTarget) return; if(typeof PaystackPop==='undefined'){ showToast('Payment loading, try again.'); return; } PaystackPop.setup({key:PAYSTACK_KEY,email:state.user.email,amount:amount*100,currency:'NGN',ref:'ZT-'+Date.now(),callback:function(){ db.collection('users').doc(state.tipTarget.id).update({tips:firebase.firestore.FieldValue.increment(amount)}); db.collection('notifications').add({toUid:state.tipTarget.id,fromName:state.profile.name,type:'tip',text:state.profile.name+' tipped you $'+amount.toLocaleString(),read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); closeModal('modal-tip'); showToast('Tip sent! 💝'); },onClose:function(){ showToast('Tip cancelled'); }}).openIframe(); });
 
 function switchTab(group,tab,btn){ document.querySelectorAll('#modal-'+group+' .tab-row .f-pill').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); document.querySelectorAll('#modal-'+group+' .e-panel').forEach(function(p){ p.classList.remove('active'); }); document.getElementById(group+'-'+tab).classList.add('active'); }
 // ── WITHDRAWAL SYSTEM ──
@@ -8199,11 +8472,30 @@ function openMusicPicker() {
 }
 
 function previewTrack(i) {
-  if (storyMusicAudio) { storyMusicAudio.pause(); storyMusicAudio = null; }
-  storyMusicAudio = new Audio(STORY_TRACKS[i].url);
+  if (storyMusicAudio) { storyMusicAudio.pause(); storyMusicAudio.src=''; storyMusicAudio = null; }
+  var track = STORY_TRACKS[i];
+  storyMusicAudio = new Audio();
+  storyMusicAudio.crossOrigin = 'anonymous';
+  storyMusicAudio.src = track.url;
   storyMusicAudio.volume = 0.5;
-  storyMusicAudio.play().catch(function(){});
-  setTimeout(function() { if (storyMusicAudio) { storyMusicAudio.pause(); storyMusicAudio = null; } }, 8000);
+  storyMusicAudio.play().then(function(){
+    showToast('▶ Playing: ' + track.name);
+    // Update UI - show playing state
+    document.querySelectorAll('.music-item').forEach(function(el){ el.style.background=''; });
+    var el = document.getElementById('music-item-'+i);
+    if(el) el.style.background = 'rgba(34,197,94,.1)';
+  }).catch(function(e){
+    // Autoplay blocked or CORS — try without crossOrigin
+    storyMusicAudio = new Audio(track.url);
+    storyMusicAudio.volume = 0.5;
+    storyMusicAudio.play().catch(function(){
+      showToast('⚠️ Could not preview. Select track to use it in your story.');
+    });
+  });
+  setTimeout(function() { 
+    if (storyMusicAudio) { storyMusicAudio.pause(); storyMusicAudio.src=''; storyMusicAudio = null; }
+    document.querySelectorAll('.music-item').forEach(function(el){ el.style.background=''; });
+  }, 10000);
 }
 
 function selectTrack(i) {
@@ -10510,18 +10802,65 @@ function saveMoodStatus() {
 
 // ── 2. LANGUAGE SELECTOR ─────────────────────────────────────────────────
 var APP_LANGUAGES = [
-  {code:'en', name:'English', flag:'🇬🇧'},
-  {code:'fr', name:'Français', flag:'🇫🇷'},
-  {code:'es', name:'Español', flag:'🇪🇸'},
-  {code:'pt', name:'Português', flag:'🇧🇷'},
-  {code:'ar', name:'العربية', flag:'🇸🇦'},
-  {code:'ha', name:'Hausa', flag:'🇳🇬'},
-  {code:'yo', name:'Yorùbá', flag:'🇳🇬'},
-  {code:'ig', name:'Igbo', flag:'🇳🇬'},
-  {code:'sw', name:'Kiswahili', flag:'🇰🇪'},
-  {code:'de', name:'Deutsch', flag:'🇩🇪'},
-  {code:'zh', name:'中文', flag:'🇨🇳'},
-  {code:'hi', name:'हिन्दी', flag:'🇮🇳'},
+  // Africa
+  {code:'en',    name:'English',              flag:'🇬🇧', dir:'ltr'},
+  {code:'yo',    name:'Yoruba',               flag:'🇳🇬', dir:'ltr'},
+  {code:'ig',    name:'Igbo',                 flag:'🇳🇬', dir:'ltr'},
+  {code:'ha',    name:'Hausa',                flag:'🇳🇬', dir:'ltr'},
+  {code:'sw',    name:'Kiswahili',            flag:'🇰🇪', dir:'ltr'},
+  {code:'am',    name:'Amharic',              flag:'🇪🇹', dir:'ltr'},
+  {code:'zu',    name:'Zulu',                 flag:'🇿🇦', dir:'ltr'},
+  {code:'xh',    name:'Xhosa',               flag:'🇿🇦', dir:'ltr'},
+  {code:'af',    name:'Afrikaans',            flag:'🇿🇦', dir:'ltr'},
+  {code:'om',    name:'Oromo',               flag:'🇪🇹', dir:'ltr'},
+  {code:'so',    name:'Somali',              flag:'🇸🇴', dir:'ltr'},
+  {code:'rw',    name:'Kinyarwanda',          flag:'🇷🇼', dir:'ltr'},
+  {code:'sn',    name:'Shona',               flag:'🇿🇼', dir:'ltr'},
+  {code:'tn',    name:'Setswana',            flag:'🇧🇼', dir:'ltr'},
+  {code:'tw',    name:'Twi',                 flag:'🇬🇭', dir:'ltr'},
+  // Europe
+  {code:'fr',    name:'Français',            flag:'🇫🇷', dir:'ltr'},
+  {code:'es',    name:'Español',             flag:'🇪🇸', dir:'ltr'},
+  {code:'pt',    name:'Português',           flag:'🇧🇷', dir:'ltr'},
+  {code:'de',    name:'Deutsch',             flag:'🇩🇪', dir:'ltr'},
+  {code:'it',    name:'Italiano',            flag:'🇮🇹', dir:'ltr'},
+  {code:'ru',    name:'Русский',             flag:'🇷🇺', dir:'ltr'},
+  {code:'nl',    name:'Nederlands',          flag:'🇳🇱', dir:'ltr'},
+  {code:'pl',    name:'Polski',              flag:'🇵🇱', dir:'ltr'},
+  {code:'uk',    name:'Українська',          flag:'🇺🇦', dir:'ltr'},
+  {code:'sv',    name:'Svenska',             flag:'🇸🇪', dir:'ltr'},
+  {code:'no',    name:'Norsk',               flag:'🇳🇴', dir:'ltr'},
+  {code:'da',    name:'Dansk',               flag:'🇩🇰', dir:'ltr'},
+  {code:'fi',    name:'Suomi',               flag:'🇫🇮', dir:'ltr'},
+  {code:'el',    name:'Ελληνικά',            flag:'🇬🇷', dir:'ltr'},
+  {code:'cs',    name:'Čeština',             flag:'🇨🇿', dir:'ltr'},
+  {code:'ro',    name:'Română',              flag:'🇷🇴', dir:'ltr'},
+  {code:'hu',    name:'Magyar',              flag:'🇭🇺', dir:'ltr'},
+  // Asia
+  {code:'zh',    name:'中文 (Chinese)',       flag:'🇨🇳', dir:'ltr'},
+  {code:'ja',    name:'日本語 (Japanese)',    flag:'🇯🇵', dir:'ltr'},
+  {code:'ko',    name:'한국어 (Korean)',      flag:'🇰🇷', dir:'ltr'},
+  {code:'hi',    name:'हिन्दी (Hindi)',       flag:'🇮🇳', dir:'ltr'},
+  {code:'bn',    name:'বাংলা (Bengali)',      flag:'🇧🇩', dir:'ltr'},
+  {code:'ur',    name:'اردو (Urdu)',          flag:'🇵🇰', dir:'rtl'},
+  {code:'ar',    name:'العربية (Arabic)',     flag:'🇸🇦', dir:'rtl'},
+  {code:'fa',    name:'فارسی (Persian)',      flag:'🇮🇷', dir:'rtl'},
+  {code:'tr',    name:'Türkçe',              flag:'🇹🇷', dir:'ltr'},
+  {code:'id',    name:'Bahasa Indonesia',    flag:'🇮🇩', dir:'ltr'},
+  {code:'ms',    name:'Bahasa Melayu',       flag:'🇲🇾', dir:'ltr'},
+  {code:'th',    name:'ภาษาไทย (Thai)',      flag:'🇹🇭', dir:'ltr'},
+  {code:'vi',    name:'Tiếng Việt',          flag:'🇻🇳', dir:'ltr'},
+  {code:'tl',    name:'Filipino',            flag:'🇵🇭', dir:'ltr'},
+  {code:'my',    name:'မြန်မာ (Burmese)',    flag:'🇲🇲', dir:'ltr'},
+  {code:'ne',    name:'नेपाली (Nepali)',      flag:'🇳🇵', dir:'ltr'},
+  {code:'si',    name:'සිංහල (Sinhala)',     flag:'🇱🇰', dir:'ltr'},
+  // Americas
+  {code:'es-mx', name:'Español (México)',    flag:'🇲🇽', dir:'ltr'},
+  {code:'pt-br', name:'Português (Brasil)',  flag:'🇧🇷', dir:'ltr'},
+  {code:'ht',    name:'Kreyòl Ayisyen',      flag:'🇭🇹', dir:'ltr'},
+  // Middle East
+  {code:'he',    name:'עברית (Hebrew)',      flag:'🇮🇱', dir:'rtl'},
+  {code:'ku',    name:'Kurdî',               flag:'🏳️', dir:'ltr'},
 ];
 var currentLang = localStorage.getItem('mv_lang') || 'en';
 
@@ -10542,10 +10881,36 @@ function setLanguage(code) {
   currentLang = code;
   localStorage.setItem('mv_lang', code);
   var lang = APP_LANGUAGES.find(function(l){ return l.code === code; });
+  if (!lang) return;
+  // Apply RTL direction for Arabic, Hebrew, Urdu, Persian
+  document.documentElement.dir = lang.dir || 'ltr';
+  document.documentElement.lang = code;
+  // Update font for readability
+  if (lang.dir === 'rtl') {
+    document.body.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+  } else {
+    document.body.style.fontFamily = '';
+  }
   showToast(lang.flag + ' Language set to ' + lang.name);
-  if (state.user) db.collection('users').doc(state.user.uid).update({ preferredLang: code }).catch(function(){});
+  if (state.user) db.collection('users').doc(state.user.uid).update({ preferredLang: code, preferredLangName: lang.name }).catch(function(){});
   closeModal('modal-language');
+  // Reload language selector button text in sidebar
+  var langBtn = document.getElementById('sidebar-lang-btn');
+  if (langBtn) langBtn.textContent = lang.flag + ' ' + lang.name;
 }
+
+// Apply saved language on load
+(function() {
+  var saved = localStorage.getItem('mv_lang');
+  if (saved) {
+    var lang = APP_LANGUAGES.find(function(l){ return l.code === saved; });
+    if (lang) {
+      document.documentElement.dir = lang.dir || 'ltr';
+      document.documentElement.lang = saved;
+      currentLang = saved;
+    }
+  }
+})();
 
 // ── 3. CLIPBOARD HISTORY ─────────────────────────────────────────────────
 var clipboardHistory = JSON.parse(localStorage.getItem('mv_clipboard') || '[]');
@@ -10604,18 +10969,26 @@ document.addEventListener('copy', function() {
 
 // ── 4. SOUNDBOARD ─────────────────────────────────────────────────────────
 var SOUNDS = [
-  {label:'😂 Laugh',     src:'https://www.soundjay.com/human/sounds/laughing-1.mp3'},
-  {label:'👏 Applause',  src:'https://www.soundjay.com/human/sounds/applause-8.mp3'},
-  {label:'😮 Wow',       src:'https://www.soundjay.com/human/sounds/gasping-1.mp3'},
-  {label:'🥁 Drum Roll', src:'https://www.soundjay.com/misc/sounds/drum-roll-1.mp3'},
-  {label:'🎺 Fanfare',   src:'https://www.soundjay.com/misc/sounds/bugle-1.mp3'},
-  {label:'🔔 Bell',      src:'https://www.soundjay.com/misc/sounds/bell-ringing-01.mp3'},
-  {label:'💥 Boom',      src:'https://www.soundjay.com/misc/sounds/explosion-01.mp3'},
-  {label:'🎉 Party',     src:'https://www.soundjay.com/misc/sounds/party-blower-1.mp3'},
-  {label:'😢 Sad',       src:'https://www.soundjay.com/misc/sounds/sad-trombone-1.mp3'},
-  {label:'⚡ Zap',       src:'https://www.soundjay.com/misc/sounds/zap-1.mp3'},
-  {label:'🐱 Cat',       src:'https://www.soundjay.com/animal/sounds/cat-meow-1.mp3'},
-  {label:'🐶 Dog',       src:'https://www.soundjay.com/animal/sounds/dog-barking-1.mp3'},
+  {label:'😂 Laugh',       src:'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'},
+  {label:'👏 Applause',    src:'https://assets.mixkit.co/active_storage/sfx/2659/2659-preview.mp3'},
+  {label:'🥁 Drum Roll',   src:'https://assets.mixkit.co/active_storage/sfx/2748/2748-preview.mp3'},
+  {label:'🎺 Fanfare',     src:'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'},
+  {label:'🔔 Bell',        src:'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'},
+  {label:'💥 Boom',        src:'https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3'},
+  {label:'🎉 Party',       src:'https://assets.mixkit.co/active_storage/sfx/2659/2659-preview.mp3'},
+  {label:'😢 Sad Trombone',src:'https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3'},
+  {label:'⚡ Zap',         src:'https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3'},
+  {label:'🐱 Cat Meow',    src:'https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'},
+  {label:'🐶 Dog Bark',    src:'https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3'},
+  {label:'🎸 Guitar',      src:'https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3'},
+  {label:'👻 Spooky',      src:'https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3'},
+  {label:'🚀 Whoosh',      src:'https://assets.mixkit.co/active_storage/sfx/2748/2748-preview.mp3'},
+  {label:'💤 Snore',       src:'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'},
+  {label:'🎵 Ding',        src:'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'},
+  {label:'😱 Scream',      src:'https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3'},
+  {label:'🤣 Ha Ha',       src:'https://assets.mixkit.co/active_storage/sfx/2659/2659-preview.mp3'},
+  {label:'👍 Level Up',    src:'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'},
+  {label:'❌ Wrong',       src:'https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3'},
 ];
 var activeSoundAudio = null;
 
@@ -11010,8 +11383,18 @@ function switchPayMethod(method) {
 // ── CREATE NOWPAYMENTS INVOICE & OPEN PAYMENT PAGE ────────────────────────
 function createCryptoPayment(amountUSD, description, onSuccess) {
   if (!state.user) { showToast('Login first'); return; }
-  showToast('₿ Creating crypto payment…');
+  showToast('₿ Connecting to payment server… (may take 30s on first use)');
 
+  // Wake up the Render backend first (free plan sleeps after inactivity)
+  fetch(BACKEND_URL + '/', { method: 'GET' }).catch(function(){});
+
+  // Small delay to let backend wake up then proceed
+  setTimeout(function() {
+    createCryptoInvoice(amountUSD, description, onSuccess);
+  }, 3000);
+}
+
+function createCryptoInvoice(amountUSD, description, onSuccess) {
   fetch(BACKEND_URL + '/api/crypto/create-invoice', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -11021,7 +11404,7 @@ function createCryptoPayment(amountUSD, description, onSuccess) {
       pay_currency:    'usdtbsc', // default USDT on BSC — user can switch
       order_id:        'MV-' + state.user.uid + '-' + Date.now(),
       order_description: description,
-      ipn_callback_url:  'https://mindvora.app/crypto-webhook', // update when live domain set
+      ipn_callback_url:  BACKEND_URL + '/api/crypto/webhook', // update when live domain set
       success_url:       window.location.href,
       cancel_url:        window.location.href,
     })
@@ -11054,7 +11437,7 @@ function createCryptoPayment(amountUSD, description, onSuccess) {
     showToast('₿ Crypto payment page opened! Complete payment in the new tab.');
   })
   .catch(function(err) {
-    showToast('❌ Network error. Try card payment.');
+    showToast('❌ Payment server is waking up. Please try again in 30 seconds.');
     console.error('Crypto error:', err);
   });
 }
@@ -11568,6 +11951,24 @@ function openUserProfile(uid, userData) {
 }
 
 
+
+
+// ── MOBILE BOTTOM NAV ────────────────────────────────────────────────────
+function setMobileNav(btn) {
+  document.querySelectorAll('.bottom-nav .nav-item').forEach(function(b){ b.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+}
+
+// Show bottom nav on mobile
+(function() {
+  function checkMobile() {
+    var nav = document.querySelector('.bottom-nav');
+    if (!nav) return;
+    nav.style.display = window.innerWidth <= 767 ? 'flex' : 'none';
+  }
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
+})();
 
 // Favicon — static, set in HTML head
 
