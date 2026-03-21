@@ -1,19 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/manifest.json",
-      "destination": "/manifest.json"
-    },
-    {
-      "source": "/icons/(.*)",
-      "destination": "/icons/$1"
-    },
-    {
-      "source": "/firebase-messaging-sw.js",
-      "destination": "/firebase-messaging-sw.js"
-    },
-    {
-      "source": "/(.*)",
+      "source": "/((?!manifest\\.json|icons/|firebase-messaging-sw\\.js|pwa-check\\.html).*)",
       "destination": "/index.html"
     }
   ],
@@ -28,6 +16,10 @@
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
         }
       ]
     },
@@ -40,7 +32,7 @@
         },
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000"
+          "value": "public, max-age=31536000, immutable"
         }
       ]
     },
@@ -48,12 +40,12 @@
       "source": "/firebase-messaging-sw.js",
       "headers": [
         {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        },
-        {
           "key": "Content-Type",
           "value": "application/javascript"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
         }
       ]
     }
