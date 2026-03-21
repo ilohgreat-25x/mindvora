@@ -1029,7 +1029,7 @@ img, video { max-width: 100%; height: auto; }
         <button class="nav-item" onclick="openScheduled()"><span class="nav-ic">🌙</span> Scheduled</button>
         <button class="nav-item" onclick="openQRCode()"><span class="nav-ic">📱</span> My QR Code</button>
         <button class="nav-item" onclick="openMoodStatus()"><span class="nav-ic">😊</span> Mood Status</button>
-        <button class="nav-item" onclick="openLanguage()"><span class="nav-ic">🌐</span> Language</button>
+        <button class="nav-item" id="nav-lang" onclick="openLanguage()"><span class="nav-ic">🌐</span> Language</button>
         <button class="nav-item" onclick="openClipboard()"><span class="nav-ic">📋</span> Clipboard</button>
         <button class="nav-item" onclick="openSoundboard()"><span class="nav-ic">🎵</span> Soundboard</button>
         <button class="nav-item" onclick="openWordOfDay()"><span class="nav-ic">📖</span> Word of Day</button>
@@ -5621,6 +5621,10 @@ function mountApp(){
   document.getElementById('auth-screen').style.display='none';
   document.getElementById('app-screen').style.display='flex';
   updateStats(); loadSparks(); listenNotifs(); loadStories(); loadConversations();
+  // Re-apply language after login
+  if (currentLang && currentLang !== 'en') {
+    setTimeout(function(){ applyTranslations(currentLang); }, 300);
+  }
 }
 
 document.getElementById('btn-out').addEventListener('click',function(){ if(state.sparksUnsub) state.sparksUnsub(); auth.signOut(); });
@@ -11152,81 +11156,171 @@ function _tr(key, code) {
 }
 
 function applyTranslations(code) {
-  var L = {
-    post: _tr('post',code)||'Spark',
-    ph:   _tr('ph',code)||'What is on your mind?',
-    all:  _tr('all',code)||'All',
-    edu:  _tr('edu',code)||'Education',
-    fun:  _tr('fun',code)||'Fun',
-    tho:  _tr('thoughts',code)||'Thoughts',
-    news: _tr('news',code)||'News',
-    signin:   {en:'Sign In',fr:'Connexion',es:'Iniciar sesión',pt:'Entrar',de:'Anmelden',ar:'تسجيل الدخول',zh:'登录',ja:'ログイン',hi:'साइन इन',yo:'Wọle',ig:'Banye',ha:'Shiga',sw:'Ingia',ru:'Войти',tr:'Giriş',ko:'로그인',id:'Masuk',vi:'Đăng nhập',ur:'سائن ان',fa:'ورود',he:'כניסה',bn:'সাইন ইন'}[code.split('-')[0]]||'Sign In',
-    join:     {en:'Join Mindvora',fr:'Rejoindre',es:'Unirse',pt:'Entrar',de:'Beitreten',ar:'الانضمام',zh:'加入',ja:'参加',hi:'जॉइन करें',yo:'Darapọ',ig:'Sonyere',ha:'Shiga',sw:'Jiunge',ru:'Присоединиться',tr:'Katıl',ko:'가입',id:'Bergabung',vi:'Tham gia',ur:'شامل ہوں',fa:'پیوستن',he:'הצטרף',bn:'যোগ দিন'}[code.split('-')[0]]||'Join Mindvora',
-    search:   {en:'Search sparks…',fr:'Rechercher…',es:'Buscar…',pt:'Pesquisar…',de:'Suchen…',ar:'ابحث…',zh:'搜索…',ja:'検索…',hi:'खोजें…',yo:'Wa…',ig:'Chọọ…',ha:'Nema…',sw:'Tafuta…',ru:'Поиск…',tr:'Ara…',ko:'검색…',id:'Cari…',vi:'Tìm kiếm…',ur:'تلاش…',fa:'جستجو…',he:'חפש…',bn:'খুঁজুন…'}[code.split('-')[0]]||'Search sparks…',
-    upgrade:  {en:'Upgrade Now →',fr:'Mettre à jour →',es:'Actualizar →',pt:'Atualizar →',de:'Upgraden →',ar:'ترقية الآن →',zh:'立即升级 →',ja:'アップグレード →',hi:'अपग्रेड करें →',yo:'Ṣe imudojuiwọn →',ig:'Melite ugbu a →',ha:'Sabunta yanzu →',sw:'Boresha Sasa →',ru:'Обновить →',tr:'Yükselt →',ko:'업그레이드 →',id:'Upgrade Sekarang →',vi:'Nâng cấp →',ur:'اپ گریڈ →',fa:'ارتقاء →',he:'שדרג עכשיו →',bn:'আপগ্রেড করুন →'}[code.split('-')[0]]||'Upgrade Now →'
+  var base = code.split('-')[0];
+
+  // ── Full UI translation dictionary ──────────────────────────
+  var T = {
+    // Nav items
+    'Feed':        {fr:'Fil',es:'Inicio',pt:'Feed',de:'Feed',ar:'الرئيسية',zh:'首页',ja:'フィード',hi:'फ़ीड',yo:'Ifunni',ig:'Nri',ha:'Ciyar',sw:'Mlo',ru:'Лента',tr:'Akış',ko:'피드',id:'Beranda',vi:'Nguồn',ur:'فیڈ',fa:'فید',he:'פיד',bn:'ফিড'},
+    'Discover':    {fr:'Découvrir',es:'Explorar',pt:'Descobrir',de:'Entdecken',ar:'اكتشف',zh:'发现',ja:'発見',hi:'खोजें',yo:'Ṣàwárí',ig:'Chọpụta',ha:'Gano',sw:'Gundua',ru:'Обзор',tr:'Keşfet',ko:'탐색',id:'Temukan',vi:'Khám phá',ur:'دریافت',fa:'کشف',he:'גלה',bn:'আবিষ্কার'},
+    'Saved':       {fr:'Sauvegardés',es:'Guardado',pt:'Salvos',de:'Gespeichert',ar:'محفوظ',zh:'收藏',ja:'保存済み',hi:'सहेजा',yo:'Fipamọ',ig:'Chekwaa',ha:'Ajiye',sw:'Zilizohifadhiwa',ru:'Сохранённое',tr:'Kaydedilenler',ko:'저장됨',id:'Tersimpan',vi:'Đã lưu',ur:'محفوظ',fa:'ذخیره‌شده',he:'שמור',bn:'সংরক্ষিত'},
+    'Messages':    {fr:'Messages',es:'Mensajes',pt:'Mensagens',de:'Nachrichten',ar:'الرسائل',zh:'消息',ja:'メッセージ',hi:'संदेश',yo:'Awọn ifiranṣẹ',ig:'Ozi',ha:'Saƙonni',sw:'Ujumbe',ru:'Сообщения',tr:'Mesajlar',ko:'메시지',id:'Pesan',vi:'Tin nhắn',ur:'پیغامات',fa:'پیام‌ها',he:'הודעות',bn:'বার্তা'},
+    'Top Up':      {fr:'Recharger',es:'Recargar',pt:'Recarregar',de:'Aufladen',ar:'شحن',zh:'充值',ja:'チャージ',hi:'रिचार्ज',yo:'Tun kun',ig:'Ọ̀tụ̀tụ̀',ha:'Caji',sw:'Jaza',ru:'Пополнить',tr:'Yükle',ko:'충전',id:'Isi Ulang',vi:'Nạp tiền',ur:'ٹاپ اپ',fa:'شارژ',he:'טעינה',bn:'টপ আপ'},
+    'Earn':        {fr:'Gagner',es:'Ganar',pt:'Ganhar',de:'Verdienen',ar:'اكسب',zh:'赚钱',ja:'稼ぐ',hi:'कमाएं',yo:'Jèrè',ig:'Rịọ ego',ha:'Samu',sw:'Pata',ru:'Заработок',tr:'Kazan',ko:'수익',id:'Hasilkan',vi:'Kiếm tiền',ur:'کمائیں',fa:'درآمد',he:'הרוויח',bn:'আয় করুন'},
+    'Premium':     {fr:'Premium',es:'Premium',pt:'Premium',de:'Premium',ar:'مميز',zh:'高级',ja:'プレミアム',hi:'प्रीमियम',yo:'Alàgbàdo',ig:'Premium',ha:'Premium',sw:'Premium',ru:'Премиум',tr:'Premium',ko:'프리미엄',id:'Premium',vi:'Cao cấp',ur:'پریمیم',fa:'ویژه',he:'פרמיום',bn:'প্রিমিয়াম'},
+    'Advertise':   {fr:'Publicité',es:'Publicidad',pt:'Anunciar',de:'Werbung',ar:'أعلن',zh:'广告',ja:'広告',hi:'विज्ञापन',yo:'Ìpolówó',ig:'Mgbasa ozi',ha:'Tallace',sw:'Tangaza',ru:'Реклама',tr:'Reklam',ko:'광고',id:'Iklan',vi:'Quảng cáo',ur:'اشتہار',fa:'تبلیغ',he:'פרסם',bn:'বিজ্ঞাপন'},
+    'Language':    {fr:'Langue',es:'Idioma',pt:'Idioma',de:'Sprache',ar:'اللغة',zh:'语言',ja:'言語',hi:'भाषा',yo:'Èdè',ig:'Asụsụ',ha:'Harshe',sw:'Lugha',ru:'Язык',tr:'Dil',ko:'언어',id:'Bahasa',vi:'Ngôn ngữ',ur:'زبان',fa:'زبان',he:'שפה',bn:'ভাষা'},
+    'Sign Out':    {fr:'Déconnexion',es:'Cerrar sesión',pt:'Sair',de:'Abmelden',ar:'تسجيل الخروج',zh:'退出',ja:'ログアウト',hi:'साइन आउट',yo:'Jade',ig:'Pụọ',ha:'Fita',sw:'Toka',ru:'Выйти',tr:'Çıkış',ko:'로그아웃',id:'Keluar',vi:'Đăng xuất',ur:'سائن آؤٹ',fa:'خروج',he:'התנתק',bn:'সাইন আউট'},
+    // Feed filters  
+    'All':         {fr:'Tout',es:'Todo',pt:'Tudo',de:'Alle',ar:'الكل',zh:'全部',ja:'すべて',hi:'सब',yo:'Gbogbo',ig:'Niile',ha:'Duka',sw:'Zote',ru:'Все',tr:'Tümü',ko:'전체',id:'Semua',vi:'Tất cả',ur:'سب',fa:'همه',he:'הכל',bn:'সব'},
+    'Education':   {fr:'Éducation',es:'Educación',pt:'Educação',de:'Bildung',ar:'تعليم',zh:'教育',ja:'教育',hi:'शिक्षा',yo:'Ẹ̀kọ́',ig:'Agụmakwụkwọ',ha:'Ilimi',sw:'Elimu',ru:'Образование',tr:'Eğitim',ko:'교육',id:'Pendidikan',vi:'Giáo dục',ur:'تعلیم',fa:'آموزش',he:'חינוך',bn:'শিক্ষা'},
+    'Fun':         {fr:'Amusement',es:'Diversión',pt:'Diversão',de:'Spaß',ar:'مرح',zh:'娱乐',ja:'楽しみ',hi:'मनोरंजन',yo:'Igbadun',ig:'Nkiri',ha:'Nishaɗi',sw:'Burudani',ru:'Развлечения',tr:'Eğlence',ko:'재미',id:'Hiburan',vi:'Vui vẻ',ur:'مزہ',fa:'سرگرمی',he:'כיף',bn:'মজা'},
+    'Thoughts':    {fr:'Pensées',es:'Pensamientos',pt:'Pensamentos',de:'Gedanken',ar:'أفكار',zh:'想法',ja:'考え',hi:'विचार',yo:'Èrò',ig:'Echiche',ha:'Tunani',sw:'Mawazo',ru:'Мысли',tr:'Düşünceler',ko:'생각',id:'Pikiran',vi:'Suy nghĩ',ur:'خیالات',fa:'افکار',he:'מחשבות',bn:'চিন্তা'},
+    'News':        {fr:'Actualités',es:'Noticias',pt:'Notícias',de:'Nachrichten',ar:'أخبار',zh:'新闻',ja:'ニュース',hi:'समाचार',yo:'Ìròyìn',ig:'Ọ,br>',ha:'Labarai',sw:'Habari',ru:'Новости',tr:'Haberler',ko:'뉴스',id:'Berita',vi:'Tin tức',ur:'خبریں',fa:'اخبار',he:'חדשות',bn:'সংবাদ'},
+    // Post button
+    'Spark':       {fr:'Publier',es:'Publicar',pt:'Postar',de:'Posten',ar:'نشر',zh:'发布',ja:'投稿',hi:'पोस्ट',yo:'Firanṣẹ',ig:'Zipu',ha:'Aika',sw:'Chapisha',ru:'Опубликовать',tr:'Paylaş',ko:'게시',id:'Posting',vi:'Đăng',ur:'پوسٹ',fa:'ارسال',he:'פרסם',bn:'পোস্ট'},
+    // Sidebar
+    'Followers':   {fr:'Abonnés',es:'Seguidores',pt:'Seguidores',de:'Follower',ar:'المتابعون',zh:'粉丝',ja:'フォロワー',hi:'अनुयायी',yo:'Awọn ọmọlé',ig:'Ndị na-eso',ha:'Mabiya',sw:'Wafuatao',ru:'Подписчики',tr:'Takipçiler',ko:'팔로워',id:'Pengikut',vi:'Người theo dõi',ur:'فالوورز',fa:'دنبال‌کنندگان',he:'עוקבים',bn:'অনুসরণকারী'},
+    'Sparks':      {fr:'Publications',es:'Publicaciones',pt:'Publicações',de:'Beiträge',ar:'المنشورات',zh:'帖子',ja:'投稿数',hi:'पोस्ट',yo:'Àwọn ìgbésọ̀rọ̀',ig:'Ozi',ha:'Ayyuka',sw:'Machapisho',ru:'Публикации',tr:'Gönderiler',ko:'게시물',id:'Kiriman',vi:'Bài đăng',ur:'پوسٹس',fa:'پست‌ها',he:'פוסטים',bn:'স্পার্কস'},
+    'Trending':    {fr:'Tendances',es:'Tendencias',pt:'Tendências',de:'Trends',ar:'الأكثر رواجاً',zh:'热门',ja:'トレンド',hi:'ट्रेंडिंग',yo:'Ìpínlẹ̀',ig:'Ihe na-ewu ewu',ha:'Sanannen',sw:'Inayotendwa',ru:'Тренды',tr:'Trendler',ko:'트렌딩',id:'Tren',vi:'Xu hướng',ur:'ٹرینڈنگ',fa:'ترند',he:'טרנד',bn:'ট্রেন্ডিং'},
+    'Go Premium':  {fr:'Passer Premium',es:'Ir Premium',pt:'Ir Premium',de:'Premium werden',ar:'احصل على مميز',zh:'升级会员',ja:'プレミアムへ',hi:'प्रीमियम लें',yo:'Gba Alàgbàdo',ig:'Nweta Premium',ha:'Sami Premium',sw:'Pata Premium',ru:'Стать Premium',tr:'Premium Al',ko:'프리미엄 되기',id:'Jadi Premium',vi:'Dùng Premium',ur:'پریمیم لیں',fa:'دریافت ویژه',he:'קבל פרמיום',bn:'প্রিমিয়াম নিন'},
+    'Suggested Users': {fr:'Utilisateurs suggérés',es:'Usuarios sugeridos',pt:'Usuários sugeridos',de:'Vorgeschlagene',ar:'مقترحون',zh:'推荐用户',ja:'おすすめユーザー',hi:'सुझाए गए',yo:'Àwọn olùmọ̀',ig:'Ndị a tụpụtara',ha:'Shawarar Masu amfani',sw:'Watumiaji Waliоpendekezwa',ru:'Рекомендации',tr:'Önerilen Kullanıcılar',ko:'추천 사용자',id:'Pengguna Disarankan',vi:'Người dùng gợi ý',ur:'تجویز کردہ',fa:'کاربران پیشنهادی',he:'משתמשים מוצעים',bn:'পরামর্শকৃত ব্যবহারকারী'},
+    'Follow':      {fr:'Suivre',es:'Seguir',pt:'Seguir',de:'Folgen',ar:'تابع',zh:'关注',ja:'フォロー',hi:'फ़ॉलो',yo:'Tẹ̀lé',ig:'Soro',ha:'Bi da',sw:'Fuata',ru:'Подписаться',tr:'Takip et',ko:'팔로우',id:'Ikuti',vi:'Theo dõi',ur:'فالو',fa:'دنبال کن',he:'עקוב',bn:'অনুসরণ করুন'},
+    'Search sparks…': {fr:'Rechercher…',es:'Buscar…',pt:'Pesquisar…',de:'Suchen…',ar:'ابحث…',zh:'搜索…',ja:'検索…',hi:'खोजें…',yo:'Wa…',ig:'Chọọ…',ha:'Nema…',sw:'Tafuta…',ru:'Поиск…',tr:'Ara…',ko:'검색…',id:'Cari…',vi:'Tìm kiếm…',ur:'تلاش…',fa:'جستجو…',he:'חפש…',bn:'খুঁজুন…'},
+    'What is on your mind?': {fr:'Quoi de neuf?',es:'¿Qué estás pensando?',pt:'O que você pensa?',de:'Was denkst du?',ar:'ماذا يدور بذهنك؟',zh:'你在想什么?',ja:'何を考えていますか?',hi:'आपके मन में क्या है?',yo:'Kini o n ro?',ig:'Gini di n uche gi?',ha:'Mene yake zuciyarka?',sw:'Una nini akilini?',ru:'О чём думаете?',tr:'Aklında ne var?',ko:'무슨 생각이에요?',id:'Apa yang kamu pikirkan?',vi:'Bạn đang nghĩ gì?',ur:'آپ کے ذہن میں کیا ہے؟',fa:'چه در ذهن دارید؟',he:'מה אתה חושב?',bn:'আপনার মনে কী আছে?'},
+    'Upgrade Now →': {fr:'Mettre à jour →',es:'Actualizar →',pt:'Atualizar →',de:'Upgraden →',ar:'ترقية الآن →',zh:'立即升级 →',ja:'アップグレード →',hi:'अपग्रेड करें →',yo:'Ṣe imudojuiwọn →',ig:'Melite ugbu a →',ha:'Sabunta yanzu →',sw:'Boresha Sasa →',ru:'Обновить →',tr:'Yükselt →',ko:'업그레이드 →',id:'Upgrade Sekarang →',vi:'Nâng cấp →',ur:'اپ گریڈ →',fa:'ارتقاء →',he:'שדרג עכשיו →',bn:'আপগ্রেড করুন →'}
   };
 
-  // Post button
+  function tr(key) {
+    if (!T[key]) return key;
+    return T[key][base] || T[key][code] || key;
+  }
+
+  // ── Apply all translations ───────────────────────────────────
+
+  // Post/Spark button
   var postBtn = document.getElementById('btn-post');
-  if (postBtn) postBtn.textContent = '✦ ' + L.post;
+  if (postBtn) postBtn.textContent = '✦ ' + tr('Spark');
 
-  // Compose textarea placeholder
+  // Compose placeholder
   var ta = document.getElementById('comp-ta');
-  if (ta) ta.placeholder = L.ph;
+  if (ta) ta.placeholder = tr('What is on your mind?');
 
-  // Search input placeholder
+  // Search placeholder
   var si = document.getElementById('search-inp');
-  if (si) si.placeholder = L.search;
+  if (si) si.placeholder = tr('Search sparks…');
+
+  // Filter pills
+  var filterPills = document.querySelectorAll('#filter-bar .f-pill');
+  var filterKeys = ['All','Education','Fun','Thoughts','News'];
+  var filterIcons = ['✦','🧠','🎉','💭','🌍'];
+  filterPills.forEach(function(p,i){ if(filterKeys[i]) p.textContent = filterIcons[i]+' '+tr(filterKeys[i]); });
+
+  // Nav items (left sidebar)
+  var navMap = {
+    'nav-feed':  'Feed',
+    'nav-disc':  'Discover',
+    'nav-saved': 'Saved',
+    'nav-dm':    'Messages',
+    'nav-topup': 'Top Up',
+    'nav-earn':  'Earn',
+    'nav-prem':  'Premium',
+    'nav-ads':   'Advertise',
+    'nav-lang':  'Language'
+  };
+  Object.keys(navMap).forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    var ic = el.querySelector('.nav-ic');
+    var icText = ic ? ic.outerHTML : '';
+    // Keep the icon, replace the text after it
+    var badge = el.querySelector('.dm-badge');
+    var badgeHTML = badge ? badge.outerHTML : '';
+    el.innerHTML = icText + ' ' + tr(navMap[id]) + badgeHTML;
+    // Restore badge element reference
+    if (badge) {
+      var newBadge = el.querySelector('.dm-badge');
+      if (newBadge) newBadge.style.display = badge.style.display;
+    }
+  });
+
+  // Sign Out button
+  var outBtn = document.getElementById('btn-out');
+  if (outBtn) outBtn.textContent = '🚪 ' + tr('Sign Out');
+
+  // Trending widget title
+  var trendWidgets = document.querySelectorAll('.wt');
+  trendWidgets.forEach(function(w){
+    if (w.textContent.trim() === 'Trending' || w.textContent.trim().indexOf('Trend') > -1) {
+      w.textContent = tr('Trending');
+    }
+    if (w.textContent.trim() === 'Suggested Users') {
+      w.textContent = tr('Suggested Users');
+    }
+  });
+
+  // Follow buttons in suggested users
+  document.querySelectorAll('.btn-fol').forEach(function(b){
+    b.textContent = tr('Follow');
+  });
+
+  // Premium widget
+  var pwTitle = document.querySelector('.pw-title');
+  if (pwTitle) pwTitle.textContent = tr('Go Premium');
+  var upgBtn = document.querySelector('.btn-upg');
+  if (upgBtn) upgBtn.textContent = tr('Upgrade Now →');
+
+  // Stats labels
+  var statsMap = [
+    {id:'st-sparks-lbl', key:'Sparks'},
+    {id:'st-fans-lbl',   key:'Followers'}
+  ];
+  statsMap.forEach(function(s){
+    var el = document.getElementById(s.id);
+    if (el) el.textContent = tr(s.key);
+  });
 
   // Auth tabs
   var tabLogin = document.getElementById('tab-login');
-  if (tabLogin) tabLogin.textContent = L.signin;
+  if (tabLogin) tabLogin.textContent = {en:'Sign In',fr:'Connexion',es:'Iniciar sesión',pt:'Entrar',de:'Anmelden',ar:'دخول',zh:'登录',ja:'ログイン',hi:'साइन इन',yo:'Wọle',ig:'Banye',ha:'Shiga',sw:'Ingia',ru:'Войти',tr:'Giriş',ko:'로그인',id:'Masuk',vi:'Đăng nhập',ur:'سائن ان',fa:'ورود',he:'כניסה',bn:'সাইন ইন'}[base] || 'Sign In';
+
   var tabReg = document.getElementById('tab-reg');
-  if (tabReg) tabReg.textContent = L.join;
+  if (tabReg) tabReg.textContent = {en:'Join Mindvora',fr:'Rejoindre',es:'Unirse',pt:'Entrar',de:'Beitreten',ar:'انضم',zh:'加入',ja:'参加',hi:'जॉइन',yo:'Darapọ',ig:'Sonyere',ha:'Shiga',sw:'Jiunge',ru:'Присоединиться',tr:'Katıl',ko:'가입',id:'Bergabung',vi:'Tham gia',ur:'شامل ہوں',fa:'پیوستن',he:'הצטרף',bn:'যোগ দিন'}[base] || 'Join Mindvora';
 
-  // Login button
-  var btnLogin = document.getElementById('btn-login');
-  if (btnLogin && btnLogin.textContent.indexOf('→') > -1) btnLogin.textContent = L.signin + ' →';
-
-  // Filter bar pills
-  var fb = document.getElementById('filter-bar');
-  if (fb) {
-    var pills = fb.querySelectorAll('.f-pill');
-    var labels = ['✦ '+L.all, '🧠 '+L.edu, '🎉 '+L.fun, '💭 '+L.tho, '🌍 '+L.news];
-    pills.forEach(function(p, i) { if (labels[i]) p.textContent = labels[i]; });
-  }
-
-  // Upgrade button in sidebar widget
-  var upg = document.querySelector('.btn-upg');
-  if (upg) upg.textContent = L.upgrade;
-
-  // Document title
-  document.title = 'Mindvora — Where Minds Connect';
-
-  // Apply RTL/LTR
-  var rtlCodes = ['ar','ur','fa','he','ku'];
-  var isRTL = rtlCodes.indexOf(code.split('-')[0]) > -1;
-  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+  // RTL direction
+  var rtl = ['ar','ur','fa','he','ku'];
+  var isRTL = rtl.indexOf(base) > -1;
+  document.documentElement.dir  = isRTL ? 'rtl' : 'ltr';
   document.documentElement.lang = code;
-  if (isRTL) {
-    document.body.style.fontFamily = "'Noto Sans Arabic', 'Segoe UI', system-ui, sans-serif";
-    document.body.style.textAlign = 'right';
-  } else {
-    document.body.style.fontFamily = '';
-    document.body.style.textAlign = '';
-  }
+  document.body.style.fontFamily = isRTL ? "'Noto Sans Arabic','Segoe UI',system-ui,sans-serif" : '';
+  document.body.style.textAlign  = isRTL ? 'right' : '';
+
+  // Save language button label in sidebar
+  var langNavBtn = document.getElementById('nav-lang');
+  if (!langNavBtn) langNavBtn = document.querySelector('[onclick="openLanguage()"]');
+  // already handled in navMap above
+
+  console.log('[Mindvora] Language applied:', code);
 }
 
 
 // Apply saved language on load
 (function() {
   var saved = localStorage.getItem('mv_lang');
-  if (saved) {
+  if (saved && saved !== 'en') {
     var lang = APP_LANGUAGES.find(function(l){ return l.code === saved; });
     if (lang) {
+      currentLang = saved;
       document.documentElement.dir = lang.dir || 'ltr';
       document.documentElement.lang = saved;
-      currentLang = saved;
+      // Apply full translations after DOM is ready
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function(){
+          applyTranslations(saved);
+        });
+      } else {
+        applyTranslations(saved);
+      }
     }
   }
 })();
