@@ -10029,6 +10029,7 @@ function isOwnerAccount(uid, email) {
 }
 
 // ── SAFE CONTEXT KEYWORDS — never flag these conversations ───────────────
+// If a chat contains these, it's treated as legitimate and skipped entirely
 var SAFE_CONTEXT_WORDS = [
   'wedding','marry','marriage','engagement','proposal','bride','groom',
   'contract','agreement','invoice','receipt','terms','clause','legal',
@@ -10044,8 +10045,11 @@ function isSafeContext(text) {
   return SAFE_CONTEXT_WORDS.some(function(w){ return t.indexOf(w) !== -1; });
 }
 
-// ── SCAM SCORING SYSTEM ───────────────────────────────────────────────
+// ── SCAM SCORING SYSTEM — multiple red flags needed, not just one word ───
+// Each pattern has a severity score. Total score >= 10 before reporting.
+// Single words like "send" or "transfer" alone = score of 2 — not enough.
 var SCAM_SCORED_PATTERNS = [
+  // HIGH SEVERITY (score 8-10) — almost always scams
   { re: /send\s*(me\s*)?bitcoin|send\s*(me\s*)?btc|send\s*(me\s*)?crypto|send\s*(me\s*)?usdt/i, score: 10 },
   { re: /gift\s*card\s*(code|number|pin|send)/i, score: 10 },
   { re: /otp\s*(code|number|give|share|send)/i, score: 10 },
@@ -10065,6 +10069,7 @@ var SCAM_SCORED_PATTERNS = [
   { re: /pay\s*(me|us)\s*(first|now|immediately)\s*(to\s*(receive|get|unlock))/i, score: 9 },
   { re: /send\s*(me|us)\s*\$\d+\s*(to\s*(receive|get|unlock|start))/i, score: 9 },
   { re: /free\s*(iphone|samsung|macbook|laptop|car)\s*(giveaway|winner|selected)/i, score: 8 },
+  // MEDIUM SEVERITY (score 4-6) — suspicious alone, need combo
   { re: /send\s*(me\s*)?\$\d{3,}/i, score: 6 },
   { re: /transfer\s*(me\s*)?\$\d{3,}/i, score: 6 },
   { re: /invest\s*(now|today|immediately|urgently)/i, score: 5 },
@@ -10076,6 +10081,7 @@ var SCAM_SCORED_PATTERNS = [
   { re: /limited\s*time\s*(offer|deal)\s*(click|send|pay|invest)/i, score: 5 },
   { re: /act\s*(now|fast|immediately)\s*(or\s*(lose|miss)|to\s*(claim|receive))/i, score: 5 },
   { re: /i\s*can\s*(help|make)\s*you\s*(earn|make|get)\s*\$\d+/i, score: 6 },
+  // LOW SEVERITY (score 2) — context-dependent
   { re: /\$\d{4,}/i, score: 2 },
   { re: /send\s*money/i, score: 2 },
   { re: /bank\s*(account|details|transfer)/i, score: 2 },
@@ -10090,57 +10096,37 @@ function scamScore(text) {
   return total;
 }
 
-var _dmHistory = {};
-var SCAM_THRESHOLD = 10;
+// ── CONVERSATION HISTORY TRACKER ──────────────────────────────────────────
+// Track message history per DM to give context to the scorer
+var _dmHistory = {};  // dmId -> array of recent messages
+var SCAM_THRESHOLD = 10; // minimum score needed to flag
 
-// ── ATTACK SIGNATURE PATTERNS ──────────────────────────────────────────
+// ── ATTACK SIGNATURE PATTERNS — detect hacking tool output ───────────────
+// These patterns appear when someone pastes injection strings, tool output,
+// or tries SQL/NoSQL injection, XSS, or probe strings into the app
 var ATTACK_SIGNATURES = [
+  // SQL/NoSQL injection attempts
   { re: /('\s*OR\s*'1'\s*=\s*'1|'\s*OR\s*1\s*=\s*1|--\s*$|;\s*DROP\s+TABLE)/i, type: 'SQL Injection', score: 10 },
   { re: /\$where|{\s*\$gt\s*:|{\s*\$ne\s*:|{\s*\$regex\s*:/i, type: 'NoSQL Injection', score: 10 },
+  // XSS attempts
   { re: /<script[\s>]|javascript\s*:|on(load|error|click|mouseover)\s*=/i, type: 'XSS Attack', score: 10 },
   { re: /eval\s*\(|document\.cookie|window\.location\s*=/i, type: 'XSS/Code Injection', score: 10 },
+  // Firebase/API abuse patterns
   { re: /\.env\b|api[_\s]?key\s*[:=]|secret[_\s]?key\s*[:=]/i, type: 'Credential Harvesting', score: 9 },
   { re: /firebase\.auth\(\)|getIdToken|signInWith(CustomToken|Credential)/i, type: 'Auth Token Abuse', score: 8 },
+  // Path traversal
   { re: /\.\.\//g, type: 'Path Traversal', score: 8 },
+  // Common hacking tool output signatures
   { re: /nmap\s+scan|sqlmap|burp\s*suite|metasploit/i, type: 'Hacking Tool Output', score: 10 },
   { re: /\[PAYLOAD\]|\[INJECT\]|\[EXPLOIT\]|\[BYPASS\]/i, type: 'Exploit Attempt', score: 10 },
   { re: /admin'\s*--|1\s*=\s*1\s*--|union\s+select\s+/i, type: 'SQL Injection String', score: 10 },
+  // Unusual encoding/obfuscation
   { re: /%3Cscript|%3E|&#60;script|\\u003cscript/i, type: 'Encoded Attack String', score: 9 },
   { re: /base64_decode|atob\s*\(|fromCharCode/i, type: 'Obfuscated Payload', score: 8 },
 ];
 
 var _attackReported = {};
-var _scamReported = {};
-var _loginAttempts = {};
 
-// ── NOTIFY OWNER FUNCTION ──────────────────────────────────────────────
-function notifyOwner(title, message, severity) {
-  if (!db) return;
-  db.collection('security_alerts').add({
-    title: title, message: message, severity: severity || 'high',
-    read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(function(){});
-  if (isAdmin()) {
-    showToast('🔒 ' + title);
-  }
-}
-
-// ── TRACK LOGIN ATTEMPTS ──────────────────────────────────────────────
-function trackAdvancedLogin(email, success, uid) {
-  if (isOwnerAccount(uid, email)) return;
-  if (!_loginAttempts[email]) _loginAttempts[email] = { count:0, firstAt:Date.now() };
-  var rec = _loginAttempts[email];
-  if (Date.now() - rec.firstAt > 900000) { _loginAttempts[email] = { count:0, firstAt:Date.now() }; rec = _loginAttempts[email]; }
-  if (success) { rec.count = 0; return; }
-  rec.count++;
-  if (rec.count === 5) {
-    notifyOwner('🔐 Brute Force Attempt',
-      'Email: ' + email + ' | ' + rec.count + ' failed logins in ' + Math.round((Date.now()-rec.firstAt)/1000) + 's.',
-      'high');
-  }
-}
-
-// ── SCAN FOR ATTACK SIGNATURE ─────────────────────────────────────────
 function scanForAttackSignature(text, context, userId, userEmail) {
   if (!text || isOwnerAccount(userId, userEmail)) return false;
   var matched = null, highestScore = 0;
@@ -10151,41 +10137,199 @@ function scanForAttackSignature(text, context, userId, userEmail) {
     }
   });
   if (!matched || highestScore < 8) return false;
+
   var key = (userId||'anon') + '_attack';
   if (_attackReported[key]) return true;
   _attackReported[key] = true;
-  notifyOwner('🛡️ Attack Detected: ' + matched.type,
-    'User: ' + (userEmail||'?') + '\nPayload: "' + text.slice(0,150) + '"',
-    'critical');
+
+  var senderName = (state.profile && state.profile.name) || 'Unknown';
+  var alertMsg = '🛡️ ATTACK SIGNATURE DETECTED\n' +
+    'Type: ' + matched.type + '\n' +
+    'Context: ' + context + '\n' +
+    'User: ' + senderName + ' (UID: ' + (userId||'?') + ')\n' +
+    'Payload: "' + text.slice(0,150) + '"\n' +
+    '⏱ Auto-lockdown executing in 10 seconds.';
+
+  notifyOwner('🛡️ Attack Detected: ' + matched.type, alertMsg, 'critical');
+
+  db.collection('security_alerts').add({
+    type: 'attack_signature',
+    attackType: matched.type,
+    payload: text.slice(0, 200),
+    context: context,
+    userId: userId,
+    userName: senderName,
+    title: '🛡️ Attack: ' + matched.type + ' — Auto-lockdown in 10s',
+    severity: 'critical',
+    read: false,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(docRef) {
+    // Force sign out and flag account after 10 seconds
+    setTimeout(function() {
+      if (userId) {
+        db.collection('users').doc(userId).update({
+          banned: true,
+          bannedReason: 'Auto-banned: Attack attempt detected (' + matched.type + ')',
+          bannedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(){});
+      }
+      docRef.update({ lockdownExecuted: true }).catch(function(){});
+      auth.signOut().then(function(){ window.location.reload(); }).catch(function(){});
+    }, 10000);
+  }).catch(function(){});
+
   return true;
 }
 
-// ── SCAN MESSAGE FOR SCAM ─────────────────────────────────────────────
-function scanMessageForScam(text, dmId, senderId, receiverId) {
-  if (!text || !senderId) return;
-  if (isOwnerAccount(senderId, state.user && state.user.email)) return;
-  if (isSafeContext(text)) return;
-  if (!_dmHistory[dmId]) _dmHistory[dmId] = [];
-  _dmHistory[dmId].push(text);
-  if (_dmHistory[dmId].length > 20) _dmHistory[dmId].shift();
-  var fullContext = _dmHistory[dmId].join(' ');
-  var totalScore = scamScore(fullContext);
-  if (totalScore < SCAM_THRESHOLD) return;
-  var key = senderId + '_' + dmId;
-  if (_scamReported[key]) return;
-  _scamReported[key] = true;
-  notifyOwner('🚨 Scam Detected in DMs!',
-    'Sender: ' + (state.profile && state.profile.name || 'Unknown') + '\nScore: ' + totalScore + '\nMessage: "' + text.slice(0,120) + '"',
-    'critical');
-}
-
-// ── SCAN FOR MALICIOUS LINK ───────────────────────────────────────────
+// ── MALICIOUS LINK PATTERNS ──────────────────────────────────────────────
 var MALICIOUS_LINK_PATTERNS = [
-  /bit\.ly\/[a-z0-9]+/i, /tinyurl\.com\//i, /ow\.ly\//i, /goo\.gl\//i,
-  /free.*hack|hack.*free/i, /phish|malware/i, /\.exe\b/i,
+  /bit\.ly\/[a-z0-9]+/i,
+  /tinyurl\.com\//i,
+  /ow\.ly\//i,
+  /goo\.gl\//i,
+  /rb\.gy\//i,
+  /cutt\.ly\//i,
+  /free.*hack|hack.*free/i,
+  /phish|malware/i,
+  /\.exe\b/i,
   /bank.*login.*verify|paypal.*verify.*account/i,
 ];
 
+// ── FIREBASE READ ANOMALY DETECTION ─────────────────────────────────────
+var _suspiciousReads = 0;
+var _suspiciousTimer = null;
+var _hackerReported = false;
+
+function trackFirebaseRead() {
+  if (isOwnerAccount()) return;
+  _suspiciousReads++;
+  if (!_suspiciousTimer) {
+    _suspiciousTimer = setTimeout(function(){ _suspiciousReads = 0; _suspiciousTimer = null; }, 10000);
+  }
+  if (_suspiciousReads > 200 && !_hackerReported) {
+    _hackerReported = true;
+    reportHackAttempt('Automated Data Scraping', 'Abnormal read volume: ' + _suspiciousReads + ' Firestore reads in 10 seconds. Possible automated attack or data theft.');
+  }
+}
+
+// ── BRUTE FORCE DETECTION ────────────────────────────────────────────────
+var _loginAttempts = {};
+
+function trackAdvancedLogin(email, success) {
+  if (isOwnerAccount(null, email)) return; // Never lock owner out
+  if (!_loginAttempts[email]) _loginAttempts[email] = { count:0, firstAt:Date.now() };
+  var rec = _loginAttempts[email];
+  if (Date.now() - rec.firstAt > 900000) { _loginAttempts[email] = { count:0, firstAt:Date.now() }; rec = _loginAttempts[email]; }
+  if (success) { rec.count = 0; return; }
+  rec.count++;
+  if (rec.count === 5) {
+    notifyOwner('🔐 Brute Force Attempt',
+      'Email: ' + email + ' | ' + rec.count + ' failed logins in ' + Math.round((Date.now()-rec.firstAt)/1000) + 's. Review and ban manually from Admin Panel.',
+      'high');
+    db.collection('security_alerts').add({
+      type:'brute_force', email:email, attempts:rec.count,
+      title:'🔐 Brute Force — Manual Ban Required',
+      message:'Repeated failed logins for: '+email,
+      severity:'high', requiresManualBan:true, read:false,
+      createdAt:firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(function(){});
+  }
+}
+
+// ── SCAM MESSAGE SCANNER (with safe context + scoring) ──────────────────
+var _scamReported = {};
+
+function scanMessageForScam(text, dmId, senderId, receiverId) {
+  if (!text || !senderId) return;
+  // Owner immunity
+  if (isOwnerAccount(senderId, state.user && state.user.email)) return;
+  // Skip safe contexts — wedding, business, legal, family etc.
+  if (isSafeContext(text)) return;
+
+  // Build conversation history for context
+  if (!_dmHistory[dmId]) _dmHistory[dmId] = [];
+  _dmHistory[dmId].push(text);
+  if (_dmHistory[dmId].length > 20) _dmHistory[dmId].shift();
+
+  // Score the full conversation, not just one message
+  var fullContext = _dmHistory[dmId].join(' ');
+  var totalScore = scamScore(fullContext);
+
+  // Only flag if score exceeds threshold
+  if (totalScore < SCAM_THRESHOLD) return;
+
+  var key = senderId + '_' + dmId;
+  if (_scamReported[key]) return;
+  _scamReported[key] = true;
+
+  var senderName = (state.profile && state.profile.name) || 'Unknown';
+  var senderHandle = (state.profile && state.profile.handle) || 'unknown';
+
+  var alertMsg = '🚨 Scam Detected in DMs!\n' +
+    'Sender: ' + senderName + ' (@' + senderHandle + ')\n' +
+    'UID: ' + senderId + '\n' +
+    'Suspicion Score: ' + totalScore + '/10+\n' +
+    'Latest message: "' + text.slice(0,120) + '"\n' +
+    '⏱ Auto-ban executing in 30 seconds.';
+
+  notifyOwner('🚨 Scammer Detected', alertMsg, 'critical');
+
+  db.collection('security_alerts').add({
+    type:'scam_dm', senderId:senderId, senderName:senderName,
+    senderHandle:senderHandle, dmId:dmId, receiverId:receiverId,
+    suspicionScore: totalScore,
+    message:text.slice(0,200),
+    title:'🚨 Scammer — Auto-Ban in 30s',
+    severity:'critical', banned:false, read:false,
+    autoBanAt:new Date(Date.now()+30000).toISOString(),
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(docRef) {
+    setTimeout(function() {
+      db.collection('users').doc(senderId).update({
+        banned:true,
+        bannedReason:'Auto-banned: Scam activity in DMs (score: '+totalScore+')',
+        bannedAt:firebase.firestore.FieldValue.serverTimestamp()
+      }).then(function(){
+        docRef.update({ banned:true, resolvedAt:firebase.firestore.FieldValue.serverTimestamp() });
+        db.collection('notifications').add({
+          toUid:receiverId, fromName:'Mindvora Security', type:'security',
+          text:'🛡️ A user who messaged you has been banned for scam activity. You are safe.',
+          read:false, createdAt:firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(){});
+      }).catch(function(){});
+    }, 30000);
+  }).catch(function(){});
+}
+
+// ── HACK ATTEMPT REPORTER ────────────────────────────────────────────────
+function reportHackAttempt(type, details) {
+  notifyOwner('🛡️ Hack Attempt: ' + type,
+    details + '\nTime: ' + new Date().toLocaleString() + '\n⏱ Auto-lockdown in 10 seconds.',
+    'critical');
+  db.collection('security_alerts').add({
+    type:'hack_attempt', hackType:type, details:details,
+    title:'🛡️ Hack Attempt — Auto-Lockdown in 10s',
+    severity:'critical', read:false,
+    autoLockdownAt:new Date(Date.now()+10000).toISOString(),
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).then(function(docRef) {
+    setTimeout(function() {
+      if (state.user && !isOwnerAccount(state.user.uid, state.user.email)) {
+        db.collection('users').doc(state.user.uid).update({
+          suspicious:true,
+          suspiciousReason:'Abnormal access pattern — possible hack attempt',
+          suspiciousFlaggedAt:firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(function(){});
+      }
+      docRef.update({ lockdownExecuted:true }).catch(function(){});
+      if (!isOwnerAccount()) {
+        auth.signOut().then(function(){ window.location.reload(); }).catch(function(){});
+      }
+    }, 10000);
+  }).catch(function(){});
+}
+
+// ── MALICIOUS LINK SCANNER ───────────────────────────────────────────────
 function scanForMaliciousLink(text, context, userId, userName) {
   if (!text) return false;
   if (isOwnerAccount(userId, state.user && state.user.email)) return false;
@@ -10193,16 +10337,48 @@ function scanForMaliciousLink(text, context, userId, userName) {
   var matched = MALICIOUS_LINK_PATTERNS.find(function(p){ return p.test(text); });
   if (!matched) return false;
   notifyOwner('🔗 Malicious Link Detected',
-    'Context: '+context+'\nUser: '+(userName||'?')+'\n"' + text.slice(0,150) + '"',
+    'Context: '+context+'\nUser: '+(userName||'?')+' (UID: '+(userId||'?')+')\n"'+text.slice(0,150)+'"\n\n⚠️ Review and ban manually.',
     'high');
+  db.collection('security_alerts').add({
+    type:'malicious_link', context:context, userId:userId, userName:userName,
+    content:text.slice(0,200),
+    title:'🔗 Malicious Link — Manual Ban Required',
+    severity:'high', requiresManualBan:true, read:false,
+    createdAt:firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function(){});
   return true;
 }
 
-// ── WATCH DM FOR SCAM ─────────────────────────────────────────────────
+// ── HOOK ATTACK SCANNER INTO ALL TEXT INPUTS (catches hacker tool output) ─
+document.addEventListener('input', function(e) {
+  var el = e.target;
+  if (!el || !el.value) return;
+  if (isOwnerAccount()) return;
+  var val = el.value;
+  if (val.length < 10) return; // too short to be an attack string
+  var uid   = state.user && state.user.uid;
+  var email = state.user && state.user.email;
+  var ctx   = el.id || el.name || el.placeholder || 'input field';
+  scanForAttackSignature(val, ctx, uid, email);
+}, true);
+
+// ── HOOK FIREBASE READS FOR ANOMALY DETECTION ────────────────────────────
+var _origCollection = db.collection.bind(db);
+db.collection = function(path) {
+  var ref = _origCollection(path);
+  var _origGet = ref.get.bind(ref);
+  ref.get = function() {
+    if (!isOwnerAccount()) trackFirebaseRead();
+    return _origGet.apply(this, arguments);
+  };
+  return ref;
+};
+
+// ── WATCH DM FOR SCAM (incoming messages) ────────────────────────────────
 var _dmScamWatchers = {};
 function watchDMForScam(dmId, otherUid) {
   if (_dmScamWatchers[dmId]) return;
-  if (isOwnerAccount(otherUid)) return;
+  if (isOwnerAccount(otherUid)) return; // Never watch owner's messages
   _dmScamWatchers[dmId] = db.collection('dms').doc(dmId)
     .collection('messages').where('fromId','==',otherUid)
     .onSnapshot(function(snap) {
