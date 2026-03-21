@@ -8203,6 +8203,17 @@ function subscribePush() {
 
 // Register service worker
 if ('serviceWorker' in navigator) {
+  // Register main service worker (handles offline, caching, push, background sync)
+  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    .then(function(reg) {
+      console.log('[Mindvora] SW registered:', reg.scope);
+      // Request periodic background sync if supported
+      if ('periodicSync' in reg) {
+        reg.periodicSync.register('refresh-feed', { minInterval: 24 * 60 * 60 * 1000 })
+          .catch(function(){});
+      }
+    }).catch(function(){});
+  // Also register Firebase messaging SW for push notifications
   navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(function(){});
 }
 
