@@ -5174,21 +5174,16 @@ function doLogin(){
   err.textContent='';
   if(!email||!pass){ err.textContent='Please fill in both fields.'; return; }
   btn.disabled=true; btn.textContent='Signing in…';
-  function attempt(tries){
-    auth.signInWithEmailAndPassword(email,pass)
-      .catch(function(e){
-        trackAdvancedLogin(email, false, null);
-        if(e.code==='auth/network-request-failed'&&tries>0){
-          err.textContent='Retrying… ('+tries+' left)';
-          setTimeout(function(){ attempt(tries-1); },2000);
-        } else {
-          err.textContent=authErr(e.code);
-          btn.disabled=false;
-          btn.textContent='Enter Mindvora →';
-        }
-      });
-  }
-  attempt(3);
+  auth.signInWithEmailAndPassword(email,pass)
+    .then(function(cred){
+      // Login successful — onAuthStateChanged will handle mounting the app
+      btn.textContent='✓ Signed in!';
+    })
+    .catch(function(e){
+      err.textContent=authErr(e.code);
+      btn.disabled=false;
+      btn.textContent='Enter Mindvora →';
+    });
 }
 document.getElementById('btn-login').addEventListener('click',doLogin);
 document.getElementById('li-pass').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
