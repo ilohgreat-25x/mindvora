@@ -10969,27 +10969,32 @@ document.addEventListener('copy', function() {
 
 // ── 4. SOUNDBOARD ─────────────────────────────────────────────────────────
 var SOUNDS = [
-  {label:'😂 Laugh',       src:'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'},
-  {label:'👏 Applause',    src:'https://assets.mixkit.co/active_storage/sfx/2659/2659-preview.mp3'},
-  {label:'🥁 Drum Roll',   src:'https://assets.mixkit.co/active_storage/sfx/2748/2748-preview.mp3'},
-  {label:'🎺 Fanfare',     src:'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'},
-  {label:'🔔 Bell',        src:'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'},
-  {label:'💥 Boom',        src:'https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3'},
-  {label:'🎉 Party',       src:'https://assets.mixkit.co/active_storage/sfx/2659/2659-preview.mp3'},
-  {label:'😢 Sad Trombone',src:'https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3'},
-  {label:'⚡ Zap',         src:'https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3'},
-  {label:'🐱 Cat Meow',    src:'https://assets.mixkit.co/active_storage/sfx/2658/2658-preview.mp3'},
-  {label:'🐶 Dog Bark',    src:'https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3'},
-  {label:'🎸 Guitar',      src:'https://assets.mixkit.co/active_storage/sfx/2574/2574-preview.mp3'},
-  {label:'👻 Spooky',      src:'https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3'},
-  {label:'🚀 Whoosh',      src:'https://assets.mixkit.co/active_storage/sfx/2748/2748-preview.mp3'},
-  {label:'💤 Snore',       src:'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'},
-  {label:'🎵 Ding',        src:'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'},
-  {label:'😱 Scream',      src:'https://assets.mixkit.co/active_storage/sfx/2771/2771-preview.mp3'},
-  {label:'🤣 Ha Ha',       src:'https://assets.mixkit.co/active_storage/sfx/2659/2659-preview.mp3'},
-  {label:'👍 Level Up',    src:'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3'},
-  {label:'❌ Wrong',       src:'https://assets.mixkit.co/active_storage/sfx/2867/2867-preview.mp3'},
+  {label:'😂 Laugh',        src:'https://cdn.pixabay.com/download/audio/2021/08/04/audio_c6ccf61f2b.mp3'},
+  {label:'👏 Applause',     src:'https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a73467.mp3'},
+  {label:'🥁 Drum Roll',    src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_9788b7d4e9.mp3'},
+  {label:'🎺 Fanfare',      src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_88447e769a.mp3'},
+  {label:'🔔 Bell',         src:'https://cdn.pixabay.com/download/audio/2021/08/04/audio_2c4f80b3d3.mp3'},
+  {label:'💥 Boom',         src:'https://cdn.pixabay.com/download/audio/2022/03/15/audio_8cb749f5db.mp3'},
+  {label:'🎉 Party Horn',   src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_c5e4f82e3d.mp3'},
+  {label:'😢 Sad Trombone', src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_fc26fc3c53.mp3'},
+  {label:'⚡ Zap',          src:'https://cdn.pixabay.com/download/audio/2022/01/13/audio_af1b183ebb.mp3'},
+  {label:'🐱 Cat Meow',     src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_48ef97f06c.mp3'},
+  {label:'🐶 Dog Bark',     src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_a9357a4f3f.mp3'},
+  {label:'🎸 Guitar',       src:'https://cdn.pixabay.com/download/audio/2022/01/27/audio_3e32d9fc76.mp3'},
+  {label:'👻 Spooky',       src:'https://cdn.pixabay.com/download/audio/2021/09/06/audio_b398b14e84.mp3'},
+  {label:'🚀 Whoosh',       src:'https://cdn.pixabay.com/download/audio/2022/03/10/audio_1e5c9e5fcc.mp3'},
+  {label:'😴 Snore',        src:'https://cdn.pixabay.com/download/audio/2022/03/15/audio_d65fa10a89.mp3'},
+  {label:'🎵 Ding',         src:'https://cdn.pixabay.com/download/audio/2021/08/04/audio_0625c1539c.mp3'},
+  {label:'😱 Scream',       src:'https://cdn.pixabay.com/download/audio/2022/01/27/audio_0c0a1dc789.mp3'},
+  {label:'🤣 Ha Ha',        src:'https://cdn.pixabay.com/download/audio/2021/08/04/audio_c6ccf61f2b.mp3'},
+  {label:'🏆 Level Up',     src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_7f8b7d3b8e.mp3'},
+  {label:'❌ Wrong Buzz',   src:'https://cdn.pixabay.com/download/audio/2021/08/09/audio_ded8cb3ad7.mp3'},
 ];
+// Preload sounds for instant playback
+(function(){
+  var preloaded = {};
+  window._soundCache = preloaded;
+})();
 var activeSoundAudio = null;
 
 function openSoundboard() {
@@ -11001,14 +11006,44 @@ function openSoundboard() {
 }
 
 function playSound(i) {
-  if (activeSoundAudio) { activeSoundAudio.pause(); activeSoundAudio.currentTime=0; }
+  if (activeSoundAudio) { 
+    activeSoundAudio.pause(); 
+    activeSoundAudio.src = ''; 
+    activeSoundAudio = null; 
+  }
   var s = SOUNDS[i];
   var btn = document.getElementById('snd-'+i);
-  if (btn) { btn.style.background='rgba(34,197,94,.2)'; btn.style.borderColor='var(--green3)'; }
-  activeSoundAudio = new Audio(s.src);
-  activeSoundAudio.play().catch(function(){ showToast('Could not play sound'); });
+  // Reset all buttons
+  document.querySelectorAll('[id^="snd-"]').forEach(function(b){
+    b.style.background='var(--deep)'; b.style.borderColor='var(--border)'; b.textContent=SOUNDS[parseInt(b.id.replace('snd-',''))].label;
+  });
+  if (btn) { btn.style.background='rgba(34,197,94,.2)'; btn.style.borderColor='var(--green3)'; btn.textContent='▶ '+s.label; }
+  
+  activeSoundAudio = new Audio();
+  activeSoundAudio.src = s.src;
+  activeSoundAudio.volume = 0.8;
+  
+  activeSoundAudio.play().then(function(){
+    // Playing successfully
+  }).catch(function(err){
+    // Try without preload
+    var fallback = new Audio(s.src);
+    fallback.volume = 0.8;
+    fallback.play().catch(function(){
+      showToast('⚠️ Could not play. Tap again or check your volume.');
+      if (btn) { btn.style.background='var(--deep)'; btn.style.borderColor='var(--border)'; btn.textContent=s.label; }
+    });
+    activeSoundAudio = fallback;
+  });
+  
   activeSoundAudio.onended = function() {
-    if (btn) { btn.style.background='var(--deep)'; btn.style.borderColor='var(--border)'; }
+    if (btn) { btn.style.background='var(--deep)'; btn.style.borderColor='var(--border)'; btn.textContent=s.label; }
+    activeSoundAudio = null;
+  };
+  activeSoundAudio.onerror = function() {
+    showToast('⚠️ Sound not available. Check your internet.');
+    if (btn) { btn.style.background='var(--deep)'; btn.style.borderColor='var(--border)'; btn.textContent=s.label; }
+    activeSoundAudio = null;
   };
 }
 
