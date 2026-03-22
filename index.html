@@ -1348,6 +1348,7 @@ img, video { max-width: 100%; height: auto; }
         <button class="nav-item" id="nav-aria"><span class="nav-ic">🤖</span> ARIA AI</button>
         <button class="nav-item" id="nav-ads"><span class="nav-ic">📣</span> Advertise</button>
         <button class="nav-item" id="nav-admin" style="display:none"><span class="nav-ic">👑</span> Admin<span class="admin-badge">OWNER</span></button>
+        <button class="nav-item" id="nav-referral-toggle" style="display:none" onclick="toggleReferralSystem()"><span class="nav-ic">🔗</span> Referral: <span id="referral-status-lbl">ON</span></button>
         <div style="height:1px;background:var(--border);margin:8px 0"></div>
         <button class="nav-item" id="nav-support" onclick="openSupportModal()"><span class="nav-ic">📧</span> Contact Support</button>
         <button class="nav-item" id="nav-live" onclick="openGoLive()"><span class="nav-ic">🔴</span> Go Live</button>
@@ -1520,9 +1521,9 @@ img, video { max-width: 100%; height: auto; }
         <div class="pl-price">$10<span>/month</span></div>
         <div class="pl-perks">✓ All Basic &nbsp;✓ Revenue share &nbsp;✓ Priority support</div>
       </div>
-      <div class="plan-card" id="pc-creator" onclick="selPlan('creator',20,'Mindvora Creator')">
+      <div class="plan-card" id="pc-creator" onclick="selPlan('creator',15,'Mindvora Creator')">
         <div class="pl-name">Mindvora Creator 🎯</div>
-        <div class="pl-price">$20<span>/month</span></div>
+        <div class="pl-price">$15<span>/month</span></div>
         <div class="pl-perks">✓ All Pro &nbsp;✓ Analytics &nbsp;✓ Creator fund</div>
       </div>
       <div style="background:linear-gradient(135deg,rgba(22,101,52,.2),rgba(34,197,94,.1));border:1px solid var(--green3);border-radius:12px;padding:14px;margin-bottom:12px">
@@ -1537,13 +1538,13 @@ img, video { max-width: 100%; height: auto; }
             </div>
           </div>
           <div style="text-align:right;flex-shrink:0;margin-left:12px">
-            <div style="font-size:18px;font-weight:700;color:var(--green3)">$30</div>
+            <div style="font-size:18px;font-weight:700;color:var(--green3)">$25</div>
             <div style="font-size:10px;color:var(--muted)">one time</div>
           </div>
         </div>
         <div style="display:flex;gap:8px;margin-top:10px">
-          <button onclick="buyVerifiedBadge()" style="flex:1;padding:9px;background:linear-gradient(135deg,var(--green),var(--green2));border:none;border-radius:8px;color:var(--cream);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💳 Card — $30</button>
-          <button onclick="payBadgeCrypto()" style="flex:1;padding:9px;background:linear-gradient(135deg,#f7931a,#e07b00);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">₿ Crypto — $30</button>
+          <button onclick="buyVerifiedBadge()" style="flex:1;padding:9px;background:linear-gradient(135deg,var(--green),var(--green2));border:none;border-radius:8px;color:var(--cream);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💳 Card — $25</button>
+          <button onclick="payBadgeCrypto()" style="flex:1;padding:9px;background:linear-gradient(135deg,#f7931a,#e07b00);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">₿ Crypto — $25</button>
         </div>
       </div>
       <div style="background:var(--deep);border:1px solid var(--borderhi);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -1656,7 +1657,8 @@ img, video { max-width: 100%; height: auto; }
         </div>
       </div>
       <div class="e-panel" id="earn-referral">
-        <div style="background:var(--deep);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--muted);line-height:1.7">Share your link and earn $1 per signup!</div>
+        <div id="referral-status-banner" style="background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:var(--green3);line-height:1.7">🔗 Share your referral link and earn $1 for every person who signs up through it!</div>
+        <div id="referral-disabled-banner" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#fca5a5;line-height:1.7">🔴 The referral programme is currently paused. Check back soon!</div>
         <label class="m-label">Your Referral Link</label>
         <div style="display:flex;gap:8px"><input class="m-input" id="ref-link" readonly style="margin:0;flex:1"><button class="btn-spark" onclick="copyRef()">Copy</button></div>
       </div>
@@ -4926,7 +4928,7 @@ img, video { max-width: 100%; height: auto; }
 'use strict';
 
 // ═══════════════════════════════════════════════
-// NEURALSEED SECURITY SYSTEM v1.0
+// MINDVORA SECURITY SYSTEM v1.0
 // ═══════════════════════════════════════════════
 
 // ── INPUT SANITIZER ──
@@ -4959,7 +4961,7 @@ function isSafeUrl(url){
 var rateLimits = {};
 function checkRateLimit(action, maxPerMin){
   var now = Date.now();
-  var key = action + '_' + (window._zyncUid||'anon');
+  var key = action + '_' + (window._mvUid||'anon');
   if(!rateLimits[key]) rateLimits[key] = [];
   // Remove entries older than 1 minute
   rateLimits[key] = rateLimits[key].filter(function(t){ return now-t < 60000; });
@@ -5287,13 +5289,13 @@ function safeFirestoreWrite(collection, data, docId){
 
 // Store current user uid for rate limiting
 if(typeof auth !== 'undefined') auth.onAuthStateChanged(function(u){
-  window._zyncUid = u ? u.uid : null;
+  window._mvUid = u ? u.uid : null;
 });
 
-console.log('%c🔒 Mindvora Security System Active', 'color:#22c55e;font-size:13px;font-weight:bold');
+// Security system active
 
 // ═══════════════════════════════════════════════
-// NEURALSEED SECURITY ALERT SYSTEM
+// MINDVORA SECURITY ALERT SYSTEM
 // ═══════════════════════════════════════════════
 
 var OWNER_EMAIL = 'zyncofficial06@gmail.com';
@@ -5546,7 +5548,7 @@ function loadSecurityAlertsList(){
 }
 
 // ═══════════════════════════════════════════════
-// NEURALSEED SECURITY ALERT SYSTEM
+// MINDVORA SECURITY ALERT SYSTEM
 // ═══════════════════════════════════════════════
 
 var OWNER_ALERT_EMAIL = 'ilohgreat25@gmail.com';
@@ -5768,7 +5770,6 @@ function loadSecurityAlertsPanel(){
 }
 
 // Firebase config — public key safe by design, restricted in Google Cloud Console
-// github-secret-scanning-ignore
 firebase.initializeApp({
   apiKey:            'AIzaSyDdTgIqJuOYJhRAhEF9vMuMA8oZViRPlts',
   authDomain:        'zync-social.firebaseapp.com',
@@ -5864,32 +5865,38 @@ function doRegister(){
       // ONE-CHAIN REFERRAL: only the DIRECT referrer earns $1
       // A refers B → A gets $1. When B refers C → B gets $1, A gets nothing.
       if(refCode && refCode !== newUid){
-        // Check this new user has never been referred before (prevent abuse)
-        db.collection('referrals').where('newUserId','==',newUid).get().then(function(snap){
-          if(!snap.empty) return; // already referred — do nothing
-          // Check referrer exists
-          db.collection('users').doc(refCode).get().then(function(referrerDoc){
-            if(!referrerDoc.exists) return; // referrer not found
-            // Credit $1 to DIRECT referrer only
-            db.collection('users').doc(refCode).update({
-              earnings: firebase.firestore.FieldValue.increment(1),
-              referralCount: firebase.firestore.FieldValue.increment(1)
-            });
-            db.collection('notifications').add({
-              uid: refCode,
-              type: 'referral',
-              text: '🎉 Someone signed up with your referral link! You earned $1.00',
-              read: false,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            // Store the referral so this user can never be referred again
-            db.collection('referrals').add({
-              referrerId: refCode,
-              referrerName: referrerDoc.data().name||'Mindvora user',
-              newUserId: newUid,
-              amount: 1,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
+        // ── REFERRAL SYSTEM: check if enabled by owner first ──
+        db.collection('app_settings').doc('referral').get().then(function(settingDoc) {
+          var isEnabled = !settingDoc.exists || settingDoc.data().enabled !== false;
+          if (!isEnabled) return; // Referral system deactivated by owner — do nothing
+
+          // Check this new user has never been referred before (prevent abuse)
+          db.collection('referrals').where('newUserId','==',newUid).get().then(function(snap){
+            if(!snap.empty) return; // already referred — do nothing
+            // Check referrer exists
+            db.collection('users').doc(refCode).get().then(function(referrerDoc){
+              if(!referrerDoc.exists) return; // referrer not found
+              // Credit $1 to DIRECT referrer only
+              db.collection('users').doc(refCode).update({
+                earnings: firebase.firestore.FieldValue.increment(1),
+                referralCount: firebase.firestore.FieldValue.increment(1)
+              });
+              db.collection('notifications').add({
+                uid: refCode,
+                type: 'referral',
+                text: '🎉 Someone signed up with your referral link! You earned $1.00',
+                read: false,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              // Store the referral record
+              db.collection('referrals').add({
+                referrerId: refCode,
+                referrerName: referrerDoc.data().name||'Mindvora user',
+                newUserId: newUid,
+                amount: 1,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }).catch(function(){});
           }).catch(function(){});
         }).catch(function(){});
       }
@@ -5972,13 +5979,15 @@ function mountApp(){
   }
   // Save device profile linked to user email
   setTimeout(function(){ saveDeviceProfile(); applyDeviceLayout(); }, 500);
+  // Load referral status for owner
+  if (isAdmin()) { loadReferralStatus(); }
 }
 
 document.getElementById('btn-out').addEventListener('click',function(){ if(state.sparksUnsub) state.sparksUnsub(); auth.signOut(); });
 
 var isLight=false;
-try{ isLight=localStorage.getItem('zync_theme')==='light'; if(isLight){ document.body.classList.add('light'); document.getElementById('theme-btn').textContent='☀️'; } }catch(e){}
-document.getElementById('theme-btn').addEventListener('click',function(){ isLight=!isLight; document.body.classList.toggle('light',isLight); this.textContent=isLight?'☀️':'🌙'; try{ localStorage.setItem('zync_theme',isLight?'light':'dark'); }catch(e){} showToast(isLight?'☀️ Light mode':'🌙 Dark mode'); });
+try{ isLight=localStorage.getItem('mv_theme')==='light'; if(isLight){ document.body.classList.add('light'); document.getElementById('theme-btn').textContent='☀️'; } }catch(e){}
+document.getElementById('theme-btn').addEventListener('click',function(){ isLight=!isLight; document.body.classList.toggle('light',isLight); this.textContent=isLight?'☀️':'🌙'; try{ localStorage.setItem('mv_theme',isLight?'light':'dark'); }catch(e){} showToast(isLight?'☀️ Light mode':'🌙 Dark mode'); });
 
 function updateStats(){
   if(!state.profile) return;
@@ -6599,7 +6608,7 @@ function sendMsg(dmId,otherId,otherName,otherColor){
   if(inp){ scanMessageForScam(inp.value, dmId, state.user.uid, otherId); }
   if(!checkRateLimit('dm',20)){ return; } var inp=document.getElementById('ci-'+dmId); if(!inp) return; var text=inp.value.trim(); if(!text||!state.user) return; inp.value=''; var batch=db.batch(),dmRef=db.collection('dms').doc(dmId),msgRef=dmRef.collection('messages').doc(),names={},colors={}; names[state.user.uid]=state.profile.name||'User'; names[otherId]=otherName; colors[state.user.uid]=state.profile.color||COLORS[0]; colors[otherId]=otherColor||COLORS[0]; batch.set(dmRef,{members:[state.user.uid,otherId],names:names,colors:colors,lastMsg:text,lastAt:firebase.firestore.FieldValue.serverTimestamp(),unread:true},{merge:true}); batch.set(msgRef,{text:text,fromId:state.user.uid,fromName:state.profile.name,createdAt:firebase.firestore.FieldValue.serverTimestamp(),read:false,readAt:null}); batch.commit().then(function(){ openChat(dmId,otherId,otherName,otherColor||COLORS[0]); db.collection('notifications').add({toUid:otherId,fromName:state.profile.name,type:'dm',text:state.profile.name+' sent you a message',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }); }
 
-function selPlan(id,amount,name){ state.plan={id:id,amount:amount,name:name}; document.querySelectorAll('.plan-card').forEach(function(c){ c.classList.remove('sel'); }); document.getElementById('pc-'+id).classList.add('sel'); document.getElementById('co-name').textContent=name; document.getElementById('co-price').textContent='$'+amount.toLocaleString(); }
+function selPlan(id,amount,name){ state.plan={id:id,amount:amount,name:name}; document.querySelectorAll('.plan-card').forEach(function(c){ c.classList.remove('sel'); }); document.getElementById('pc-'+id).classList.add('sel'); document.getElementById('co-name').textContent=name; document.getElementById('co-price').textContent='$'+amount.toLocaleString(); if(document.getElementById('co-name')) document.getElementById('co-name').textContent=name; }
 document.getElementById('btn-pay').addEventListener('click',function(){ if(!state.user) return; if(typeof PaystackPop==='undefined'){ showToast('Payment loading, try again.'); return; } // Convert USD to NGN for Paystack (1 USD ≈ 1600 NGN)
   var usdAmount = state.plan.amount;
   var ngnAmount = Math.round(usdAmount * 1600 * 100); // in kobo
@@ -6616,7 +6625,7 @@ function buyVerifiedBadge(){
   PaystackPop.setup({
     key: PAYSTACK_KEY,
     email: state.user.email,
-    amount: 30 * 1600 * 100, // $30 in NGN kobo
+    amount: 25 * 1600 * 100, // $25 in NGN kobo
     currency: 'NGN',
     ref: 'ZVB-' + Date.now(),
     callback: function(){
@@ -13264,6 +13273,63 @@ function toggleCommentsLock() {
   }
 }
 
+
+// ── REFERRAL SYSTEM TOGGLE (OWNER ONLY) ──────────────────────────────────
+var referralEnabled = true; // default on, loaded from Firestore
+
+function loadReferralStatus() {
+  db.collection('app_settings').doc('referral').get().then(function(doc) {
+    if (doc.exists) {
+      referralEnabled = doc.data().enabled !== false;
+    } else {
+      referralEnabled = true; // default enabled
+    }
+    updateReferralUI();
+  }).catch(function(){ referralEnabled = true; });
+}
+
+function updateReferralUI() {
+  var lbl  = document.getElementById('referral-status-lbl');
+  var dlbl = document.getElementById('drawer-referral-lbl');
+  var navBtn = document.getElementById('nav-referral-toggle');
+  var drawerBtn = document.getElementById('drawer-referral-btn');
+
+  var statusText = referralEnabled ? 'ON ✅' : 'OFF 🔴';
+  if (lbl)  lbl.textContent  = statusText;
+  if (dlbl) dlbl.textContent = statusText;
+
+  // Show/hide active and disabled banners in earn modal
+  var activeBanner   = document.getElementById('referral-status-banner');
+  var disabledBanner = document.getElementById('referral-disabled-banner');
+  if (activeBanner)   activeBanner.style.display   = referralEnabled ? 'block' : 'none';
+  if (disabledBanner) disabledBanner.style.display = referralEnabled ? 'none'  : 'block';
+
+  // Show/hide the toggle button for owner only
+  if (isAdmin()) {
+    if (navBtn)    { navBtn.style.display    = 'flex'; }
+    if (drawerBtn) { drawerBtn.style.display = 'flex'; }
+  }
+}
+
+function toggleReferralSystem() {
+  if (!isAdmin()) { showToast('⛔ Access denied.'); return; }
+  var newState = !referralEnabled;
+  db.collection('app_settings').doc('referral').set({
+    enabled:    newState,
+    updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+    updatedBy:  state.user.email
+  }).then(function() {
+    referralEnabled = newState;
+    updateReferralUI();
+    showToast(newState
+      ? '✅ Referral system is now ACTIVE — users can earn from referrals'
+      : '🔴 Referral system DEACTIVATED — no referral bonuses will be paid'
+    );
+  }).catch(function(e) {
+    showToast('Error: ' + e.message);
+  });
+}
+
 // Favicon — static, set in HTML head
 
 </script>
@@ -13343,6 +13409,7 @@ function toggleCommentsLock() {
     <button class="drawer-item" onclick="toggleAccessibility();closeDrawer()">♿ Accessibility</button>
     <button class="drawer-item" onclick="openSupportModal();closeDrawer()">📧 Contact Support</button>
     <button class="drawer-item" id="drawer-admin-btn" style="display:none" onclick="document.getElementById('nav-admin').click();closeDrawer()">👑 Admin Panel</button>
+    <button class="drawer-item" id="drawer-referral-btn" style="display:none" onclick="toggleReferralSystem();closeDrawer()">🔗 Referral: <span id="drawer-referral-lbl">ON</span></button>
     <button class="drawer-item" onclick="document.getElementById('btn-out').click();closeDrawer()" style="color:#fca5a5">🚪 Sign Out</button>
   </div>
 </div>
