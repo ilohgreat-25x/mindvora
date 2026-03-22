@@ -1059,33 +1059,6 @@ img, video { max-width: 100%; height: auto; }
   color: var(--green3);
 }
 
-/* ── Hide left sidebar completely — all features via drawer only ── */
-.sidebar {
-  display: none !important;
-}
-/* Feed column takes full width now that sidebar is hidden */
-.app-layout {
-  display: flex;
-  flex-direction: column;
-}
-.feed-col {
-  width: 100% !important;
-  max-width: 680px !important;
-  margin: 0 auto !important;
-  padding-bottom: 20px;
-}
-/* Keep right sidebar on large screens */
-@media (min-width: 1024px) {
-  .app-layout {
-    flex-direction: row;
-    justify-content: center;
-  }
-  .feed-col {
-    flex: 1;
-    max-width: 640px !important;
-  }
-}
-
 /* ═══════════════════════════════════════════════════════════
    FULL WIDTH FEED — sidebar hidden, feed takes entire screen
    ═══════════════════════════════════════════════════════════ */
@@ -1154,6 +1127,130 @@ img, video { max-width: 100%; height: auto; }
   border-radius: 0 !important;
   margin: 0 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   LAYOUT FIX — Left sidebar hidden, feed full, right kept
+   ═══════════════════════════════════════════════════════════ */
+
+/* Hide LEFT sidebar only */
+.sidebar {
+  display: none !important;
+}
+
+/* App layout — row: feed + right sidebar */
+.app-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  flex: 1;
+  overflow: hidden;
+  height: calc(100vh - 56px);
+}
+
+/* Feed — takes ALL space left after right sidebar */
+.feed-col {
+  flex: 1 !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-y: auto !important;
+  height: 100% !important;
+  padding: 0 0 80px 0 !important;
+}
+
+/* Right sidebar — fixed width, always visible on tablet+ */
+.right-sidebar {
+  display: block !important;
+  width: 260px !important;
+  flex-shrink: 0 !important;
+  overflow-y: auto !important;
+  height: 100% !important;
+  border-left: 1px solid var(--border) !important;
+  padding: 12px !important;
+}
+
+/* App screen */
+#app-screen {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+/* Spark cards full width of feed column */
+.spark-card {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  margin: 0 !important;
+}
+
+/* Media fills full width of feed */
+.sk-media-wrap,
+.sk-media-img-wrap {
+  width: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* On mobile — hide right sidebar, feed takes everything */
+@media (max-width: 767px) {
+  .right-sidebar {
+    display: none !important;
+  }
+  .feed-col {
+    padding-bottom: 70px !important;
+  }
+}
+
+/* On small tablet — narrow right sidebar */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .right-sidebar {
+    width: 200px !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   DEVICE-AWARE CSS
+   ═══════════════════════════════════════════════════════════ */
+
+/* iOS specific fixes */
+.os-ios .spark-card { -webkit-transform: translateZ(0); }
+.os-ios .sk-media-main { -webkit-playsinline: 1; }
+.os-ios input, .os-ios textarea { font-size: 16px !important; } /* prevent iOS zoom on focus */
+
+/* Android specific */
+.os-android .bottom-nav { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* TWA (installed app) — hide browser-specific UI hints */
+.is-twa .auth-sub { display: none; }
+
+/* Touch devices — bigger tap targets */
+.is-touch .s-btn        { min-height: 36px; padding: 6px 12px; }
+.is-touch .nav-item     { min-height: 44px; }
+.is-touch .drawer-item  { min-height: 48px; }
+.is-touch .btn-auth     { min-height: 52px; }
+.is-touch .fi           { min-height: 48px; font-size: 16px; }
+
+/* Phone — clean full screen */
+.device-phone .spark-card   { border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+.device-phone .compose-box  { border-radius: 0 !important; margin: 0 !important; }
+.device-phone .stories-bar  { padding: 8px 6px; }
+.device-phone .feed-col     { padding-bottom: 70px !important; }
+
+/* Tablet — slightly comfortable layout */
+.device-tablet .spark-card  { border-radius: 12px; margin: 0 8px 8px; }
+.device-tablet .feed-col    { padding: 8px; }
+
+/* Desktop — full layout */
+.device-desktop .spark-card { border-radius: 14px; margin: 0 0 10px; }
+.device-desktop .feed-col   { padding: 14px; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -5872,6 +5969,8 @@ function mountApp(){
   if (currentLang && currentLang !== 'en') {
     setTimeout(function(){ applyTranslations(currentLang); }, 300);
   }
+  // Save device profile linked to user email
+  setTimeout(function(){ saveDeviceProfile(); applyDeviceLayout(); }, 500);
 }
 
 document.getElementById('btn-out').addEventListener('click',function(){ if(state.sparksUnsub) state.sparksUnsub(); auth.signOut(); });
@@ -12926,6 +13025,186 @@ window.addEventListener('popstate', function() { closeDrawer(); });
     if (startX - endX > 60) closeDrawer(); // swipe left to close
   }, { passive: true });
 })();
+
+
+// ═══════════════════════════════════════════════════════════════════
+// MINDVORA DEVICE INTELLIGENCE SYSTEM
+// Uses user email + device info to fit layout perfectly on any screen
+// ═══════════════════════════════════════════════════════════════════
+
+var MV_DEVICE = {
+  type: 'desktop',      // phone | tablet | desktop
+  os: 'unknown',        // ios | android | windows | mac | linux
+  browser: 'unknown',   // chrome | safari | firefox | edge
+  screenW: window.screen.width,
+  screenH: window.screen.height,
+  viewW: window.innerWidth,
+  viewH: window.innerHeight,
+  dpr: window.devicePixelRatio || 1,
+  isTouch: ('ontouchstart' in window) || navigator.maxTouchPoints > 0,
+  isMobile: false,
+  isTablet: false,
+  isDesktop: false,
+  isIOS: false,
+  isAndroid: false,
+  isSafari: false,
+  isTWA: false  // Trusted Web Activity (Android APK via Median/Bubblewrap)
+};
+
+(function detectDevice() {
+  var ua = navigator.userAgent || '';
+  var sw = window.screen.width;
+  var sh = window.screen.height;
+  var vw = window.innerWidth;
+
+  // OS detection
+  MV_DEVICE.isIOS     = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  MV_DEVICE.isAndroid = /Android/.test(ua);
+  MV_DEVICE.isSafari  = /Safari/.test(ua) && !/Chrome/.test(ua);
+  MV_DEVICE.isTWA     = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+  if (/Windows/.test(ua))     MV_DEVICE.os = 'windows';
+  else if (/Mac/.test(ua))    MV_DEVICE.os = 'mac';
+  else if (MV_DEVICE.isIOS)   MV_DEVICE.os = 'ios';
+  else if (MV_DEVICE.isAndroid) MV_DEVICE.os = 'android';
+  else if (/Linux/.test(ua))  MV_DEVICE.os = 'linux';
+
+  if (/Chrome/.test(ua))      MV_DEVICE.browser = 'chrome';
+  else if (MV_DEVICE.isSafari) MV_DEVICE.browser = 'safari';
+  else if (/Firefox/.test(ua)) MV_DEVICE.browser = 'firefox';
+  else if (/Edge/.test(ua))   MV_DEVICE.browser = 'edge';
+
+  // Device type by screen width + touch
+  if (vw <= 767 || (MV_DEVICE.isTouch && sw <= 767)) {
+    MV_DEVICE.type = 'phone';
+    MV_DEVICE.isMobile = true;
+  } else if (vw <= 1024 || (MV_DEVICE.isTouch && sw <= 1024)) {
+    MV_DEVICE.type = 'tablet';
+    MV_DEVICE.isTablet = true;
+  } else {
+    MV_DEVICE.type = 'desktop';
+    MV_DEVICE.isDesktop = true;
+  }
+
+  // Apply device class to body for CSS targeting
+  document.body.classList.remove('device-phone','device-tablet','device-desktop','os-ios','os-android','is-twa','is-touch');
+  document.body.classList.add('device-' + MV_DEVICE.type);
+  document.body.classList.add('os-' + MV_DEVICE.os);
+  if (MV_DEVICE.isTouch)   document.body.classList.add('is-touch');
+  if (MV_DEVICE.isTWA)     document.body.classList.add('is-twa');
+
+  applyDeviceLayout();
+})();
+
+function applyDeviceLayout() {
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+
+  // ── PHONE layout ──────────────────────────────────────────
+  if (MV_DEVICE.isMobile || vw <= 767) {
+    // Full screen feed, bottom nav, no sidebars
+    setStyle('right-sidebar', 'display', 'none');
+    setStyle('feed-col', 'paddingBottom', '70px');
+    // Show bottom nav
+    var bn = document.querySelector('.bottom-nav');
+    if (bn) bn.style.display = 'flex';
+    // Full width compose box
+    setStyle('compose-box', 'borderRadius', '0');
+    setStyle('compose-box', 'borderLeft', 'none');
+    setStyle('compose-box', 'borderRight', 'none');
+    // iOS safe area padding
+    if (MV_DEVICE.isIOS) {
+      document.body.style.paddingBottom = 'env(safe-area-inset-bottom, 16px)';
+    }
+  }
+
+  // ── TABLET layout ─────────────────────────────────────────
+  else if (MV_DEVICE.isTablet || (vw > 767 && vw <= 1024)) {
+    setStyle('right-sidebar', 'display', 'block');
+    setStyle('right-sidebar', 'width', '200px');
+    var bn = document.querySelector('.bottom-nav');
+    if (bn) bn.style.display = 'none';
+  }
+
+  // ── DESKTOP layout ────────────────────────────────────────
+  else {
+    setStyle('right-sidebar', 'display', 'block');
+    setStyle('right-sidebar', 'width', '260px');
+    var bn = document.querySelector('.bottom-nav');
+    if (bn) bn.style.display = 'none';
+  }
+
+  // Fix video display for device
+  fixVideosForDevice();
+}
+
+function setStyle(id, prop, val) {
+  var el = document.getElementById(id) || document.querySelector('.' + id);
+  if (el) el.style[prop] = val;
+}
+
+function fixVideosForDevice() {
+  // Re-run adaptVideoDisplay on all loaded videos
+  document.querySelectorAll('.sk-media-main').forEach(function(v) {
+    if (v.videoWidth && v.videoHeight) {
+      adaptVideoDisplay(v);
+    }
+  });
+}
+
+// Save device profile to Firebase linked to user email
+function saveDeviceProfile() {
+  if (!state.user || !state.user.email) return;
+  try {
+    var deviceData = {
+      email:    state.user.email,
+      uid:      state.user.uid,
+      type:     MV_DEVICE.type,
+      os:       MV_DEVICE.os,
+      browser:  MV_DEVICE.browser,
+      screenW:  window.screen.width,
+      screenH:  window.screen.height,
+      viewW:    window.innerWidth,
+      viewH:    window.innerHeight,
+      dpr:      window.devicePixelRatio || 1,
+      isTouch:  MV_DEVICE.isTouch,
+      isTWA:    MV_DEVICE.isTWA,
+      userAgent: navigator.userAgent.slice(0, 120),
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    // Save to user's devices subcollection
+    db.collection('users').doc(state.user.uid)
+      .collection('devices')
+      .doc(MV_DEVICE.os + '_' + MV_DEVICE.browser)
+      .set(deviceData, { merge: true })
+      .catch(function(){});
+
+    // Also update main user doc with last device
+    db.collection('users').doc(state.user.uid)
+      .update({ lastDevice: MV_DEVICE.type, lastOS: MV_DEVICE.os })
+      .catch(function(){});
+
+    console.log('[Mindvora] Device profile saved:', MV_DEVICE.type, MV_DEVICE.os);
+  } catch(e) {}
+}
+
+// Re-apply layout on window resize (e.g. rotation on phone/tablet)
+var _resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    MV_DEVICE.viewW = window.innerWidth;
+    MV_DEVICE.viewH = window.innerHeight;
+    // Re-detect type
+    if (window.innerWidth <= 767)       { MV_DEVICE.type = 'phone';   MV_DEVICE.isMobile=true;  MV_DEVICE.isTablet=false; MV_DEVICE.isDesktop=false; }
+    else if (window.innerWidth <= 1024) { MV_DEVICE.type = 'tablet';  MV_DEVICE.isMobile=false; MV_DEVICE.isTablet=true;  MV_DEVICE.isDesktop=false; }
+    else                                { MV_DEVICE.type = 'desktop'; MV_DEVICE.isMobile=false; MV_DEVICE.isTablet=false; MV_DEVICE.isDesktop=true; }
+    document.body.classList.remove('device-phone','device-tablet','device-desktop');
+    document.body.classList.add('device-' + MV_DEVICE.type);
+    applyDeviceLayout();
+  }, 150);
+});
 
 // Favicon — static, set in HTML head
 
