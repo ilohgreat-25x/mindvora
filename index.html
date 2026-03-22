@@ -1085,6 +1085,75 @@ img, video { max-width: 100%; height: auto; }
     max-width: 640px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   FULL WIDTH FEED — sidebar hidden, feed takes entire screen
+   ═══════════════════════════════════════════════════════════ */
+
+/* Hide right sidebar completely */
+.right-sidebar {
+  display: none !important;
+}
+
+/* App layout — simple full width flex */
+.app-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+
+/* Feed column — full remaining width */
+.feed-col {
+  flex: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-y: auto !important;
+}
+
+/* App screen full width */
+#app-screen {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden;
+}
+
+/* Compose box full width */
+.compose-box {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  margin: 0 !important;
+}
+
+/* Spark cards full width */
+.spark-card {
+  border-radius: 0 !important;
+  border-left: none !important;
+  border-right: none !important;
+  margin: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Stories bar full width */
+.stories-bar {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Filter bar full width */
+.filter-bar {
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -12924,6 +12993,12 @@ window.addEventListener('popstate', function() { closeDrawer(); });
     <button class="drawer-item" onclick="openQRCode();closeDrawer()">📱 My QR Code</button>
     <button class="drawer-item" onclick="openClipboard();closeDrawer()">📋 Clipboard</button>
     <button class="drawer-item" onclick="openMoodStatus();closeDrawer()">😊 Mood Status</button>
+
+    <!-- DISCOVER -->
+    <div class="drawer-section-title">Discover</div>
+    <button class="drawer-item" onclick="openModal('modal-prem');closeDrawer()">💎 Go Premium</button>
+    <button class="drawer-item" onclick="closeDrawer();document.getElementById('nav-disc').click()">🔥 Trending</button>
+    <button class="drawer-item" onclick="openAdvancedSearch();closeDrawer()">👤 Find People</button>
 
     <!-- SETTINGS -->
     <div class="drawer-section-title">Settings</div>
