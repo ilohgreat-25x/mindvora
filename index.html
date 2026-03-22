@@ -1396,6 +1396,7 @@ img, video { max-width: 100%; height: auto; }
           <button class="media-btn" id="btn-poll" title="Create poll">📊</button>
           <button class="media-btn" id="btn-location" title="Tag location">📍</button>
           <button class="media-btn" id="btn-schedule" title="Schedule post">⏰</button>
+          <button class="media-btn" id="btn-comments-toggle" title="Toggle comments on/off" onclick="toggleCommentsLock()" style="font-size:16px">💬</button>
           <span class="cc" id="cc">280</span>
           <button class="btn-spark" id="btn-post">✦ Spark</button>
         </div>
@@ -6231,7 +6232,9 @@ function buildSparkHTML(s){
     pollHTML+linkPrev+
     '<div class="sk-actions">'+
       '<button class="s-btn'+(liked?' liked':'')+'" onclick="toggleLike(\''+s.id+'\')">'+( liked?'\u2764\ufe0f':'\U0001f90d')+' '+(s.likes||[]).length+'</button>'+
-      '<button class="s-btn" onclick="openComments(\''+s.id+'\')">💬 '+(s.commentCount||0)+'</button>'+
+      (s.commentsLocked
+        ? '<button class="s-btn" style="color:var(--muted);cursor:default" title="Comments disabled by author">🔒 Comments off</button>'
+        : '<button class="s-btn" onclick="openComments(\''+s.id+'\')">💬 '+(s.commentCount||0)+'</button>')+
       '<button class="s-btn'+(saved?' saved':'')+'" onclick="toggleSave(\''+s.id+'\')">🔖</button>'+
       (isOwn?'':'<button class="s-btn" onclick="openTip(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'Creator')+'\')">💝 Tip</button>')+
       '<button class="s-btn" onclick="shareSpark(\''+s.id+'\')">↗</button>'+
@@ -6244,7 +6247,7 @@ function buildSparkHTML(s){
   '</div>';
 }
 
-var compCat='all',pendingMedia=null;
+var compCat='all',pendingMedia=null,commentsLocked=false;
 document.querySelectorAll('.c-bot .f-pill').forEach(function(b){ b.addEventListener('click',function(){
   document.querySelectorAll('.c-bot .f-pill').forEach(function(x){ x.classList.remove('active'); });
   this.classList.add('active');
@@ -6284,7 +6287,11 @@ document.getElementById('btn-post').addEventListener('click',function(){ var tex
     btn.disabled=false; btn.textContent='✦ Spark';
     return;
   }
-  db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark'; db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)}); showToast('Spark launched! 🌿'); }).catch(function(e){ showToast('Failed: '+e.message); btn.disabled=false; btn.textContent='✦ Spark'; }); });
+  db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,commentsLocked:commentsLocked,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark';
+              // Reset comments lock
+              commentsLocked=false;
+              var ctBtn=document.getElementById('btn-comments-toggle');
+              if(ctBtn){ctBtn.textContent='💬';ctBtn.style.color='';ctBtn.style.borderColor='';} db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)}); showToast('Spark launched! 🌿'); }).catch(function(e){ showToast('Failed: '+e.message); btn.disabled=false; btn.textContent='✦ Spark'; }); });
 
 document.getElementById('btn-camera').addEventListener('click', function(){
   openCameraModal();
@@ -6425,7 +6432,14 @@ function openComments(sparkId){ state.currentSparkId=sparkId; document.getElemen
       '</div>'+
     '</div>';
   }).join(''):'<div style="text-align:center;padding:24px;color:var(--muted)">No comments yet. Be first!</div>'; }); }
-document.getElementById('btn-cmt').addEventListener('click',function(){ var text=document.getElementById('cmt-inp').value.trim(); if(!text||!state.user||!state.currentSparkId) return; if(containsMalicious(text)){ showToast('❌ Comment contains invalid content.'); return; } if(!checkRateLimit('comment',10)){ return; } text=sanitize(text); var btn=this; btn.disabled=true; db.collection('sparks').doc(state.currentSparkId).collection('comments').add({text:text,authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ db.collection('sparks').doc(state.currentSparkId).update({commentCount:firebase.firestore.FieldValue.increment(1)}); document.getElementById('cmt-inp').value=''; btn.disabled=false; openComments(state.currentSparkId); showToast('Comment posted!'); }).catch(function(){ btn.disabled=false; showToast('Failed to post comment'); }); });
+document.getElementById('btn-cmt').addEventListener('click',function(){
+  // Check if comments are locked on this post
+  var spark = state.sparks.find(function(s){ return s.id === state.currentSparkId; });
+  if (spark && spark.commentsLocked) {
+    showToast('🔒 The author has disabled comments on this post.');
+    return;
+  }
+  var text=document.getElementById('cmt-inp').value.trim(); if(!text||!state.user||!state.currentSparkId) return; if(containsMalicious(text)){ showToast('❌ Comment contains invalid content.'); return; } if(!checkRateLimit('comment',10)){ return; } text=sanitize(text); var btn=this; btn.disabled=true; db.collection('sparks').doc(state.currentSparkId).collection('comments').add({text:text,authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ db.collection('sparks').doc(state.currentSparkId).update({commentCount:firebase.firestore.FieldValue.increment(1)}); document.getElementById('cmt-inp').value=''; btn.disabled=false; openComments(state.currentSparkId); showToast('Comment posted!'); }).catch(function(){ btn.disabled=false; showToast('Failed to post comment'); }); });
 
 function loadStories(){ var cutoff=Date.now()-48*60*60*1000; db.collection('stories').where('expiresAt','>',new Date(cutoff)).limit(20).get().then(function(snap){ var bar=document.getElementById('stories-bar'); bar.innerHTML='<div class="s-add" id="story-add">＋</div>'; snap.docs.forEach(function(d){ var s=d.data(),seen=state.user&&(s.seenBy||[]).indexOf(state.user.uid)>-1; var el=document.createElement('div'); el.className='s-item'; el.innerHTML='<div class="s-ring'+(seen?' seen':'')+'"><div class="s-av">'+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div></div><div class="s-name">'+esc(s.authorName||'')+'</div>'; el.addEventListener('click',function(){ viewStory(d.id,s); }); bar.appendChild(el); }); document.getElementById('story-add').addEventListener('click',postStory); }); }
 function postStory(){ var text=prompt('Share a story (disappears in 48h):'); if(!text||!text.trim()||!state.user) return; db.collection('stories').add({text:text.trim(),authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color,seenBy:[],createdAt:firebase.firestore.FieldValue.serverTimestamp(),expiresAt:new Date(Date.now()+48*60*60*1000)}).then(function(){ showToast('Story posted! 48h ⏱'); loadStories(); }); }
@@ -6533,7 +6547,20 @@ function startDMWithUser(uid, name, color) {
 
 function loadConversations(){ if(!state.user) return; db.collection('dms').where('members','array-contains',state.user.uid).limit(20).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; if(!snap.docs.length){ list.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--muted)">No conversations yet</div>'; return; } snap.docs.forEach(function(d){ var dm=d.data(),oid=dm.members.find(function(m){ return m!==state.user.uid; }),oname=dm.names?dm.names[oid]:'User',ocolor=dm.colors?dm.colors[oid]:COLORS[0]; var row=document.createElement('div'); row.className='dm-row'; row.innerHTML='<div class="dm-av" style="background:'+ocolor+'">'+esc(oname.charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="dm-nm">'+esc(oname)+'</div><div class="dm-pv">'+esc(dm.lastMsg||'')+'</div></div>'+(dm.unread?'<div class="dm-ud"></div>':''); row.addEventListener('click',function(){ openChat(d.id,oid,oname,ocolor); }); list.appendChild(row); }); }); }
 var dmTimer; document.getElementById('dm-search').addEventListener('input',function(){ clearTimeout(dmTimer); var q=this.value.trim().toLowerCase(); if(!q){ loadConversations(); return; } dmTimer=setTimeout(function(){ db.collection('users').orderBy('name').startAt(q).endAt(q+'\uf8ff').limit(10).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; snap.docs.forEach(function(d){ var u=d.data(); if(u.id===state.user.uid) return; var row=document.createElement('div'); row.className='dm-row'; row.innerHTML='<div class="dm-av" style="background:'+(u.color||COLORS[0])+'">'+esc((u.name||'U').charAt(0))+'</div><div><div class="dm-nm">'+esc(u.name||'User')+'</div><div class="dm-pv">@'+esc(u.handle||'')+'</div></div>'; row.addEventListener('click',function(){ openChat([state.user.uid,u.id].sort().join('_'),u.id,u.name,u.color); }); list.appendChild(row); }); if(!snap.docs.length) list.innerHTML='<div style="padding:16px;text-align:center;font-size:12px;color:var(--muted)">No users found</div>'; }); },400); });
-function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForScam(dmId, otherId); var right=document.getElementById('dm-right'); right.innerHTML='<div class="chat-hd"><div class="dm-av" style="background:'+(otherColor||COLORS[0])+';width:32px;height:32px">'+esc((otherName||'U').charAt(0))+'</div><div style="font-size:13px;font-weight:700;color:var(--white)">'+esc(otherName)+'</div></div><div class="chat-msgs" id="cm-'+dmId+'"></div><div class="chat-bar"><textarea class="chat-inp" id="ci-'+dmId+'" placeholder="Message…" rows="1"></textarea><button class="chat-send" onclick="sendMsg(\''+dmId+'\',\''+otherId+'\',\''+esc(otherName)+'\',\''+esc(otherColor||COLORS[0])+'\')">➤</button></div>'; db.collection('dms').doc(dmId).collection('messages').orderBy('createdAt','asc').limit(50).onSnapshot(function(snap){ var box=document.getElementById('cm-'+dmId); if(!box) return; box.innerHTML=snap.docs.map(function(d){
+function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForScam(dmId, otherId);
+  // Mark all unread messages from other user as read
+  if(state.user) {
+    db.collection('dms').doc(dmId).collection('messages')
+      .where('fromId','==',otherId)
+      .where('read','==',false)
+      .get().then(function(snap){
+        var batch = db.batch();
+        snap.docs.forEach(function(doc){
+          batch.update(doc.ref, {read:true, readAt: firebase.firestore.FieldValue.serverTimestamp()});
+        });
+        if(!snap.empty) batch.commit().catch(function(){});
+      }).catch(function(){});
+  } var right=document.getElementById('dm-right'); right.innerHTML='<div class="chat-hd"><div class="dm-av" style="background:'+(otherColor||COLORS[0])+';width:32px;height:32px">'+esc((otherName||'U').charAt(0))+'</div><div style="font-size:13px;font-weight:700;color:var(--white)">'+esc(otherName)+'</div></div><div class="chat-msgs" id="cm-'+dmId+'"></div><div class="chat-bar"><textarea class="chat-inp" id="ci-'+dmId+'" placeholder="Message…" rows="1"></textarea><button class="chat-send" onclick="sendMsg(\''+dmId+'\',\''+otherId+'\',\''+esc(otherName)+'\',\''+esc(otherColor||COLORS[0])+'\')">➤</button></div>'; db.collection('dms').doc(dmId).collection('messages').orderBy('createdAt','asc').limit(50).onSnapshot(function(snap){ var box=document.getElementById('cm-'+dmId); if(!box) return; box.innerHTML=snap.docs.map(function(d){
     var m=d.data(), mine=m.fromId===state.user.uid;
     var col=mine?(state.profile.color||COLORS[0]):(otherColor||COLORS[0]);
     var editedTag = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
@@ -6543,6 +6570,17 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
         '<button class="act-btn" data-action="edit-msg" data-dmid="'+dmId+'" data-msgid="'+d.id+'" data-text="'+safeText+'">✏️ Edit</button>' +
         '<button class="act-btn del" data-action="del-msg" data-dmid="'+dmId+'" data-msgid="'+d.id+'">🗑 Delete</button>' +
       '</div>' : '';
+    // Read receipts — show ticks on sender's messages
+    var readReceipt = '';
+    if (mine) {
+      if (m.read) {
+        // Double blue tick — message was read
+        readReceipt = '<span style="color:#22c55e;font-size:11px;margin-left:4px" title="Read">✓✓</span>';
+      } else {
+        // Single grey tick — sent but not read
+        readReceipt = '<span style="color:var(--muted);font-size:11px;margin-left:4px" title="Sent">✓</span>';
+      }
+    }
     return '<div class="msg'+(mine?' mine':'')+'">'+
       '<div class="msg-av" style="background:'+col+'">'+
         (mine?(state.profile.name||'U').charAt(0):(otherName||'U').charAt(0))+
@@ -6550,7 +6588,7 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
       '<div style="position:relative">'+
         actions+
         '<div class="msg-bub">'+esc(m.text||'')+'</div>'+
-        '<div class="msg-t">'+timeAgo(m.createdAt)+editedTag+'</div>'+
+        '<div class="msg-t">'+timeAgo(m.createdAt)+editedTag+readReceipt+'</div>'+
       '</div>'+
     '</div>';
   }).join('')||'<div style="text-align:center;padding:20px;font-size:12px;color:var(--muted)">No messages yet</div>'; box.scrollTop=box.scrollHeight; }); document.getElementById('ci-'+dmId).addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(dmId,otherId,otherName,otherColor||COLORS[0]); } }); }
@@ -6559,7 +6597,7 @@ function sendMsg(dmId,otherId,otherName,otherColor){
   if(inp && containsMalicious(inp.value)){ showToast('❌ Message contains invalid content.'); return; }
   // ── SCAM DETECTION ──────────────────────────────────────────
   if(inp){ scanMessageForScam(inp.value, dmId, state.user.uid, otherId); }
-  if(!checkRateLimit('dm',20)){ return; } var inp=document.getElementById('ci-'+dmId); if(!inp) return; var text=inp.value.trim(); if(!text||!state.user) return; inp.value=''; var batch=db.batch(),dmRef=db.collection('dms').doc(dmId),msgRef=dmRef.collection('messages').doc(),names={},colors={}; names[state.user.uid]=state.profile.name||'User'; names[otherId]=otherName; colors[state.user.uid]=state.profile.color||COLORS[0]; colors[otherId]=otherColor||COLORS[0]; batch.set(dmRef,{members:[state.user.uid,otherId],names:names,colors:colors,lastMsg:text,lastAt:firebase.firestore.FieldValue.serverTimestamp(),unread:true},{merge:true}); batch.set(msgRef,{text:text,fromId:state.user.uid,fromName:state.profile.name,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); batch.commit().then(function(){ openChat(dmId,otherId,otherName,otherColor||COLORS[0]); db.collection('notifications').add({toUid:otherId,fromName:state.profile.name,type:'dm',text:state.profile.name+' sent you a message',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }); }
+  if(!checkRateLimit('dm',20)){ return; } var inp=document.getElementById('ci-'+dmId); if(!inp) return; var text=inp.value.trim(); if(!text||!state.user) return; inp.value=''; var batch=db.batch(),dmRef=db.collection('dms').doc(dmId),msgRef=dmRef.collection('messages').doc(),names={},colors={}; names[state.user.uid]=state.profile.name||'User'; names[otherId]=otherName; colors[state.user.uid]=state.profile.color||COLORS[0]; colors[otherId]=otherColor||COLORS[0]; batch.set(dmRef,{members:[state.user.uid,otherId],names:names,colors:colors,lastMsg:text,lastAt:firebase.firestore.FieldValue.serverTimestamp(),unread:true},{merge:true}); batch.set(msgRef,{text:text,fromId:state.user.uid,fromName:state.profile.name,createdAt:firebase.firestore.FieldValue.serverTimestamp(),read:false,readAt:null}); batch.commit().then(function(){ openChat(dmId,otherId,otherName,otherColor||COLORS[0]); db.collection('notifications').add({toUid:otherId,fromName:state.profile.name,type:'dm',text:state.profile.name+' sent you a message',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }); }
 
 function selPlan(id,amount,name){ state.plan={id:id,amount:amount,name:name}; document.querySelectorAll('.plan-card').forEach(function(c){ c.classList.remove('sel'); }); document.getElementById('pc-'+id).classList.add('sel'); document.getElementById('co-name').textContent=name; document.getElementById('co-price').textContent='$'+amount.toLocaleString(); }
 document.getElementById('btn-pay').addEventListener('click',function(){ if(!state.user) return; if(typeof PaystackPop==='undefined'){ showToast('Payment loading, try again.'); return; } // Convert USD to NGN for Paystack (1 USD ≈ 1600 NGN)
@@ -13205,6 +13243,26 @@ window.addEventListener('resize', function() {
     applyDeviceLayout();
   }, 150);
 });
+
+
+// ── COMMENT LOCK TOGGLE ───────────────────────────────────────────────────
+function toggleCommentsLock() {
+  commentsLocked = !commentsLocked;
+  var btn = document.getElementById('btn-comments-toggle');
+  if (commentsLocked) {
+    btn.textContent = '🔒';
+    btn.title = 'Comments OFF — tap to allow comments';
+    btn.style.color = '#fca5a5';
+    btn.style.borderColor = '#fca5a5';
+    showToast('🔒 Comments disabled for this post');
+  } else {
+    btn.textContent = '💬';
+    btn.title = 'Comments ON — tap to disable comments';
+    btn.style.color = '';
+    btn.style.borderColor = '';
+    showToast('💬 Comments enabled for this post');
+  }
+}
 
 // Favicon — static, set in HTML head
 
