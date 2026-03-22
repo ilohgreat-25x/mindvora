@@ -1058,6 +1058,33 @@ img, video { max-width: 100%; height: auto; }
   background: var(--deep);
   color: var(--green3);
 }
+
+/* ── Hide left sidebar completely — all features via drawer only ── */
+.sidebar {
+  display: none !important;
+}
+/* Feed column takes full width now that sidebar is hidden */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+}
+.feed-col {
+  width: 100% !important;
+  max-width: 680px !important;
+  margin: 0 auto !important;
+  padding-bottom: 20px;
+}
+/* Keep right sidebar on large screens */
+@media (min-width: 1024px) {
+  .app-layout {
+    flex-direction: row;
+    justify-content: center;
+  }
+  .feed-col {
+    flex: 1;
+    max-width: 640px !important;
+  }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -1242,7 +1269,7 @@ img, video { max-width: 100%; height: auto; }
   </div>
 </div>
 
-<!-- BOTTOM NAVIGATION (mobile only) -->
+<!-- BOTTOM NAVIGATION — always visible on mobile -->
 <nav class="bottom-nav" style="display:none">
   <button class="nav-item" id="m-nav-feed" onclick="document.getElementById('nav-feed').click();setMobileNav(this)">
     <span class="nav-ic">🏠</span><span>Feed</span>
@@ -1256,8 +1283,8 @@ img, video { max-width: 100%; height: auto; }
   <button class="nav-item" id="m-nav-notif" onclick="document.getElementById('notif-btn').click();setMobileNav(this)">
     <span class="nav-ic">🔔</span><span>Alerts</span>
   </button>
-  <button class="nav-item" id="m-nav-earn" onclick="document.getElementById('nav-earn').click();setMobileNav(this)">
-    <span class="nav-ic">💰</span><span>Earn</span>
+  <button class="nav-item" id="m-nav-more" onclick="toggleDrawer();setMobileNav(this)">
+    <span class="nav-ic">☰</span><span>More</span>
   </button>
 </nav>
 
