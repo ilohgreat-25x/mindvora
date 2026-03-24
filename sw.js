@@ -1,134 +1,244 @@
+// ╔══════════════════════════════════════════════════════════════╗
+// ║         MINDVORA SECURE BACKEND — Render.com                ║
+// ║  Handles: NOWPayments crypto, Paystack airtime/data         ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+const express = require('express');
+const cors    = require('cors');
+const fetch   = (...args) => import('node-fetch').then(({default: f}) => f(...args));
+
+const app  = express();
+const PORT = process.env.PORT || 3000;
+
+// ── Middleware ─────────────────────────────────────────────────
+app.use(cors({
+  origin: [
+    'https://zync-social-vf8e.vercel.app',
+    'https://mindvora.app',
+    'http://localhost:3000',
+  ]
+}));
+app.use(express.json());
+
+// ── Health check ───────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({ status: 'Mindvora Backend Running ✅', time: new Date().toISOString() });
+});
+
 // ══════════════════════════════════════════════════════════════
-// Mindvora Service Worker — sw.js
+// 1. NOWPAYMENTS — Create crypto invoice
 // ══════════════════════════════════════════════════════════════
-const CACHE = 'mindvora-v4';
-const OFFLINE_URL = '/';
-
-// ── INSTALL ──────────────────────────────────────────────────
-self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function(cache) {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/manifest.json'
-      ]).catch(function(){});
-    }).then(function() {
-      return self.skipWaiting();
-    })
-  );
-});
-
-// ── ACTIVATE ─────────────────────────────────────────────────
-self.addEventListener('activate', function(e) {
-  e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k){ return k !== CACHE; })
-            .map(function(k){ return caches.delete(k); })
-      );
-    }).then(function() {
-      return self.clients.claim();
-    })
-  );
-});
-
-// ── FETCH: Network first, cache fallback ─────────────────────
-self.addEventListener('fetch', function(e) {
-  if (e.request.method !== 'GET') return;
-  var url = e.request.url;
-  if (url.indexOf('firestore.googleapis.com') > -1) return;
-  if (url.indexOf('firebase') > -1) return;
-  if (url.indexOf('googleapis.com') > -1) return;
-  if (url.indexOf('cloudinary.com') > -1) return;
-  if (url.indexOf('paystack') > -1) return;
-  if (url.indexOf('mixpanel') > -1) return;
-
-  e.respondWith(
-    fetch(e.request)
-      .then(function(res) {
-        if (res && res.status === 200) {
-          var clone = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, clone); });
-        }
-        return res;
-      })
-      .catch(function() {
-        return caches.match(e.request)
-          .then(function(cached){ return cached || caches.match(OFFLINE_URL); });
-      })
-  );
-});
-
-// ── PUSH NOTIFICATIONS ───────────────────────────────────────
-self.addEventListener('push', function(e) {
-  var data = {};
-  try { data = e.data ? e.data.json() : {}; } catch(err) {}
-  var title   = data.title   || 'Mindvora';
-  var body    = data.body    || 'You have a new notification';
-  var icon    = data.icon    || '/icons/icon-192.png';
-  var url     = data.url     || '/';
-  e.waitUntil(
-    self.registration.showNotification(title, {
-      body:    body,
-      icon:    icon,
-      badge:   '/icons/icon-96.png',
-      vibrate: [200, 100, 200],
-      data:    { url: url },
-      actions: [
-        { action: 'open',    title: '🌿 Open Mindvora' },
-        { action: 'dismiss', title: 'Dismiss' }
-      ]
-    })
-  );
-});
-
-// ── NOTIFICATION CLICK ───────────────────────────────────────
-self.addEventListener('notificationclick', function(e) {
-  e.notification.close();
-  if (e.action === 'dismiss') return;
-  var url = (e.notification.data && e.notification.data.url) || '/';
-  e.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then(function(list) {
-        for (var i = 0; i < list.length; i++) {
-          if (list[i].url.indexOf(self.location.origin) > -1 && 'focus' in list[i]) {
-            list[i].postMessage({ type: 'NOTIFICATION_CLICK', url: url });
-            return list[i].focus();
-          }
-        }
-        if (clients.openWindow) return clients.openWindow(url);
-      })
-  );
-});
-
-// ── BACKGROUND SYNC ──────────────────────────────────────────
-self.addEventListener('sync', function(e) {
-  if (e.tag === 'sync-posts') {
-    e.waitUntil(
-      self.clients.matchAll().then(function(list) {
-        list.forEach(function(c){ c.postMessage({ type: 'SYNC_POSTS' }); });
-      })
-    );
+app.post('/api/crypto/create-invoice', async (req, res) => {
+  const { amountUSD, description, orderId, userEmail } = req.body;
+  if (!amountUSD || !description) {
+    return res.status(400).json({ status: false, message: 'Missing fields' });
+  }
+  try {
+    const response = await fetch('https://api.nowpayments.io/v1/invoice', {
+      method: 'POST',
+      headers: {
+        'x-api-key':    process.env.NOWPAYMENTS_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        price_amount:      amountUSD,
+        price_currency:    'usd',
+        pay_currency:      'usdtbsc',
+        order_id:          orderId || ('MV-' + Date.now()),
+        order_description: description,
+        ipn_callback_url:  process.env.IPN_URL || 'https://zync-backend-ickl.onrender.com/api/crypto/webhook',
+        success_url:       process.env.APP_URL  || 'https://mindvora.app',
+        cancel_url:        process.env.APP_URL  || 'https://mindvora.app',
+      }),
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
   }
 });
 
-// ── PERIODIC BACKGROUND SYNC ─────────────────────────────────
-self.addEventListener('periodicsync', function(e) {
-  if (e.tag === 'refresh-feed') {
-    e.waitUntil(
-      self.clients.matchAll().then(function(list) {
-        list.forEach(function(c){ c.postMessage({ type: 'REFRESH_FEED' }); });
+// ══════════════════════════════════════════════════════════════
+// 2. NOWPAYMENTS — Check payment status
+// ══════════════════════════════════════════════════════════════
+app.get('/api/crypto/status/:invoiceId', async (req, res) => {
+  const { invoiceId } = req.params;
+  try {
+    const response = await fetch(`https://api.nowpayments.io/v1/invoice/${invoiceId}`, {
+      headers: { 'x-api-key': process.env.NOWPAYMENTS_API_KEY }
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 3. PAYSTACK — Deliver airtime
+// ══════════════════════════════════════════════════════════════
+app.post('/api/deliver-airtime', async (req, res) => {
+  const { email, amount, phone, network, ref } = req.body;
+  if (!email || !amount || !phone || !network) {
+    return res.status(400).json({ status: false, message: 'Missing fields' });
+  }
+  try {
+    const response = await fetch('https://api.paystack.co/charge', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        email, amount,
+        mobile_money: { phone, provider: network },
+        metadata: { type: 'airtime', phone, network, reference: ref }
+      }),
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 4. PAYSTACK — Deliver data bundle
+// ══════════════════════════════════════════════════════════════
+app.post('/api/deliver-data', async (req, res) => {
+  const { email, amount, phone, network, bundle, ref } = req.body;
+  if (!email || !amount || !phone || !network) {
+    return res.status(400).json({ status: false, message: 'Missing fields' });
+  }
+  try {
+    const response = await fetch('https://api.paystack.co/charge', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        email, amount,
+        mobile_money: { phone, provider: network },
+        metadata: { type: 'data', phone, network, bundle, reference: ref }
+      }),
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 5. NOWPAYMENTS — IPN Webhook (payment confirmed callback)
+// ══════════════════════════════════════════════════════════════
+app.post('/api/crypto/webhook', async (req, res) => {
+  const payload = req.body;
+  console.log('NOWPayments IPN received:', payload);
+  // Payment statuses: waiting, confirming, confirmed, sending, finished, failed
+  if (payload.payment_status === 'finished' || payload.payment_status === 'confirmed') {
+    console.log('✅ Crypto payment confirmed:', payload.order_id, '$'+payload.price_amount);
+    // Firestore update handled by frontend polling — this is just a log
+  }
+  res.status(200).send('OK');
+});
+
+// ══════════════════════════════════════════════════════════════
+// 6. EXCHANGE RATE PROXY (avoids CORS issues)
+// ══════════════════════════════════════════════════════════════
+app.get('/api/rate/:from/:to', async (req, res) => {
+  const { from, to } = req.params;
+  try {
+    const response = await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+    const data = await response.json();
+    const rate = data.rates[to] || 1;
+    res.json({ from, to, rate });
+  } catch (err) {
+    res.json({ from, to, rate: 1 });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 Mindvora Backend running on port ${PORT}`);
+});
+
+// ══════════════════════════════════════════════════════════════
+// HUSMODATA VTU API — Airtime & Data Delivery
+// API key stored securely as environment variable on Render
+// NEVER exposed to frontend
+// ══════════════════════════════════════════════════════════════
+const HUSMO_KEY = process.env.HUSMODATA_API_KEY; // set on Render dashboard
+const HUSMO_BASE = 'https://husmodata.com/api';
+
+// ── AIRTIME DELIVERY ──────────────────────────────────────────
+app.post('/api/husmo-airtime', async (req, res) => {
+  try {
+    const { phone, network, amount, ref } = req.body;
+    if (!phone || !network || !amount) {
+      return res.status(400).json({ status: false, message: 'Missing required fields' });
+    }
+    const response = await fetch(`${HUSMO_BASE}/topup/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${HUSMO_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        mobile_number: phone,
+        network:       network.toUpperCase(),
+        amount:        amount,
+        Ported_number: true,
+        airtime_type:  'VTU'
       })
-    );
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
   }
 });
 
-// ── MESSAGE HANDLER ──────────────────────────────────────────
-self.addEventListener('message', function(e) {
-  if (e.data && e.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
+// ── DATA BUNDLE DELIVERY ──────────────────────────────────────
+app.post('/api/husmo-data', async (req, res) => {
+  try {
+    const { phone, network, bundle, amount, ref } = req.body;
+    if (!phone || !network || !bundle) {
+      return res.status(400).json({ status: false, message: 'Missing required fields' });
+    }
+    // Map network name to Husmodata network ID
+    const networkMap = { mtn: 1, airtel: 2, glo: 3, '9mobile': 4, etisalat: 4 };
+    const networkId = networkMap[network.toLowerCase()] || 1;
+
+    const response = await fetch(`${HUSMO_BASE}/data/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Token ${HUSMO_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        network:       networkId,
+        mobile_number: phone,
+        plan:          bundle,
+        Ported_number: true
+      })
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
   }
 });
 
-console.log('[Mindvora SW] v4 active');
+// ── CHECK HUSMO BALANCE ───────────────────────────────────────
+app.get('/api/husmo-balance', async (req, res) => {
+  try {
+    const response = await fetch(`${HUSMO_BASE}/balance/`, {
+      headers: { 'Authorization': `Token ${HUSMO_KEY}` }
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ status: false, message: err.message });
+  }
+});
