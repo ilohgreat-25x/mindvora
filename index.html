@@ -1283,6 +1283,330 @@ img, video { max-width: 100%; height: auto; }
   color: var(--cream) !important;
   font-weight: 700 !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PREMIUM AUTH PAGE — Facebook-style but higher calibre
+   ═══════════════════════════════════════════════════════════ */
+#auth-screen {
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+  align-items: stretch !important;
+}
+
+/* LEFT: Showcase panel */
+.auth-showcase {
+  flex: 1.2;
+  position: relative;
+  overflow: hidden;
+  background: #050d0a;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Slides */
+.showcase-slides {
+  flex: 1;
+  position: relative;
+}
+.showcase-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1s ease, transform 1s ease;
+  transform: scale(1.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.showcase-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+.slide-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.slide-bubble {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+@keyframes bubbleFloat {
+  0%, 100% { transform: translateY(0) scale(1); opacity: .7; }
+  50% { transform: translateY(-30px) scale(1.05); opacity: 1; }
+}
+
+/* Floating user cards */
+.float-card {
+  position: absolute;
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 200px;
+  animation: cardFloat 4s ease-in-out infinite;
+  z-index: 2;
+}
+.fc1 { top: 12%; left: 8%; animation-delay: 0s; }
+.fc2 { top: 38%; right: 5%; animation-delay: 1.5s; }
+.fc3 { top: 62%; left: 12%; animation-delay: 0.8s; }
+@keyframes cardFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+.fc-av {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  flex-shrink: 0;
+}
+.fc-name { font-size: 12px; font-weight: 700; color: #fff; }
+.fc-text { font-size: 10px; color: rgba(255,255,255,.6); margin-top: 2px; }
+.fc-heart { font-size: 11px; color: rgba(255,255,255,.7); margin-left: auto; white-space: nowrap; }
+
+/* Avatar grid */
+.avatar-grid {
+  position: absolute;
+  bottom: 30%;
+  right: 8%;
+  display: grid;
+  grid-template-columns: repeat(4, 40px);
+  gap: 8px;
+  z-index: 2;
+}
+.ag-av {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  border: 2px solid rgba(255,255,255,.2);
+  animation: agPop .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+.ag-av:nth-child(1){animation-delay:.1s}
+.ag-av:nth-child(2){animation-delay:.2s}
+.ag-av:nth-child(3){animation-delay:.3s}
+.ag-av:nth-child(4){animation-delay:.4s}
+.ag-av:nth-child(5){animation-delay:.5s}
+.ag-av:nth-child(6){animation-delay:.6s}
+.ag-av:nth-child(7){animation-delay:.7s}
+.ag-av:nth-child(8){animation-delay:.8s}
+@keyframes agPop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+
+/* Earnings showcase */
+.earn-showcase {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255,255,255,.07);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(34,197,94,.25);
+  border-radius: 20px;
+  padding: 20px 24px;
+  min-width: 220px;
+  z-index: 2;
+  animation: cardFloat 5s ease-in-out infinite;
+}
+.es-header { font-size: 11px; color: rgba(255,255,255,.6); letter-spacing: 1px; text-transform: uppercase; }
+.es-amount { font-family: 'DM Serif Display', serif; font-size: 36px; color: var(--green3); margin: 6px 0 2px; }
+.es-sub { font-size: 11px; color: rgba(34,197,94,.8); }
+.es-bars { display: flex; align-items: flex-end; gap: 5px; height: 50px; margin-top: 14px; }
+.es-bar { flex: 1; border-radius: 4px 4px 0 0; transition: height .3s; }
+
+/* Feature pills */
+.feat-pill {
+  position: absolute;
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 30px;
+  padding: 8px 14px;
+  font-size: 11px;
+  color: rgba(255,255,255,.85);
+  font-weight: 600;
+  z-index: 2;
+  white-space: nowrap;
+  animation: cardFloat 4s ease-in-out infinite;
+}
+.fp1 { bottom: 40%; left: 5%; animation-delay: 0s; }
+.fp2 { bottom: 33%; right: 5%; animation-delay: 1s; }
+.fp3 { bottom: 26%; left: 15%; animation-delay: 2s; }
+.fp4 { bottom: 19%; right: 10%; animation-delay: .5s; }
+
+/* Post showcase */
+.post-showcase {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(255,255,255,.06);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 20px;
+  padding: 8px;
+  width: 260px;
+  z-index: 2;
+}
+.ps-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  transition: background .2s;
+}
+.ps-active { background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.2); }
+.ps-icon { font-size: 20px; flex-shrink: 0; }
+.ps-label { font-size: 12px; font-weight: 700; color: #fff; }
+.ps-sub { font-size: 10px; color: rgba(255,255,255,.5); }
+.ps-views { font-size: 10px; color: var(--green3); margin-left: auto; white-space: nowrap; }
+
+/* Slide text overlay */
+.slide-text {
+  position: relative;
+  z-index: 3;
+  padding: 32px 36px;
+  background: linear-gradient(to top, rgba(5,13,10,.98) 0%, rgba(5,13,10,.7) 60%, transparent 100%);
+}
+.slide-tag {
+  display: inline-block;
+  background: rgba(34,197,94,.15);
+  border: 1px solid rgba(34,197,94,.3);
+  border-radius: 30px;
+  padding: 5px 14px;
+  font-size: 11px;
+  color: var(--green3);
+  font-weight: 600;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.slide-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 28px;
+  color: #fff;
+  line-height: 1.2;
+  margin-bottom: 10px;
+}
+.slide-title em { color: var(--green3); font-style: italic; }
+.slide-desc {
+  font-size: 13px;
+  color: rgba(255,255,255,.6);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+.slide-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stat-pill {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 30px;
+  padding: 5px 12px;
+  font-size: 11px;
+  color: rgba(255,255,255,.7);
+}
+
+/* Slide dots */
+.slide-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 12px;
+  position: relative;
+  z-index: 4;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  cursor: pointer;
+  transition: all .3s;
+}
+.dot.active {
+  background: var(--green3);
+  width: 24px;
+  border-radius: 4px;
+}
+
+/* Showcase brand */
+.showcase-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 36px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  position: relative;
+  z-index: 4;
+}
+
+/* RIGHT: Auth form */
+.auth-right {
+  width: 420px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 40px;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  min-height: 100vh;
+  overflow-y: auto;
+}
+.auth-logo-sm {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 768px) {
+  #auth-screen {
+    flex-direction: column !important;
+  }
+  .auth-showcase {
+    min-height: 45vh;
+    max-height: 45vh;
+  }
+  .auth-right {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--border);
+    padding: 24px 20px;
+    min-height: auto;
+  }
+  .float-card { display: none; }
+  .avatar-grid { display: none; }
+  .earn-showcase { width: 180px; }
+  .slide-title { font-size: 20px; }
+  .slide-text { padding: 20px; }
+  .fc3, .fp3, .fp4 { display: none; }
+}
+
+@media (max-width: 480px) {
+  .auth-showcase { min-height: 38vh; max-height: 38vh; }
+  .feat-pill { display: none; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -1298,33 +1622,196 @@ img, video { max-width: 100%; height: auto; }
 
 <!-- AUTH -->
 <div id="auth-screen">
-  <div class="auth-logo"><span style="font-size:90px">M</span>indvora</div>
-  <div class="auth-sub">Where Minds Connect</div>
-  <div class="auth-box">
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">Sign In</button>
-      <button class="auth-tab" id="tab-reg" onclick="showAuthTab('reg')">Join Mindvora</button>
+
+  <!-- LEFT SIDE: Sliding showcase like Facebook but premium -->
+  <div class="auth-showcase">
+    <!-- Animated slides -->
+    <div class="showcase-slides" id="showcase-slides">
+
+      <div class="showcase-slide active">
+        <div class="slide-bg" style="background:linear-gradient(135deg,#0a1628,#0d2818,#1a0a2e)">
+          <!-- Animated floating bubbles -->
+          <div class="slide-bubble" style="width:300px;height:300px;top:10%;left:5%;background:radial-gradient(circle,rgba(34,197,94,.15),transparent);animation:bubbleFloat 6s ease-in-out infinite"></div>
+          <div class="slide-bubble" style="width:200px;height:200px;top:50%;right:10%;background:radial-gradient(circle,rgba(99,102,241,.15),transparent);animation:bubbleFloat 8s ease-in-out infinite reverse"></div>
+          <div class="slide-bubble" style="width:150px;height:150px;bottom:20%;left:20%;background:radial-gradient(circle,rgba(201,168,76,.1),transparent);animation:bubbleFloat 7s ease-in-out infinite 1s"></div>
+          <!-- Floating cards -->
+          <div class="float-card fc1">
+            <div class="fc-av" style="background:linear-gradient(135deg,#166534,#22c55e)">A</div>
+            <div><div class="fc-name">Amara Okafor</div><div class="fc-text">Just shared a spark 🌿✨</div></div>
+            <div class="fc-heart">❤️ 124</div>
+          </div>
+          <div class="float-card fc2">
+            <div class="fc-av" style="background:linear-gradient(135deg,#6d28d9,#a78bfa)">K</div>
+            <div><div class="fc-name">Kofi Mensah</div><div class="fc-text">Live now! 🔴 Join me</div></div>
+            <div class="fc-heart">👁 2.4k</div>
+          </div>
+          <div class="float-card fc3">
+            <div class="fc-av" style="background:linear-gradient(135deg,#b45309,#fcd34d)">Z</div>
+            <div><div class="fc-name">Zara Ahmed</div><div class="fc-text">🏆 Top creator this week!</div></div>
+            <div class="fc-heart">🔥 Hot</div>
+          </div>
+          <!-- Grid of profile avatars -->
+          <div class="avatar-grid">
+            <div class="ag-av" style="background:linear-gradient(135deg,#166534,#22c55e)">M</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#1d4ed8,#60a5fa)">A</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#7c3aed,#c4b5fd)">K</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#b45309,#fcd34d)">Z</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#be123c,#fda4af)">L</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#0f766e,#5eead4)">T</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#166534,#86efac)">S</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#92400e,#fde68a)">+</div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">🌍 Global Community</div>
+          <h2 class="slide-title">Connect with <em>Millions</em> of Minds Worldwide</h2>
+          <p class="slide-desc">Join creators, thinkers and innovators from every corner of the world. Share your spark and light up the world.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">👥 2M+ Users</div>
+            <div class="stat-pill">🌍 54 Languages</div>
+            <div class="stat-pill">⚡ Real-time</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-slide">
+        <div class="slide-bg" style="background:linear-gradient(135deg,#0a1f1a,#0d1628,#1a1028)">
+          <div class="slide-bubble" style="width:350px;height:350px;top:5%;right:0%;background:radial-gradient(circle,rgba(16,185,129,.12),transparent);animation:bubbleFloat 7s ease-in-out infinite"></div>
+          <div class="slide-bubble" style="width:250px;height:250px;bottom:10%;left:5%;background:radial-gradient(circle,rgba(245,158,11,.1),transparent);animation:bubbleFloat 9s ease-in-out infinite reverse"></div>
+          <!-- Earnings card -->
+          <div class="earn-showcase">
+            <div class="es-header">💰 Creator Earnings</div>
+            <div class="es-amount">$1,240.50</div>
+            <div class="es-sub">This month · +34% ↑</div>
+            <div class="es-bars">
+              <div class="es-bar" style="height:40%;background:rgba(34,197,94,.4)"></div>
+              <div class="es-bar" style="height:65%;background:rgba(34,197,94,.5)"></div>
+              <div class="es-bar" style="height:50%;background:rgba(34,197,94,.4)"></div>
+              <div class="es-bar" style="height:80%;background:rgba(34,197,94,.6)"></div>
+              <div class="es-bar" style="height:70%;background:rgba(34,197,94,.5)"></div>
+              <div class="es-bar" style="height:90%;background:var(--green3)"></div>
+              <div class="es-bar" style="height:100%;background:var(--green3);box-shadow:0 0 12px rgba(34,197,94,.5)"></div>
+            </div>
+          </div>
+          <!-- Feature pills floating -->
+          <div class="feat-pill fp1">💎 Premium Plans</div>
+          <div class="feat-pill fp2">📱 Data & Airtime</div>
+          <div class="feat-pill fp3">💸 Withdraw Earnings</div>
+          <div class="feat-pill fp4">🔗 Referral Bonuses</div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">💰 Earn on Mindvora</div>
+          <h2 class="slide-title">Post Content. <em>Get Paid.</em></h2>
+          <p class="slide-desc">Earn real money from tips, subscriptions, live streams and creator funds. Mindvora pays its creators generously.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">💝 Live Tipping</div>
+            <div class="stat-pill">📊 Analytics</div>
+            <div class="stat-pill">💳 Payouts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-slide">
+        <div class="slide-bg" style="background:linear-gradient(135deg,#1a0828,#0a1628,#0d1f12)">
+          <div class="slide-bubble" style="width:400px;height:400px;top:-5%;left:-5%;background:radial-gradient(circle,rgba(139,92,246,.1),transparent);animation:bubbleFloat 10s ease-in-out infinite"></div>
+          <!-- Post types showcase -->
+          <div class="post-showcase">
+            <div class="ps-item ps-active">
+              <div class="ps-icon">🎥</div>
+              <div>
+                <div class="ps-label">Video Reels</div>
+                <div class="ps-sub">Share & go viral</div>
+              </div>
+              <div class="ps-views">2.4M views</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-icon">🔴</div>
+              <div>
+                <div class="ps-label">Live Streaming</div>
+                <div class="ps-sub">Connect in real-time</div>
+              </div>
+              <div class="ps-views">12k live</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-icon">📸</div>
+              <div>
+                <div class="ps-label">Photo Stories</div>
+                <div class="ps-sub">24h disappearing</div>
+              </div>
+              <div class="ps-views">850 views</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-icon">🤖</div>
+              <div>
+                <div class="ps-label">ARIA AI Assistant</div>
+                <div class="ps-sub">Your smart companion</div>
+              </div>
+              <div class="ps-views">Always on</div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">✨ All-in-One Platform</div>
+          <h2 class="slide-title">Every Feature You <em>Need.</em> Nothing You Don't.</h2>
+          <p class="slide-desc">Videos, reels, live streaming, AI assistant, marketplace, groups, games and so much more — all in one app.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">🎮 Mini Games</div>
+            <div class="stat-pill">🛒 Marketplace</div>
+            <div class="stat-pill">🤖 AI Chat</div>
+          </div>
+        </div>
+      </div>
+
     </div>
-    <div class="auth-panel active" id="panel-login">
-      <div class="fg"><label>Email</label><input class="fi" id="li-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
-      <div class="fg"><label>Password</label>
-        <div class="pw-wrap"><input class="fi" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password"><button class="eye-btn" type="button" onclick="toggleEye('li-pass','e0')"><span id="e0">👁</span></button></div>
-      </div>
-      <div class="a-err" id="li-err"></div>
-      <button class="btn-auth" id="btn-login">Enter Mindvora →</button>
+
+    <!-- Slide indicators -->
+    <div class="slide-dots">
+      <div class="dot active" onclick="goToSlide(0)"></div>
+      <div class="dot" onclick="goToSlide(1)"></div>
+      <div class="dot" onclick="goToSlide(2)"></div>
     </div>
-    <div class="auth-panel" id="panel-reg">
-      <div class="fg"><label>Full Name</label><input class="fi" id="r-name" type="text" placeholder="Your name" autocomplete="name"></div>
-      <div class="fg"><label>Username</label><input class="fi" id="r-handle" type="text" placeholder="@username"></div>
-      <div class="fg"><label>Email</label><input class="fi" id="r-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
-      <div class="fg"><label>Password</label>
-        <div class="pw-wrap"><input class="fi" id="r-pass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"><button class="eye-btn" type="button" onclick="toggleEye('r-pass','e1')"><span id="e1">👁</span></button></div>
+
+    <!-- Bottom brand on showcase -->
+    <div class="showcase-brand">
+      <span style="font-family:'Great Vibes',cursive;font-size:28px;color:var(--cream)">Mindvora</span>
+      <span style="font-size:11px;color:rgba(254,252,232,.5);letter-spacing:2px;text-transform:uppercase">Where Minds Connect</span>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE: Auth form -->
+  <div class="auth-right">
+    <div class="auth-logo-sm">
+      <span style="font-family:'Great Vibes',cursive;font-size:36px;color:var(--green3)">Mindvora</span>
+    </div>
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-reg" onclick="showAuthTab('reg')">Join Mindvora</button>
       </div>
-      <div class="fg"><label>Confirm Password</label>
-        <div class="pw-wrap"><input class="fi" id="r-confirm" type="password" placeholder="Re-enter password"><button class="eye-btn" type="button" onclick="toggleEye('r-confirm','e2')"><span id="e2">👁</span></button></div>
+      <div class="auth-panel active" id="panel-login">
+        <div class="fg"><label>Email</label><input class="fi" id="li-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="fg"><label>Password</label>
+          <div class="pw-wrap"><input class="fi" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password"><button class="eye-btn" type="button" onclick="toggleEye('li-pass','e0')"><span id="e0">👁</span></button></div>
+        </div>
+        <div class="a-err" id="li-err"></div>
+        <button class="btn-auth" id="btn-login">Enter Mindvora →</button>
       </div>
-      <div class="a-err" id="r-err"></div>
-      <button class="btn-auth" id="btn-reg">Create Account →</button>
+      <div class="auth-panel" id="panel-reg">
+        <div class="fg"><label>Full Name</label><input class="fi" id="r-name" type="text" placeholder="Your name" autocomplete="name"></div>
+        <div class="fg"><label>Username</label><input class="fi" id="r-handle" type="text" placeholder="@username"></div>
+        <div class="fg"><label>Email</label><input class="fi" id="r-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="fg"><label>Password</label>
+          <div class="pw-wrap"><input class="fi" id="r-pass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"><button class="eye-btn" type="button" onclick="toggleEye('r-pass','e1')"><span id="e1">👁</span></button></div>
+        </div>
+        <div class="fg"><label>Confirm Password</label>
+          <div class="pw-wrap"><input class="fi" id="r-confirm" type="password" placeholder="Re-enter password"><button class="eye-btn" type="button" onclick="toggleEye('r-confirm','e2')"><span id="e2">👁</span></button></div>
+        </div>
+        <div class="a-err" id="r-err"></div>
+        <button class="btn-auth" id="btn-reg">Create Account →</button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.8">
+      By joining, you agree to our Terms of Service<br>and Privacy Policy
     </div>
   </div>
 </div>
@@ -6042,8 +6529,10 @@ function renderFeed(){
     return;
   }
 
-  // ── ALL TAB ── show every post, newest first
+  // ── ALL TAB ── shows ALL posts from ALL categories mixed
   if (state.filter === 'all') {
+    // Use local realtime cache (state.sparks is already subscribed via onSnapshot)
+    // This includes posts from ALL categories: education, fun, thoughts, news, all
     var sparks = state.sparks.slice();
     if (q) sparks = sparks.filter(function(s){
       return (s.text||'').toLowerCase().indexOf(q) > -1 ||
@@ -6054,7 +6543,6 @@ function renderFeed(){
       return;
     }
     fc.innerHTML = sparks.map(buildSparkHTML).join('');
-    // Inject ads
     if (typeof loadAds === 'function') setTimeout(loadAds, 500);
     return;
   }
@@ -6426,7 +6914,9 @@ document.getElementById('btn-post').addEventListener('click',function(){ var tex
     btn.disabled=false; btn.textContent='✦ Spark';
     return;
   }
-  db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,commentsLocked:commentsLocked,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark';
+  // Auto-detect best category silently
+  var finalCat = autoDetectCategory(text, pendingMedia ? pendingMedia.type : null, compCat);
+  db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:finalCat,userCategory:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,commentsLocked:commentsLocked,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark';
               // Reset comments lock
               commentsLocked=false;
               var ctBtn=document.getElementById('btn-comments-toggle');
@@ -6923,24 +7413,8 @@ document.getElementById('btn-airtime').addEventListener('click',function(){ stat
             }).then(function(docRef){
               // Call Paystack charge endpoint to deliver airtime
               // Airtime delivery via secure backend proxy
-              callSecureAPI('/api/deliver-airtime', {
-                email:   state.user.email,
-                amount:  amtKobo,
-                phone:   phone,
-                network: networkCode,
-                ref:     r.reference
-              }).then(function(data){
-                if(data && data.status){
-                  docRef.update({status:'completed'});
-                  showToast('✅ ₦'+amt+' '+state.network+' airtime sent to '+phone+'!');
-                } else {
-                  docRef.update({status:'failed',error:(data&&data.message)||'Unknown'});
-                  showToast('⚠️ Payment received but airtime delivery failed. Contact support with ref: '+r.reference);
-                }
-              }).catch(function(){
-                docRef.update({status:'processing'});
-                showToast('✅ Payment received! Airtime will be delivered shortly.');
-              });
+              // Deliver via Husmodata API
+              deliverAirtimeHusmo(phone, state.network, amt, r.reference, docRef);
             });
             closeModal('modal-topup');
             document.getElementById('air-phone').value='';
@@ -6958,25 +7432,8 @@ document.getElementById('btn-data').addEventListener('click',function(){ state.n
               createdAt:firebase.firestore.FieldValue.serverTimestamp()
             }).then(function(docRef){
               // Data delivery via secure backend proxy
-              callSecureAPI('/api/deliver-data', {
-                email:   state.user.email,
-                amount:  pkg.price*100,
-                phone:   phone,
-                network: networkCode,
-                bundle:  pkg.size,
-                ref:     r.reference
-              }).then(function(data){
-                if(data && data.status){
-                  docRef.update({status:'completed'});
-                  showToast('✅ '+pkg.size+' '+state.network+' data sent to '+phone+'!');
-                } else {
-                  docRef.update({status:'failed'});
-                  showToast('⚠️ Payment received but data delivery failed. Contact support with ref: '+r.reference);
-                }
-              }).catch(function(){
-                docRef.update({status:'processing'});
-                showToast('✅ Payment received! Data will be delivered shortly.');
-              });
+              // Deliver via Husmodata API
+              deliverDataHusmo(phone, state.network, pkg.size, pkg.price, r.reference, docRef);
             });
             closeModal('modal-topup');
             document.getElementById('data-phone').value='';
@@ -13457,6 +13914,197 @@ function toggleReferralSystem() {
     );
   }).catch(function(e) {
     showToast('Error: ' + e.message);
+  });
+}
+
+
+// ── AUTO-CATEGORISATION ENGINE ────────────────────────────────────────────
+// Silently analyses post content and assigns the most fitting category
+// Works on text, images and videos — completely invisible to the user
+function autoDetectCategory(text, mediaType, userSelectedCat) {
+  // If user explicitly selected a specific category (not 'all'), respect it
+  if (userSelectedCat && userSelectedCat !== 'all') return userSelectedCat;
+
+  var t = (text || '').toLowerCase();
+  var scores = { education: 0, fun: 0, thoughts: 0, news: 0 };
+
+  // ── EDUCATION signals ───────────────────────────────────────
+  var eduWords = [
+    'learn','study','tutorial','how to','tip','fact','science','history',
+    'education','school','university','college','knowledge','teach','explain',
+    'research','discover','biology','chemistry','physics','math','geography',
+    'technology','programming','coding','algorithm','formula','theory',
+    'lesson','course','lecture','academic','professor','student','book',
+    'definition','meaning','wikipedia','did you know','according to',
+    'statistics','data','percentage','report','study shows','scientists',
+    'found that','evidence','experiment','analysis','understand','concept'
+  ];
+  eduWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.education += (w.length>5?3:2); });
+
+  // ── FUN signals ─────────────────────────────────────────────
+  var funWords = [
+    'funny','lol','lmao','haha','joke','meme','comedy','hilarious',
+    'laugh','entertainment','viral','prank','challenge','trend','dance',
+    'skit','roast','savage','bruh','literally','omg','😂','🤣','😹',
+    'dead','crying','iconic','legend','bro','bestie','fam','periodt',
+    'ngl','tbh lol','no cap funny','fire','lit','vibes','mood',
+    'when you','me when','the face','nobody:','tiktok','reel','meme',
+    'blew up','cant stop','cringe','wholesome','cute','aww','adorable'
+  ];
+  funWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.fun += (w.length>5?3:2); });
+
+  // ── THOUGHTS signals ─────────────────────────────────────────
+  var thoughtWords = [
+    'think','believe','opinion','feel like','in my view','personally',
+    'i think','i feel','reflection','mindset','motivation','inspire',
+    'wisdom','quote','life lesson','perspective','philosophy','truth',
+    'reality','mental health','growth','journey','experience','lesson learned',
+    'reminder','affirmation','gratitude','thankful','blessed','grateful',
+    'rant','unpopular opinion','hot take','lets talk','honest','genuine',
+    'vulnerability','confession','story time','my experience','deep thoughts',
+    'life is','remember that','never forget','always','sometimes we',
+    'what if','imagine','dream','goal','purpose','meaning of'
+  ];
+  thoughtWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.thoughts += (w.length>5?3:2); });
+
+  // ── NEWS signals ─────────────────────────────────────────────
+  var newsWords = [
+    'breaking','just in','update','news','report','announced','confirmed',
+    'government','president','minister','election','vote','policy','law',
+    'crisis','conflict','war','protest','economy','market','stock',
+    'inflation','price','budget','tax','gdp','unemployment','healthcare',
+    'climate','disaster','earthquake','flood','fire','accident','death',
+    'arrested','charged','court','verdict','sentence','investigation',
+    'leaked','exposed','scandal','controversy','official','statement',
+    'according to bbc','according to cnn','reuters','aljazeera','channels tv',
+    'tvc','arise news','punch','vanguard','thisday','tribune','naij',
+    'nigeria','us','uk','africa','europe','asia','global','international',
+    'world','today','yesterday','this week','this month','2024','2025','2026'
+  ];
+  newsWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.news += (w.length>5?3:2); });
+
+  // ── MEDIA type bonuses ───────────────────────────────────────
+  // Videos are often fun/entertainment content
+  if (mediaType === 'video') {
+    scores.fun += 2;
+  }
+  // Images lean slightly towards thoughts/fun
+  if (mediaType === 'image') {
+    scores.thoughts += 1;
+    scores.fun += 1;
+  }
+
+  // ── Hashtag bonuses (strong signal) ─────────────────────────
+  var hashtags = t.match(/#[a-z]+/g) || [];
+  hashtags.forEach(function(tag) {
+    if (['#education','#learn','#study','#tutorial','#science','#history','#knowledge','#tips','#howto','#tech'].indexOf(tag)>-1) scores.education += 8;
+    if (['#funny','#comedy','#meme','#lol','#humor','#entertainment','#viral','#fun','#jokes'].indexOf(tag)>-1) scores.fun += 8;
+    if (['#thoughts','#motivation','#mindset','#inspiration','#quote','#wisdom','#life','#reflection','#opinion'].indexOf(tag)>-1) scores.thoughts += 8;
+    if (['#news','#breaking','#update','#worldnews','#politics','#economy','#sports','#naijagist'].indexOf(tag)>-1) scores.news += 8;
+  });
+
+  // ── Pick highest scoring category ───────────────────────────
+  var best = 'all';
+  var bestScore = 4; // minimum threshold — below this stays as 'all'
+  Object.keys(scores).forEach(function(cat) {
+    if (scores[cat] > bestScore) {
+      bestScore = scores[cat];
+      best = cat;
+    }
+  });
+
+  return best;
+}
+
+
+// ── AUTH SHOWCASE SLIDER ─────────────────────────────────────────────────
+var currentSlide = 0;
+var totalSlides = 3;
+var slideTimer;
+
+function goToSlide(n) {
+  var slides = document.querySelectorAll('.showcase-slide');
+  var dots   = document.querySelectorAll('.dot');
+  slides.forEach(function(s){ s.classList.remove('active'); });
+  dots.forEach(function(d){ d.classList.remove('active'); });
+  currentSlide = (n + totalSlides) % totalSlides;
+  if(slides[currentSlide]) slides[currentSlide].classList.add('active');
+  if(dots[currentSlide])   dots[currentSlide].classList.add('active');
+}
+
+function nextSlide() { goToSlide(currentSlide + 1); }
+
+function startSlider() {
+  clearInterval(slideTimer);
+  slideTimer = setInterval(nextSlide, 5000);
+}
+
+// Start slider when auth screen visible
+(function() {
+  setTimeout(function(){
+    startSlider();
+  }, 1000);
+})();
+
+
+// ── HUSMODATA VTU INTEGRATION ─────────────────────────────────────────────
+// API key is stored SECURELY on the Render backend (server.js)
+// Frontend never sees the raw API key — it only calls our own backend
+// Backend URL: https://zync-backend-ickl.onrender.com
+
+var HUSMO_NETWORKS = {
+  'MTN Nigeria':    'mtn',
+  'Airtel Nigeria': 'airtel',
+  'Glo Nigeria':    'glo',
+  '9mobile Nigeria':'9mobile'
+};
+
+function getHusmoNetwork(networkName) {
+  return HUSMO_NETWORKS[networkName] || networkName.toLowerCase().split(' ')[0];
+}
+
+// Airtime delivery via Husmodata (through our secure backend)
+function deliverAirtimeHusmo(phone, network, amount, ref, docRef) {
+  var networkCode = getHusmoNetwork(network);
+  return callSecureAPI('/api/husmo-airtime', {
+    phone:   phone,
+    network: networkCode,
+    amount:  amount,
+    ref:     ref
+  }).then(function(data) {
+    if (data && (data.status === 'success' || data.status === true || data.success)) {
+      if (docRef) docRef.update({ status: 'completed', husmoRef: data.reference || '' });
+      showToast('✅ ₦' + amount + ' ' + network + ' airtime sent to ' + phone + '!');
+    } else {
+      if (docRef) docRef.update({ status: 'failed', error: (data && data.message) || 'Unknown' });
+      showToast('⚠️ Payment received. Airtime delivery in progress. Ref: ' + ref);
+    }
+  }).catch(function() {
+    if (docRef) docRef.update({ status: 'processing' });
+    showToast('✅ Payment received! Airtime will be delivered shortly.');
+  });
+}
+
+// Data delivery via Husmodata (through our secure backend)
+function deliverDataHusmo(phone, network, bundle, amount, ref, docRef) {
+  var networkCode = getHusmoNetwork(network);
+  return callSecureAPI('/api/husmo-data', {
+    phone:   phone,
+    network: networkCode,
+    bundle:  bundle,
+    amount:  amount,
+    ref:     ref
+  }).then(function(data) {
+    if (data && (data.status === 'success' || data.status === true || data.success)) {
+      if (docRef) docRef.update({ status: 'completed', husmoRef: data.reference || '' });
+      showToast('✅ ' + bundle + ' ' + network + ' data sent to ' + phone + '!');
+    } else {
+      if (docRef) docRef.update({ status: 'failed', error: (data && data.message) || 'Unknown' });
+      showToast('⚠️ Payment received. Data delivery in progress. Ref: ' + ref);
+    }
+  }).catch(function() {
+    if (docRef) docRef.update({ status: 'processing' });
+    showToast('✅ Payment received! Data will be delivered shortly.');
   });
 }
 
