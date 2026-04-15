@@ -1573,7 +1573,7 @@ img, video { max-width: 100%; height: auto; }
 
 /* RIGHT: Auth form */
 .auth-right {
-  width: 420px;
+  width: 460px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -1581,8 +1581,8 @@ img, video { max-width: 100%; height: auto; }
   align-items: center;
   padding: 40px 32px;
   background: #000000;
-  border-left: 1px solid rgba(255,255,255,.08);
-  border-right: 1px solid rgba(255,255,255,.08);
+  border-left: 1px solid rgba(34,197,94,.12);
+  border-right: 1px solid rgba(34,197,94,.12);
   min-height: 100vh;
   overflow-y: auto;
   position: relative;
@@ -1590,7 +1590,12 @@ img, video { max-width: 100%; height: auto; }
 }
 .auth-right .auth-box {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
+  background: #0d0d0d !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  border-radius: 20px !important;
+  padding: 32px 28px !important;
+  box-shadow: 0 0 40px rgba(34,197,94,.06), 0 20px 60px rgba(0,0,0,.8) !important;
 }
 .auth-logo-sm {
   text-align: center;
@@ -1733,6 +1738,370 @@ img, video { max-width: 100%; height: auto; }
 
 /* ── Streak badge ── */
 .streak-badge { display:inline-flex;align-items:center;gap:4px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#fb923c;font-weight:700; }
+
+/* ════════════════════════════════════════════════════════════
+   LOGIN PAGE COMPLETE REDESIGN
+   Dark black bg · Green glowing animations · Centered box
+   ════════════════════════════════════════════════════════════ */
+
+/* Force entire auth screen to be pure black */
+#auth-screen,
+#auth-screen * {
+  box-sizing: border-box;
+}
+#auth-screen {
+  background: #000 !important;
+  min-height: 100vh;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  position: relative;
+}
+
+/* Showcases take equal space on both sides */
+.auth-showcase,
+.auth-showcase-right {
+  flex: 1 !important;
+  background: #000 !important;
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+}
+
+/* Center the auth form panel */
+.auth-right {
+  width: 440px !important;
+  flex-shrink: 0 !important;
+  background: #000 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 32px 24px !important;
+  border-left: 1px solid rgba(34,197,94,.15) !important;
+  border-right: 1px solid rgba(34,197,94,.15) !important;
+  min-height: 100vh !important;
+}
+
+/* The auth box — rounded, not pointed */
+.auth-box {
+  background: #0a0a0a !important;
+  border: 1px solid rgba(34,197,94,.25) !important;
+  border-radius: 24px !important;
+  padding: 32px 28px !important;
+  width: 100% !important;
+  max-width: 380px !important;
+  box-shadow:
+    0 0 0 1px rgba(34,197,94,.05),
+    0 20px 60px rgba(0,0,0,.8),
+    0 0 40px rgba(34,197,94,.05) !important;
+}
+
+/* Auth tab styling */
+.auth-tab {
+  background: none !important;
+  border: none !important;
+  color: rgba(255,255,255,.4) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 9px 16px !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  transition: all .2s !important;
+  letter-spacing: .5px !important;
+}
+.auth-tab.active {
+  background: rgba(34,197,94,.15) !important;
+  color: var(--green3) !important;
+  font-weight: 700 !important;
+}
+.auth-tabs {
+  background: rgba(255,255,255,.03) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  display: flex !important;
+  margin-bottom: 24px !important;
+  border: 1px solid rgba(255,255,255,.06) !important;
+}
+
+/* Input fields */
+.fi {
+  background: rgba(255,255,255,.05) !important;
+  border: 1px solid rgba(255,255,255,.1) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  padding: 12px 14px !important;
+  width: 100% !important;
+  outline: none !important;
+  transition: border .2s, box-shadow .2s !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+.fi:focus {
+  border-color: rgba(34,197,94,.5) !important;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.1) !important;
+}
+.fi::placeholder { color: rgba(255,255,255,.25) !important; }
+
+/* Labels */
+.fg label {
+  font-size: 11px !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.4) !important;
+  font-weight: 600 !important;
+  margin-bottom: 6px !important;
+  display: block !important;
+}
+
+/* Login button */
+.btn-auth {
+  width: 100% !important;
+  padding: 14px !important;
+  background: linear-gradient(135deg, #166534, #22c55e) !important;
+  border: none !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  cursor: pointer !important;
+  transition: all .25s !important;
+  font-family: 'DM Sans', sans-serif !important;
+  box-shadow: 0 4px 20px rgba(34,197,94,.3) !important;
+}
+.btn-auth:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 30px rgba(34,197,94,.4) !important;
+}
+.btn-auth:disabled { opacity: .6 !important; cursor: not-allowed !important; }
+
+/* Error text */
+.a-err {
+  font-size: 12px !important;
+  color: #ff6b6b !important;
+  min-height: 16px !important;
+  margin-bottom: 10px !important;
+  text-align: center !important;
+}
+
+/* Mindvora logo on auth page - green glow */
+.auth-logo {
+  font-family: 'Great Vibes', cursive !important;
+  font-size: 72px !important;
+  animation: mindvora-colors 8s linear infinite !important;
+  text-align: center !important;
+  display: block !important;
+  line-height: 1 !important;
+  filter: drop-shadow(0 0 20px currentColor) !important;
+}
+.auth-logo-sm {
+  text-align: center !important;
+  margin-bottom: 24px !important;
+}
+.auth-logo-sm span {
+  filter: drop-shadow(0 0 12px rgba(34,197,94,.6)) !important;
+}
+.auth-sub {
+  text-align: center !important;
+  font-size: 11px !important;
+  letter-spacing: 3px !important;
+  text-transform: uppercase !important;
+  color: rgba(255,255,255,.3) !important;
+  margin-bottom: 28px !important;
+}
+
+/* GREEN glowing bubbles on showcases */
+.slide-bubble {
+  background: radial-gradient(circle, rgba(34,197,94,.2), transparent) !important;
+  animation: bubbleFloat 6s ease-in-out infinite !important;
+  filter: blur(20px) !important;
+}
+
+/* Float cards — green glow */
+.float-card {
+  background: rgba(0,0,0,.7) !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  box-shadow: 0 0 20px rgba(34,197,94,.1) !important;
+}
+.fc-name { color: #fff !important; }
+.fc-heart { color: var(--green3) !important; }
+
+/* Slide text glowing headings */
+.slide-title em {
+  color: var(--green3) !important;
+  text-shadow: 0 0 20px rgba(34,197,94,.5) !important;
+}
+.slide-tag {
+  background: rgba(34,197,94,.1) !important;
+  border-color: rgba(34,197,94,.3) !important;
+  color: var(--green3) !important;
+  box-shadow: 0 0 10px rgba(34,197,94,.15) !important;
+}
+.stat-pill {
+  background: rgba(34,197,94,.06) !important;
+  border-color: rgba(34,197,94,.15) !important;
+  color: rgba(255,255,255,.7) !important;
+}
+.dot.active {
+  background: var(--green3) !important;
+  box-shadow: 0 0 8px rgba(34,197,94,.6) !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 900px) {
+  .auth-showcase-right { display: none !important; }
+  .auth-right {
+    border-right: none !important;
+    width: 100% !important;
+    max-width: 460px !important;
+    margin: 0 auto !important;
+  }
+}
+@media (max-width: 640px) {
+  #auth-screen { flex-direction: column !important; }
+  .auth-showcase {
+    min-height: 35vh !important;
+    max-height: 35vh !important;
+    flex: none !important;
+  }
+  .auth-right {
+    min-height: auto !important;
+    padding: 28px 16px !important;
+    flex: 1 !important;
+  }
+  .auth-box { border-radius: 20px !important; }
+}
+
+/* ── Green glow animations on auth page ── */
+#auth-screen {
+  background: #000000 !important;
+}
+
+/* Glowing green particles behind showcases */
+.auth-showcase::before,
+.auth-showcase-right::before {
+  content: '';
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34,197,94,.12) 0%, transparent 70%);
+  top: 30%;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: glow-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes glow-pulse {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: .7; }
+  50% { transform: translateX(-50%) scale(1.2); opacity: 1; }
+}
+
+/* Auth fields inside box */
+.auth-right .fi {
+  background: rgba(255,255,255,.05) !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  padding: 13px 16px !important;
+  font-size: 14px !important;
+  transition: border-color .2s, box-shadow .2s !important;
+}
+.auth-right .fi:focus {
+  border-color: rgba(34,197,94,.6) !important;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.1) !important;
+  outline: none !important;
+}
+.auth-right .fi::placeholder { color: rgba(255,255,255,.25) !important; }
+
+/* Auth tabs */
+.auth-right .auth-tabs {
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(34,197,94,.15) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  margin-bottom: 24px !important;
+}
+.auth-right .auth-tab {
+  color: rgba(255,255,255,.45) !important;
+  font-size: 13px !important;
+  letter-spacing: .5px !important;
+  border-radius: 9px !important;
+}
+.auth-right .auth-tab.active {
+  background: var(--green2) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+/* Mindvora logo in auth right */
+.auth-logo-sm {
+  text-align: center !important;
+  margin-bottom: 24px !important;
+}
+.auth-logo-sm span {
+  font-size: 40px !important;
+  filter: drop-shadow(0 0 12px rgba(34,197,94,.5));
+}
+
+/* Auth button */
+.auth-right .btn-auth {
+  background: linear-gradient(135deg, #166534, #22c55e) !important;
+  border-radius: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  box-shadow: 0 4px 20px rgba(34,197,94,.25) !important;
+  transition: all .25s !important;
+}
+.auth-right .btn-auth:hover {
+  box-shadow: 0 8px 30px rgba(34,197,94,.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Green glow on slide borders */
+.showcase-slide.active .slide-text {
+  animation: textGlow .5s ease both;
+}
+@keyframes textGlow {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Float cards glow on hover */
+.float-card:hover {
+  border-color: rgba(34,197,94,.4) !important;
+  box-shadow: 0 0 20px rgba(34,197,94,.15) !important;
+}
+
+/* Green dot indicator for slide */
+.dot.active {
+  background: #22c55e !important;
+  box-shadow: 0 0 8px rgba(34,197,94,.6) !important;
+}
+
+/* Error message styling */
+.a-err {
+  color: #fca5a5 !important;
+  font-size: 12px !important;
+  min-height: 16px !important;
+  margin-bottom: 8px !important;
+  text-align: center !important;
+}
+
+/* Label text */
+.auth-right label {
+  color: rgba(255,255,255,.6) !important;
+  font-size: 11px !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+}
+
+/* Full dark auth screen background */
+.auth-showcase { background: #050805 !important; }
+.auth-showcase-right { background: #050805 !important; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -1920,6 +2289,9 @@ img, video { max-width: 100%; height: auto; }
           <div class="pw-wrap"><input class="fi" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password"><button class="eye-btn" type="button" onclick="toggleEye('li-pass','e0')"><span id="e0">👁</span></button></div>
         </div>
         <div class="a-err" id="li-err"></div>
+        <div style="text-align:right;margin-bottom:10px">
+          <span onclick="doForgotPassword()" style="font-size:11px;color:rgba(34,197,94,.7);cursor:pointer;letter-spacing:.5px">Forgot password?</span>
+        </div>
         <button class="btn-auth" id="btn-login">Enter Mindvora →</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
         <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
@@ -6045,9 +6417,7 @@ function safeFirestoreWrite(collection, data, docId){
 }
 
 // Store current user uid for rate limiting
-if(typeof auth !== 'undefined') auth.onAuthStateChanged(function(u){
-  window._mvUid = u ? u.uid : null;
-});
+if(typeof auth !== 'undefined') // _mvUid updated inside initAuthListener
 
 // Security system active
 
@@ -6568,29 +6938,40 @@ function showAuthTab(tab){ document.querySelectorAll('.auth-tab').forEach(functi
 
 function doLogin(){
   var emailVal = document.getElementById('li-email').value.trim();
-  if(isLoginLocked(emailVal)){ return; }
-  var email=document.getElementById('li-email').value.trim().toLowerCase();
-  var pass=document.getElementById('li-pass').value;
-  var err=document.getElementById('li-err');
-  var btn=document.getElementById('btn-login');
-  err.textContent='';
-  if(!email||!pass){ err.textContent='Please fill in both fields.'; return; }
-  btn.disabled=true; btn.textContent='Signing in…';
-  function attempt(tries){
-    auth.signInWithEmailAndPassword(email,pass)
-      .catch(function(e){
-        trackAdvancedLogin(email, false, null);
-        if(e.code==='auth/network-request-failed'&&tries>0){
-          err.textContent='Retrying… ('+tries+' left)';
-          setTimeout(function(){ attempt(tries-1); },2000);
-        } else {
-          err.textContent=authErr(e.code);
-          btn.disabled=false;
-          btn.textContent='Enter Mindvora →';
-        }
-      });
-  }
-  attempt(3);
+  // Safety: check login lock but don't block if lock system has a bug
+  try { if(isLoginLocked(emailVal)) return; } catch(le){}
+  var email = emailVal.toLowerCase();
+  var pass  = document.getElementById('li-pass').value;
+  var err   = document.getElementById('li-err');
+  var btn   = document.getElementById('btn-login');
+  err.textContent = '';
+  if (!email || !pass) { err.textContent = 'Please fill in both fields.'; return; }
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .then(function(cred) {
+      // Success — onAuthStateChanged handles mounting the app
+      btn.textContent = '✓ Welcome back!';
+      try { trackAdvancedLogin(email, true, cred.user.uid); } catch(e){}
+    })
+    .catch(function(e) {
+      try { trackAdvancedLogin(email, false, null); } catch(le){}
+      var msg = authErr(e.code);
+      // Extra helpful messages
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
+        msg = 'Wrong email or password. Check your details and try again.';
+      }
+      if (e.code === 'auth/user-not-found') {
+        msg = 'No account found with this email. Did you mean to register?';
+      }
+      if (e.code === 'auth/too-many-requests') {
+        msg = 'Account temporarily locked due to too many attempts. Try again in 5 minutes or reset your password.';
+      }
+      err.textContent = msg;
+      btn.disabled = false;
+      btn.textContent = 'Enter Mindvora →';
+    });
 }
 document.getElementById('btn-login').addEventListener('click',doLogin);
 document.getElementById('li-pass').addEventListener('keydown',function(e){ if(e.key==='Enter') doLogin(); });
@@ -6668,6 +7049,7 @@ function initAuthListener(){
 auth.onAuthStateChanged(function(user){
   if(user){
     state.user=user;
+    window._mvUid = user.uid;
     db.collection('users').doc(user.uid).get().then(function(snap){
       if(snap.exists){
         state.profile=snap.data();
