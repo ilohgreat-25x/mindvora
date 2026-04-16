@@ -3031,13 +3031,13 @@ input:-webkit-autofill:active {
       <div class="auth-panel active" id="panel-login">
         <div class="fg"><label>Email</label><input class="fi" id="li-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
         <div class="fg"><label>Password</label>
-          <div class="pw-wrap"><input class="fi" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password"><button class="eye-btn" type="button" onclick="toggleEye('li-pass','e0')"><span id="e0">👁</span></button></div>
+          <div class="pw-wrap"><input class="fi" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"><button class="eye-btn" type="button" onclick="toggleEye('li-pass','e0')"><span id="e0">👁</span></button></div>
         </div>
         <div class="a-err" id="li-err"></div>
         <div style="text-align:right;margin-bottom:10px">
-          <span onclick="doForgotPassword()" style="font-size:11px;color:rgba(34,197,94,.7);cursor:pointer;letter-spacing:.5px">Forgot password?</span>
+          <button type="button" onclick="doForgotPassword()" style="background:none;border:none;font-size:12px;color:rgba(34,197,94,.8);cursor:pointer;letter-spacing:.5px;font-family:'DM Sans',sans-serif;padding:0;text-decoration:underline;text-underline-offset:3px;">Forgot password?</button>
         </div>
-        <button class="btn-auth" id="btn-login">Enter Mindvora →</button>
+        <button class="btn-auth" id="btn-login" onclick="doLogin()" type="button">Enter Mindvora →</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
         <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
         <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:1px">OR</span>
@@ -3056,10 +3056,10 @@ input:-webkit-autofill:active {
           <div class="pw-wrap"><input class="fi" id="r-pass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"><button class="eye-btn" type="button" onclick="toggleEye('r-pass','e1')"><span id="e1">👁</span></button></div>
         </div>
         <div class="fg"><label>Confirm Password</label>
-          <div class="pw-wrap"><input class="fi" id="r-confirm" type="password" placeholder="Re-enter password"><button class="eye-btn" type="button" onclick="toggleEye('r-confirm','e2')"><span id="e2">👁</span></button></div>
+          <div class="pw-wrap"><input class="fi" id="r-confirm" type="password" placeholder="Re-enter password" onkeydown="if(event.key==='Enter')doRegister()"><button class="eye-btn" type="button" onclick="toggleEye('r-confirm','e2')"><span id="e2">👁</span></button></div>
         </div>
         <div class="a-err" id="r-err"></div>
-        <button class="btn-auth" id="btn-reg">Create Account →</button>
+        <button class="btn-auth" id="btn-reg" onclick="doRegister()" type="button">Create Account →</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
         <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
         <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:1px">OR</span>
@@ -6908,13 +6908,22 @@ function trackLoginAttempt(email, success){
 }
 
 function isLoginLocked(email){
-  if(!failedLoginAttempts[email]) return false;
+  // Never lock out owner accounts
+  if (email && (email === 'ilohgreat25@gmail.com' || email === 'mindvoraofficial@outlook.com')) return false;
+  if (!failedLoginAttempts[email]) return false;
   var now = Date.now();
-  if(now - failedLoginAttempts[email].firstAt > 900000){
+  // Reset after 15 minutes
+  if (now - failedLoginAttempts[email].firstAt > 900000) {
     failedLoginAttempts[email] = {count:0, firstAt:now};
     return false;
   }
-  return failedLoginAttempts[email].count >= 5;
+  // Only lock after 10 attempts (was 5 — too aggressive)
+  var locked = failedLoginAttempts[email].count >= 10;
+  if (locked) {
+    var li_err = document.getElementById('li-err');
+    if (li_err) li_err.textContent = '⏳ Too many attempts. Wait 15 minutes or click Forgot Password to reset.';
+  }
+  return locked;
 }
 
 // ── SPAM DETECTOR — detect bot-like behavior ──
@@ -15877,6 +15886,85 @@ document.addEventListener('click', function(e) {
     var p = document.getElementById('share-dm-picker'); if(p) p.remove();
   }
 });
+
+// ── FORGOT PASSWORD — sends reset link to user's email ───────────────────
+function doForgotPassword() {
+  var emailEl = document.getElementById('li-email');
+  var errEl   = document.getElementById('li-err');
+  var email   = emailEl ? emailEl.value.trim().toLowerCase() : '';
+
+  if (!email) {
+    if (errEl) errEl.textContent = '📧 Enter your email address above first, then click Forgot Password.';
+    if (emailEl) emailEl.focus();
+    return;
+  }
+
+  // Basic email format check
+  if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
+    if (errEl) errEl.textContent = '❌ Please enter a valid email address.';
+    return;
+  }
+
+  var btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+
+  auth.sendPasswordResetEmail(email, {
+    url: 'https://mindvora-vf8e.vercel.app'
+  })
+  .then(function() {
+    if (errEl) {
+      errEl.style.color = '#86efac';
+      errEl.textContent = '✅ Password reset link sent to ' + email + '. Check your inbox (and spam folder).';
+    }
+    showToast('📧 Reset link sent to ' + email);
+    if (btn) { btn.disabled = false; btn.textContent = 'Enter Mindvora →'; }
+  })
+  .catch(function(e) {
+    var msg = '❌ Could not send reset email. ';
+    if (e.code === 'auth/user-not-found') {
+      msg += 'No account found with this email. Please register instead.';
+    } else if (e.code === 'auth/invalid-email') {
+      msg += 'Invalid email address.';
+    } else if (e.code === 'auth/too-many-requests') {
+      msg += 'Too many attempts. Wait a moment and try again.';
+    } else {
+      msg += e.message;
+    }
+    if (errEl) {
+      errEl.style.color = '#fca5a5';
+      errEl.textContent = msg;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Enter Mindvora →'; }
+  });
+}
+
+
+// ── BUTTON FALLBACK WIRING — ensures login/register always work ──────────
+document.addEventListener('DOMContentLoaded', function() {
+  var loginBtn = document.getElementById('btn-login');
+  if (loginBtn && !loginBtn._wired) {
+    loginBtn.addEventListener('click', doLogin);
+    loginBtn._wired = true;
+  }
+  var regBtn = document.getElementById('btn-reg');
+  if (regBtn && !regBtn._wired) {
+    regBtn.addEventListener('click', doRegister);
+    regBtn._wired = true;
+  }
+  var liEmail = document.getElementById('li-email');
+  if (liEmail) {
+    liEmail.addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+  }
+  var liPass = document.getElementById('li-pass');
+  if (liPass) {
+    liPass.addEventListener('keydown', function(e) { if (e.key === 'Enter') doLogin(); });
+  }
+  var rPass = document.getElementById('r-confirm');
+  if (rPass) {
+    rPass.addEventListener('keydown', function(e) { if (e.key === 'Enter') doRegister(); });
+  }
+});
+
 // Favicon — static, set in HTML head
 
 </script>
