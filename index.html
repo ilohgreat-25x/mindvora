@@ -2102,6 +2102,346 @@ img, video { max-width: 100%; height: auto; }
 /* Full dark auth screen background */
 .auth-showcase { background: #050805 !important; }
 .auth-showcase-right { background: #050805 !important; }
+
+/* ═══════════════════════════════════════════════════════════
+   MINDVORA AUTH PAGE — PITCH BLACK + GREEN GLOW
+   Complete override — this is the final definitive style
+   ═══════════════════════════════════════════════════════════ */
+
+/* The entire auth page = pitch black */
+#auth-screen,
+#auth-screen .auth-showcase,
+#auth-screen .auth-showcase-right,
+#auth-screen .auth-right,
+#auth-screen .slide-bg {
+  background: #000000 !important;
+}
+
+/* Full page layout */
+#auth-screen {
+  display: flex !important;
+  flex-direction: row !important;
+  min-height: 100vh !important;
+  width: 100vw !important;
+  padding: 0 !important;
+  align-items: stretch !important;
+  background: #000000 !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 100 !important;
+  overflow-y: auto !important;
+}
+
+/* Showcase panels — pure black */
+#auth-screen .auth-showcase,
+#auth-screen .auth-showcase-right {
+  flex: 1 !important;
+  background: #000000 !important;
+  position: relative !important;
+  overflow: hidden !important;
+  min-height: 100vh !important;
+}
+
+/* Green ambient glow — the ONLY colour on the dark panels */
+#auth-screen .auth-showcase::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 500px !important;
+  height: 500px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(34,197,94,.18) 0%, rgba(22,163,74,.08) 40%, transparent 70%) !important;
+  top: 20% !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  animation: greenGlow 5s ease-in-out infinite !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+#auth-screen .auth-showcase-right::after {
+  content: '' !important;
+  position: absolute !important;
+  width: 500px !important;
+  height: 500px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(34,197,94,.14) 0%, rgba(22,163,74,.06) 40%, transparent 70%) !important;
+  bottom: 20% !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  animation: greenGlow 7s ease-in-out infinite reverse !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+@keyframes greenGlow {
+  0%, 100% { opacity: .7; transform: translateX(-50%) scale(1); }
+  50%       { opacity: 1;  transform: translateX(-50%) scale(1.3); }
+}
+
+/* Slide backgrounds — keep black with subtle green tint */
+#auth-screen .slide-bg {
+  background: #000000 !important;
+  position: absolute !important;
+  inset: 0 !important;
+}
+
+/* All bubbles — green only */
+#auth-screen .slide-bubble {
+  background: radial-gradient(circle, rgba(34,197,94,.15), transparent) !important;
+}
+
+/* Float cards — dark with green border glow */
+#auth-screen .float-card {
+  background: rgba(0,0,0,.9) !important;
+  border: 1px solid rgba(34,197,94,.25) !important;
+  box-shadow: 0 0 20px rgba(34,197,94,.08) !important;
+  backdrop-filter: blur(20px) !important;
+}
+#auth-screen .float-card:hover {
+  border-color: rgba(34,197,94,.5) !important;
+  box-shadow: 0 0 30px rgba(34,197,94,.2) !important;
+}
+
+/* Avatar grid */
+#auth-screen .ag-av {
+  border: 1px solid rgba(34,197,94,.3) !important;
+  box-shadow: 0 0 8px rgba(34,197,94,.15) !important;
+}
+
+/* Post showcase cards */
+#auth-screen .post-showcase {
+  background: rgba(0,0,0,.95) !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  box-shadow: 0 0 30px rgba(34,197,94,.08) !important;
+}
+#auth-screen .ps-active {
+  background: rgba(34,197,94,.08) !important;
+  border: 1px solid rgba(34,197,94,.25) !important;
+}
+
+/* Earnings showcase */
+#auth-screen .earn-showcase {
+  background: rgba(0,0,0,.95) !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  box-shadow: 0 0 30px rgba(34,197,94,.1) !important;
+}
+#auth-screen .es-bar {
+  background: rgba(34,197,94,.3) !important;
+}
+#auth-screen .es-bar:last-child {
+  background: #22c55e !important;
+  box-shadow: 0 0 12px rgba(34,197,94,.5) !important;
+}
+
+/* Feature pills */
+#auth-screen .feat-pill {
+  background: rgba(0,0,0,.8) !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  color: rgba(34,197,94,.9) !important;
+}
+
+/* Slide dots — green */
+#auth-screen .dot { background: rgba(34,197,94,.25) !important; }
+#auth-screen .dot.active {
+  background: #22c55e !important;
+  box-shadow: 0 0 10px rgba(34,197,94,.7) !important;
+  width: 24px !important;
+}
+
+/* Slide text */
+#auth-screen .slide-tag {
+  background: rgba(34,197,94,.1) !important;
+  border: 1px solid rgba(34,197,94,.3) !important;
+  color: #22c55e !important;
+}
+#auth-screen .slide-title { color: #ffffff !important; }
+#auth-screen .slide-title em { color: #22c55e !important; text-shadow: 0 0 20px rgba(34,197,94,.4); }
+#auth-screen .slide-desc { color: rgba(255,255,255,.5) !important; }
+#auth-screen .stat-pill {
+  background: rgba(34,197,94,.05) !important;
+  border: 1px solid rgba(34,197,94,.15) !important;
+  color: rgba(255,255,255,.6) !important;
+}
+
+/* Slide gradient (text area bg at bottom) */
+#auth-screen .slide-text {
+  background: linear-gradient(to top, rgba(0,0,0,.98) 0%, rgba(0,0,0,.7) 50%, transparent 100%) !important;
+}
+
+/* CENTER column — dark box */
+#auth-screen .auth-right {
+  width: 460px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 40px 32px !important;
+  background: #000000 !important;
+  border-left: 1px solid rgba(34,197,94,.15) !important;
+  border-right: 1px solid rgba(34,197,94,.15) !important;
+  min-height: 100vh !important;
+  overflow-y: auto !important;
+  z-index: 10 !important;
+}
+
+/* The form BOX itself */
+#auth-screen .auth-right .auth-box {
+  width: 100% !important;
+  max-width: 380px !important;
+  background: #0a0a0a !important;
+  border: 1px solid rgba(34,197,94,.3) !important;
+  border-radius: 20px !important;
+  padding: 32px 28px !important;
+  box-shadow:
+    0 0 0 1px rgba(34,197,94,.05),
+    0 0 40px rgba(34,197,94,.08),
+    0 20px 60px rgba(0,0,0,.9) !important;
+}
+
+/* Mindvora logo on form */
+#auth-screen .auth-logo-sm span {
+  font-size: 40px !important;
+  animation: mindvora-colors 6s linear infinite !important;
+  filter: drop-shadow(0 0 16px rgba(34,197,94,.6)) !important;
+}
+
+/* Tabs */
+#auth-screen .auth-tabs {
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(34,197,94,.15) !important;
+  border-radius: 12px !important;
+  padding: 4px !important;
+  margin-bottom: 24px !important;
+}
+#auth-screen .auth-tab {
+  color: rgba(255,255,255,.4) !important;
+  font-size: 13px !important;
+  border-radius: 9px !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+#auth-screen .auth-tab.active {
+  background: linear-gradient(135deg, #166534, #22c55e) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 16px rgba(34,197,94,.3) !important;
+}
+
+/* Input fields */
+#auth-screen .fi {
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(34,197,94,.2) !important;
+  border-radius: 12px !important;
+  color: #ffffff !important;
+  padding: 13px 16px !important;
+  font-size: 14px !important;
+  width: 100% !important;
+  font-family: 'DM Sans', sans-serif !important;
+  transition: border-color .2s, box-shadow .2s !important;
+}
+#auth-screen .fi:focus {
+  border-color: rgba(34,197,94,.6) !important;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.1) !important;
+  outline: none !important;
+  background: rgba(34,197,94,.03) !important;
+}
+#auth-screen .fi::placeholder { color: rgba(255,255,255,.2) !important; }
+
+/* Labels */
+#auth-screen label,
+#auth-screen .fg label {
+  color: rgba(34,197,94,.8) !important;
+  font-size: 11px !important;
+  letter-spacing: 1.5px !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  margin-bottom: 7px !important;
+  display: block !important;
+}
+
+/* Sign in button */
+#auth-screen .btn-auth {
+  background: linear-gradient(135deg, #166534, #16a34a, #22c55e) !important;
+  border-radius: 12px !important;
+  border: none !important;
+  font-weight: 700 !important;
+  letter-spacing: 1px !important;
+  color: #fff !important;
+  padding: 14px !important;
+  width: 100% !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  box-shadow: 0 0 20px rgba(34,197,94,.3), 0 4px 16px rgba(0,0,0,.5) !important;
+  transition: all .25s !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+#auth-screen .btn-auth:hover {
+  box-shadow: 0 0 35px rgba(34,197,94,.5), 0 8px 24px rgba(0,0,0,.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Google button */
+#auth-screen .btn-google {
+  background: rgba(255,255,255,.04) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  border-radius: 12px !important;
+  color: rgba(255,255,255,.8) !important;
+  width: 100% !important;
+  padding: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  font-family: 'DM Sans', sans-serif !important;
+  transition: all .2s !important;
+}
+#auth-screen .btn-google:hover {
+  background: rgba(255,255,255,.08) !important;
+  border-color: rgba(255,255,255,.25) !important;
+}
+
+/* Error text */
+#auth-screen .a-err {
+  color: #fca5a5 !important;
+  font-size: 12px !important;
+  min-height: 16px !important;
+  text-align: center !important;
+}
+
+/* Terms text */
+#auth-screen .auth-right > div:last-child {
+  color: rgba(255,255,255,.25) !important;
+  font-size: 11px !important;
+  text-align: center !important;
+  margin-top: 16px !important;
+}
+
+/* Showcase brand text */
+#auth-screen .showcase-brand span:first-child {
+  color: #22c55e !important;
+  text-shadow: 0 0 20px rgba(34,197,94,.5) !important;
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 1024px) {
+  #auth-screen .auth-showcase-right { display: none !important; }
+  #auth-screen .auth-right { border-right: none !important; }
+}
+@media (max-width: 768px) {
+  #auth-screen { flex-direction: column !important; }
+  #auth-screen .auth-showcase { min-height: 42vh !important; max-height: 42vh !important; }
+  #auth-screen .auth-showcase-right { display: none !important; }
+  #auth-screen .auth-right {
+    width: 100% !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: 1px solid rgba(34,197,94,.15) !important;
+    padding: 24px 16px 40px !important;
+    min-height: auto !important;
+  }
+  #auth-screen .auth-right .auth-box { max-width: 100% !important; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -6932,7 +7272,24 @@ function openModal(id){ document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 function setNav(el){ document.querySelectorAll('.nav-item').forEach(function(b){ b.classList.remove('active'); }); el.classList.add('active'); }
 function toggleEye(inp,ico){ var i=document.getElementById(inp),ic=document.getElementById(ico); if(!i) return; i.type=i.type==='password'?'text':'password'; if(ic) ic.textContent=i.type==='password'?'👁':'🙈'; }
-function authErr(code){ var m={'auth/user-not-found':'No account with that email.','auth/wrong-password':'Wrong password. Try again.','auth/invalid-credential':'Wrong email or password.','auth/email-already-in-use':'Email already registered.','auth/invalid-email':'Invalid email address.','auth/weak-password':'Password needs at least 6 characters.','auth/too-many-requests':'Too many attempts. Wait a moment.','auth/network-request-failed':'Network blocked. Try a different WiFi, mobile hotspot, or disable any VPN/firewall.'}; return m[code]||'Something went wrong ('+code+'). Try again.'; }
+function authErr(code){ var m={
+  'auth/user-not-found':       'No account found with that email. Did you mean to register?',
+  'auth/wrong-password':       'Wrong password. Try again or use Forgot Password.',
+  'auth/invalid-credential':   'Wrong email or password. Check your details and try again.',
+  'auth/email-already-in-use': 'That email is already registered. Try signing in instead.',
+  'auth/invalid-email':        'That email address is not valid.',
+  'auth/weak-password':        'Password must be at least 6 characters.',
+  'auth/too-many-requests':    'Account temporarily locked. Wait 5 minutes or reset your password.',
+  'auth/network-request-failed':'Network error. Check your internet connection and try again.',
+  'auth/unauthorized-domain':  'Login blocked: your domain is not authorised in Firebase. Go to Firebase Console → Authentication → Settings → Authorised Domains → Add: mindvora-vf8e.vercel.app',
+  'auth/operation-not-allowed':'This sign-in method is not enabled. Go to Firebase Console → Authentication → Sign-in methods and enable Email/Password.',
+  'auth/popup-blocked':        'Popup was blocked by your browser. Allow popups for this site and try again.',
+  'auth/popup-closed-by-user': 'Sign-in popup was closed before completing.',
+  'auth/cancelled-popup-request':'Another sign-in popup is already open.',
+  'auth/account-exists-with-different-credential':'An account already exists with this email using a different sign-in method.',
+  'auth/internal-error':       'Firebase internal error. Try again in a moment.',
+  'auth/user-disabled':        'This account has been disabled. Contact support.',
+}; return m[code]||('Error: '+code+'. Please try again or contact support.'); }
 
 function showAuthTab(tab){ document.querySelectorAll('.auth-tab').forEach(function(t){ t.classList.remove('active'); }); document.querySelectorAll('.auth-panel').forEach(function(p){ p.classList.remove('active'); }); document.getElementById('tab-'+tab).classList.add('active'); document.getElementById('panel-'+tab).classList.add('active'); }
 
@@ -7083,10 +7440,21 @@ auth.onAuthStateChanged(function(user){
     }).catch(function(){ state.profile={name:user.displayName||user.email,handle:user.email.split('@')[0],color:COLORS[0],plan:'free'}; mountApp(); });
   } else {
     state.user=null; state.profile=null;
-    document.getElementById('app-screen').style.display='none';
-    document.getElementById('auth-screen').style.display='flex';
+    var appSc  = document.getElementById('app-screen');
+    var authSc = document.getElementById('auth-screen');
+    if(appSc)  { appSc.style.display='none'; }
+    if(authSc) { 
+      authSc.style.display='flex'; 
+      authSc.style.flexDirection='row';
+      authSc.style.minHeight='100vh';
+    }
     if(state.sparksUnsub){ state.sparksUnsub(); state.sparksUnsub=null; }
     if(state.notifsUnsub){ state.notifsUnsub(); state.notifsUnsub=null; }
+    // Reset login button in case it was stuck
+    var loginBtn = document.getElementById('btn-login');
+    if(loginBtn){ loginBtn.disabled=false; loginBtn.textContent='Enter Mindvora →'; }
+    var liErr = document.getElementById('li-err');
+    if(liErr) liErr.textContent = '';
   }
 });
 } // end initAuthListener
