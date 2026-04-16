@@ -2797,6 +2797,56 @@ html {
   from { background-position: 0% center; }
   to   { background-position: 300% center; }
 }
+
+/* ── Login error message — no blue highlight, clean red style ── */
+.a-err {
+  color: #fca5a5 !important;
+  background: transparent !important;
+  font-size: 12px !important;
+  min-height: 18px !important;
+  text-align: center !important;
+  margin-bottom: 8px !important;
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  user-select: none !important;
+  -webkit-text-fill-color: #fca5a5 !important;
+  line-height: 1.5 !important;
+  display: block !important;
+}
+/* When error has text — show subtle red bg */
+#li-err:not(:empty),
+#r-err:not(:empty) {
+  background: rgba(239,68,68,.08) !important;
+  border: 1px solid rgba(239,68,68,.2) !important;
+  color: #fca5a5 !important;
+  -webkit-text-fill-color: #fca5a5 !important;
+  padding: 8px 12px !important;
+}
+/* Kill any blue selection highlight on the error text */
+.a-err::selection,
+#li-err::selection,
+#r-err::selection {
+  background: transparent !important;
+  color: #fca5a5 !important;
+}
+.a-err::-moz-selection,
+#li-err::-moz-selection,
+#r-err::-moz-selection {
+  background: transparent !important;
+  color: #fca5a5 !important;
+}
+/* Also fix inputs — kill blue autofill background on Chrome/Android */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 40px #0d0d0d inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+  caret-color: #ffffff !important;
+  border-color: rgba(34,197,94,.4) !important;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -7670,15 +7720,17 @@ function doLogin(){
     .catch(function(e) {
       try { trackAdvancedLogin(email, false, null); } catch(le){}
       var msg = authErr(e.code);
-      // Extra helpful messages
       if (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password') {
-        msg = 'Wrong email or password. Check your details and try again.';
+        msg = '❌ Wrong password. Use Forgot Password below to reset it, or try Google sign-in.';
       }
       if (e.code === 'auth/user-not-found') {
-        msg = 'No account found with this email. Did you mean to register?';
+        msg = '❌ No account found with this email. Please register first.';
       }
       if (e.code === 'auth/too-many-requests') {
-        msg = 'Account temporarily locked due to too many attempts. Try again in 5 minutes or reset your password.';
+        msg = '⏳ Account locked. Wait 5 minutes or click Forgot Password to reset.';
+      }
+      if (e.code === 'auth/network-request-failed') {
+        msg = '📶 No internet connection. Check your network and try again.';
       }
       err.textContent = msg;
       btn.disabled = false;
