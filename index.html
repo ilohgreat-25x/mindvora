@@ -2442,6 +2442,361 @@ img, video { max-width: 100%; height: auto; }
   }
   #auth-screen .auth-right .auth-box { max-width: 100% !important; }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MOBILE AUTOFIT + iOS FIXES — FULL SCREEN ON ALL DEVICES
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Base reset for ALL devices ── */
+*, *::before, *::after {
+  -webkit-box-sizing: border-box;
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* ── iOS Safari specific fixes ── */
+@supports (-webkit-touch-callout: none) {
+  /* iPhone/iPad notch safe areas */
+  #auth-screen .auth-right {
+    padding-bottom: calc(40px + env(safe-area-inset-bottom)) !important;
+    padding-top:    calc(40px + env(safe-area-inset-top)) !important;
+  }
+  .bottom-nav {
+    padding-bottom: calc(6px + env(safe-area-inset-bottom)) !important;
+  }
+  .topbar {
+    padding-top: calc(8px + env(safe-area-inset-top)) !important;
+  }
+
+  /* iOS: stop inputs from zooming on focus (font-size must be >= 16px) */
+  input, textarea, select {
+    font-size: 16px !important;
+    -webkit-appearance: none !important;
+  }
+
+  /* iOS: color animations need -webkit prefix */
+  .tb-logo, .auth-logo-sm span {
+    -webkit-animation: mindvora-colors 6s linear infinite !important;
+    animation: mindvora-colors 6s linear infinite !important;
+    -webkit-text-fill-color: transparent !important;
+    background: linear-gradient(90deg, #22c55e, #60a5fa, #a78bfa, #f472b6, #fb923c, #facc15, #22c55e);
+    background-size: 300% auto;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-animation: gradientShift 4s linear infinite !important;
+    animation: gradientShift 4s linear infinite !important;
+  }
+  @-webkit-keyframes gradientShift {
+    0%   { background-position: 0% center; }
+    100% { background-position: 300% center; }
+  }
+  @keyframes gradientShift {
+    0%   { background-position: 0% center; }
+    100% { background-position: 300% center; }
+  }
+
+  /* iOS: fix button tap highlight */
+  button, .btn-auth, .btn-google, .nav-item {
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: pointer !important;
+  }
+
+  /* iOS: fix overflow scroll bounce */
+  .feed-col, .dm-msgs, .modal-box, .drawer {
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* iOS: fix position fixed on scroll */
+  .topbar, .bottom-nav, .drawer-overlay, .drawer {
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+  }
+
+  /* iOS: green glow animations */
+  .auth-showcase::after,
+  .auth-showcase-right::after {
+    -webkit-animation: greenGlow 5s ease-in-out infinite !important;
+    animation: greenGlow 5s ease-in-out infinite !important;
+  }
+  .float-card {
+    -webkit-animation: cardFloat 4s ease-in-out infinite !important;
+    animation: cardFloat 4s ease-in-out infinite !important;
+  }
+  .showcase-slide {
+    -webkit-transition: opacity 1s ease, -webkit-transform 1s ease !important;
+    transition: opacity 1s ease, transform 1s ease !important;
+  }
+
+  /* iOS: backdrop-filter support */
+  .float-card, .post-showcase, .earn-showcase {
+    -webkit-backdrop-filter: blur(20px) !important;
+    backdrop-filter: blur(20px) !important;
+  }
+}
+
+/* ── ANDROID + ALL SMALL PHONES (max 480px) ── */
+@media screen and (max-width: 480px) {
+
+  /* Auth page: stack vertically, form takes full width */
+  #auth-screen {
+    flex-direction: column !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  #auth-screen .auth-showcase {
+    min-height: 38vh !important;
+    max-height: 38vh !important;
+    flex-shrink: 0 !important;
+  }
+  #auth-screen .auth-showcase-right { display: none !important; }
+  #auth-screen .auth-right {
+    width: 100% !important;
+    flex: 1 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: 1px solid rgba(34,197,94,.15) !important;
+    padding: 20px 16px 40px !important;
+    min-height: auto !important;
+    justify-content: flex-start !important;
+    padding-top: 24px !important;
+  }
+  #auth-screen .auth-right .auth-box {
+    max-width: 100% !important;
+    padding: 20px 16px !important;
+  }
+  #auth-screen .auth-logo-sm span { font-size: 32px !important; }
+
+  /* Feed: full width, no padding issues */
+  .app-layout {
+    flex-direction: column !important;
+    width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+  .feed-col {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    padding: 0 0 70px 0 !important;
+    overflow-x: hidden !important;
+  }
+  .sidebar, .right-sidebar { display: none !important; }
+
+  /* Topbar on small phones */
+  .topbar {
+    padding: 0 12px !important;
+    height: 52px !important;
+  }
+  .tb-logo { font-size: 22px !important; }
+
+  /* Cards fill screen */
+  .spark-card {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    width: 100vw !important;
+  }
+  .compose-box {
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    margin: 0 !important;
+    padding: 12px !important;
+  }
+
+  /* Modal = bottom sheet on small phone */
+  .modal-overlay.open .modal-box,
+  .modal-overlay.open .modal {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    border-radius: 20px 20px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+    max-height: 92vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Bottom nav always visible */
+  .bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 100 !important;
+    padding: 6px 0 !important;
+    background: #000000 !important;
+    border-top: 1px solid rgba(34,197,94,.15) !important;
+  }
+  .bottom-nav .nav-item {
+    font-size: 9px !important;
+    padding: 4px 6px !important;
+    gap: 2px !important;
+  }
+  .bottom-nav .nav-ic { font-size: 18px !important; }
+
+  /* Auth field spacing */
+  .fg { margin-bottom: 14px !important; }
+  .fi { padding: 12px 14px !important; }
+  .btn-auth { padding: 13px !important; font-size: 14px !important; }
+
+  /* Filter pills scrollable */
+  #filter-bar {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    white-space: nowrap !important;
+    flex-wrap: nowrap !important;
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+  #filter-bar .f-pill {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    font-size: 11px !important;
+    padding: 6px 12px !important;
+  }
+
+  /* Stories scroll horizontal */
+  .stories-bar {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex-wrap: nowrap !important;
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+
+  /* Media full width */
+  .sk-media-wrap, .sk-media-img-wrap {
+    width: 100vw !important;
+    border-radius: 0 !important;
+  }
+  video.sk-media-main { width: 100% !important; }
+
+  /* Drawer full width on small phone */
+  .drawer { width: 85vw !important; max-width: 300px !important; }
+
+  /* Text sizes */
+  .sk-name   { font-size: 13px !important; }
+  .sk-body   { font-size: 14px !important; line-height: 1.6 !important; }
+  .s-btn     { font-size: 11px !important; padding: 5px 8px !important; }
+
+  /* Showcase slide text smaller on phone */
+  .slide-title { font-size: 18px !important; }
+  .slide-desc  { font-size: 11px !important; }
+  .slide-text  { padding: 14px 16px !important; }
+
+  /* Float cards — hide on tiny screens */
+  .float-card { display: none !important; }
+  .avatar-grid { bottom: 20% !important; }
+  .feat-pill   { display: none !important; }
+}
+
+/* ── MEDIUM PHONES (481px - 767px) ── */
+@media screen and (min-width: 481px) and (max-width: 767px) {
+  #auth-screen { flex-direction: column !important; }
+  #auth-screen .auth-showcase { min-height: 42vh !important; max-height: 42vh !important; }
+  #auth-screen .auth-showcase-right { display: none !important; }
+  #auth-screen .auth-right {
+    width: 100% !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: 1px solid rgba(34,197,94,.15) !important;
+    padding: 28px 24px 40px !important;
+    min-height: auto !important;
+  }
+  #auth-screen .auth-right .auth-box { max-width: 100% !important; }
+  .sidebar, .right-sidebar { display: none !important; }
+  .feed-col { width: 100% !important; max-width: 100% !important; padding-bottom: 70px !important; }
+  .bottom-nav { display: flex !important; }
+  .spark-card { border-radius: 0 !important; border-left: none !important; border-right: none !important; }
+}
+
+/* ── TABLETS (768px - 1023px) ── */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  #auth-screen .auth-showcase { flex: 1 !important; }
+  #auth-screen .auth-showcase-right { display: none !important; }
+  #auth-screen .auth-right { width: 400px !important; }
+  .sidebar { display: none !important; }
+  .right-sidebar { width: 200px !important; }
+  .feed-col { flex: 1 !important; }
+}
+
+/* ── Landscape phone fix ── */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  #auth-screen { flex-direction: row !important; overflow-y: auto !important; }
+  #auth-screen .auth-showcase { min-height: 100vh !important; max-height: none !important; }
+  #auth-screen .auth-right {
+    width: 320px !important;
+    flex-shrink: 0 !important;
+    min-height: 100vh !important;
+    padding: 16px !important;
+    overflow-y: auto !important;
+  }
+  #auth-screen .auth-right .auth-box { padding: 16px !important; }
+}
+
+/* ── WebKit prefixed animations for iOS Safari ── */
+@-webkit-keyframes mindvora-colors {
+  0%   { color: #22c55e; }
+  14%  { color: #60a5fa; }
+  28%  { color: #a78bfa; }
+  42%  { color: #f472b6; }
+  57%  { color: #fb923c; }
+  71%  { color: #facc15; }
+  85%  { color: #34d399; }
+  100% { color: #22c55e; }
+}
+@-webkit-keyframes greenGlow {
+  0%, 100% { opacity: .7; -webkit-transform: translateX(-50%) scale(1); transform: translateX(-50%) scale(1); }
+  50%       { opacity: 1;  -webkit-transform: translateX(-50%) scale(1.3); transform: translateX(-50%) scale(1.3); }
+}
+@-webkit-keyframes cardFloat {
+  0%, 100% { -webkit-transform: translateY(0); transform: translateY(0); }
+  50%       { -webkit-transform: translateY(-10px); transform: translateY(-10px); }
+}
+@-webkit-keyframes bubbleFloat {
+  0%, 100% { -webkit-transform: translateY(0) scale(1); transform: translateY(0) scale(1); opacity: .7; }
+  50%       { -webkit-transform: translateY(-30px) scale(1.05); transform: translateY(-30px) scale(1.05); opacity: 1; }
+}
+@-webkit-keyframes pop {
+  from { -webkit-transform: scale(0); transform: scale(0); }
+  to   { -webkit-transform: scale(1); transform: scale(1); }
+}
+@-webkit-keyframes rise {
+  from { opacity: 0; -webkit-transform: translateY(40px); transform: translateY(40px); }
+  to   { opacity: 1; -webkit-transform: translateY(0); transform: translateY(0); }
+}
+@-webkit-keyframes agPop {
+  from { -webkit-transform: scale(0); transform: scale(0); opacity: 0; }
+  to   { -webkit-transform: scale(1); transform: scale(1); opacity: 1; }
+}
+
+/* iOS: make the Mindvora animated logo text work via gradient clip */
+.tb-logo-animated,
+.auth-logo-sm .mv-logo-text {
+  background: linear-gradient(90deg, #22c55e 0%, #60a5fa 16%, #a78bfa 33%, #f472b6 50%, #fb923c 66%, #facc15 83%, #22c55e 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  -webkit-animation: gradientShift 4s linear infinite !important;
+  animation: gradientShift 4s linear infinite !important;
+  display: inline-block !important;
+}
+@-webkit-keyframes gradientShift {
+  from { background-position: 0% center; }
+  to   { background-position: 300% center; }
+}
+@keyframes gradientShift {
+  from { background-position: 0% center; }
+  to   { background-position: 300% center; }
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 </head>
@@ -15554,5 +15909,7 @@ document.addEventListener('click', function(e) {
   </div>
 </div>
 
+
+</html!DOCTYPE html>
 </body>
 </html>
