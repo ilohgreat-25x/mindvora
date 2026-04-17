@@ -7826,6 +7826,7 @@ auth.onAuthStateChanged(function(user){
     db.collection('users').doc(user.uid).get().then(function(snap){
       if(snap.exists){
         state.profile=snap.data();
+        mountApp();
         // Check if user is banned
         if(snap.data().banned === true){
           auth.signOut();
