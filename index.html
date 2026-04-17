@@ -7665,13 +7665,8 @@ var db   = firebase.firestore();
 // ── Force Firebase to persist login locally forever ──────────────────────
 // NOTE: onAuthStateChanged is registered INSIDE .then() to ensure
 // persistence is set BEFORE auth state is checked
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){
-  // Persistence set — now safe to listen for auth state
-  initAuthListener();
-}).catch(function(){
-  // Fallback — init anyway even if persistence fails
-  initAuthListener();
-});
+initAuthListener();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){});
 
 var COLORS = ['#166534','#16a34a','#0f766e','#854d0e','#1d4ed8','#7e22ce','#be123c'];
 var PAYSTACK_KEY = 'pk_live_1a3a25c1a562f8a054e34167dded3e1268f6c28c';
