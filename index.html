@@ -7820,7 +7820,19 @@ auth.onAuthStateChanged(function(user){
   if(user){
     state.user=user;
     window._mvUid = user.uid;
+    // Safety timeout — if Firestore hangs (e.g. offline / rules issue), still mount after 6s
+    var _mountFired = false;
+    var _mountTimeout = setTimeout(function(){
+      if(!_mountFired){
+        _mountFired = true;
+        if(!state.profile) state.profile={name:user.displayName||user.email.split('@')[0],handle:(user.email||'user').split('@')[0],color:COLORS[0],plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0};
+        mountApp();
+      }
+    }, 6000);
     db.collection('users').doc(user.uid).get().then(function(snap){
+      if(_mountFired) return; // timeout already fired
+      clearTimeout(_mountTimeout);
+      _mountFired = true;
       if(snap.exists){
         state.profile=snap.data();
         // Check if user is banned
@@ -7850,14 +7862,24 @@ auth.onAuthStateChanged(function(user){
       setInterval(function(){ 
         if(state.user) db.collection('users').doc(state.user.uid).update({ lastSeen: Date.now() }).catch(function(){}); 
       }, 60000);
-    }).catch(function(){ state.profile={name:user.displayName||user.email,handle:user.email.split('@')[0],color:COLORS[0],plan:'free'}; mountApp(); });
+    }).catch(function(){
+      if(_mountFired) return;
+      clearTimeout(_mountTimeout);
+      _mountFired = true;
+      state.profile={name:user.displayName||user.email,handle:(user.email||'user').split('@')[0],color:COLORS[0],plan:'free'};
+      mountApp();
+    });
   } else {
     state.user=null; state.profile=null;
     var appSc  = document.getElementById('app-screen');
     var authSc = document.getElementById('auth-screen');
-    if(appSc)  { appSc.style.display='none'; }
-    if(authSc) { 
-      authSc.style.display='flex'; 
+    if(appSc)  { appSc.style.display='none'; appSc.style.visibility='hidden'; appSc.style.zIndex='-1'; }
+    if(authSc) {
+      authSc.style.removeProperty('display');
+      authSc.style.visibility = 'visible';
+      authSc.style.zIndex = '100';
+      authSc.style.opacity = '1';
+      authSc.style.pointerEvents = 'auto';
       authSc.style.flexDirection='row';
       authSc.style.minHeight='100vh';
     }
@@ -7874,37 +7896,64 @@ auth.onAuthStateChanged(function(user){
 
 function mountApp(){
   if(!state.profile) return;
-  var p=state.profile,color=p.color||COLORS[0],init=(p.name||'Z').charAt(0).toUpperCase();
-  var grad='linear-gradient(135deg,'+color+','+COLORS[1]+')';
-  ['tb-av','sb-av','comp-av','cmt-av'].forEach(function(id){
-    var el=document.getElementById(id);
-    if(el){
-      el.textContent=init;
-      el.style.background=grad;
-      el.style.backgroundImage=grad;
-      el.style.webkitBackground=grad;
-      el.setAttribute('style', el.getAttribute('style')+(';background:'+grad+';background-image:'+grad+';-webkit-background:'+grad));
-    }
-  });
-  document.getElementById('sb-name').innerHTML=esc(p.name||'Mindvora user')+(p.mood?' <span style="font-size:16px" title="'+esc(p.mood.label)+'">'+p.mood.emoji+'</span>':'')+(p.isPremium?'<span class="sb-verified">✦ PRO</span>':'');
-  document.getElementById('sb-handle').textContent='@'+(p.handle||'user');
-  var refEl=document.getElementById('ref-link'); if(refEl) refEl.value='https://mindvora-vf8e.vercel.app?ref='+state.user.uid;
-  if(p.isPremium) document.getElementById('prem-widget').style.display='none';
-  document.getElementById('auth-screen').style.display='none';
-  document.getElementById('app-screen').style.display='flex';
-  updateStats(); loadSparks(); listenNotifs(); loadStories(); loadConversations();
-  // Re-apply language after login
-  if (currentLang && currentLang !== 'en') {
-    setTimeout(function(){ applyTranslations(currentLang); }, 300);
+  try {
+    var p=state.profile,color=p.color||COLORS[0],init=(p.name||'Z').charAt(0).toUpperCase();
+    var grad='linear-gradient(135deg,'+color+','+COLORS[1]+')';
+    ['tb-av','sb-av','comp-av','cmt-av'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el){
+        el.textContent=init;
+        el.style.background=grad;
+        el.style.backgroundImage=grad;
+        el.style.webkitBackground=grad;
+        el.setAttribute('style', el.getAttribute('style')+(';background:'+grad+';background-image:'+grad+';-webkit-background:'+grad));
+      }
+    });
+    var sbName = document.getElementById('sb-name');
+    if(sbName) sbName.innerHTML=esc(p.name||'Mindvora user')+(p.mood?' <span style="font-size:16px" title="'+esc(p.mood.label)+'">'+p.mood.emoji+'</span>':'')+(p.isPremium?'<span class="sb-verified">✦ PRO</span>':'');
+    var sbHandle = document.getElementById('sb-handle');
+    if(sbHandle) sbHandle.textContent='@'+(p.handle||'user');
+    var refEl=document.getElementById('ref-link'); if(refEl) refEl.value='https://mindvora-vf8e.vercel.app?ref='+state.user.uid;
+    var premWidget = document.getElementById('prem-widget');
+    if(p.isPremium && premWidget) premWidget.style.display='none';
+  } catch(e){ console.warn('[Mindvora] mountApp sidebar error:', e); }
+  // Always show app screen regardless of sidebar errors
+  // NOTE: auth-screen CSS has display:flex !important, so display:none is overridden.
+  // Use visibility + pointer-events + z-index to force-hide it.
+  var authSc = document.getElementById('auth-screen');
+  var appSc  = document.getElementById('app-screen');
+  if(authSc) {
+    authSc.style.setProperty('display', 'none', 'important');
+    authSc.style.visibility = 'hidden';
+    authSc.style.pointerEvents = 'none';
+    authSc.style.zIndex = '-1';
+    authSc.style.opacity = '0';
   }
+  if(appSc) {
+    appSc.style.display = 'flex';
+    appSc.style.visibility = 'visible';
+    appSc.style.zIndex = '1';
+    appSc.style.opacity = '1';
+  }
+  try { updateStats(); } catch(e){}
+  try { loadSparks(); } catch(e){}
+  try { listenNotifs(); } catch(e){}
+  try { loadStories(); } catch(e){}
+  try { loadConversations(); } catch(e){}
+  // Re-apply language after login
+  try {
+    if (currentLang && currentLang !== 'en') {
+      setTimeout(function(){ applyTranslations(currentLang); }, 300);
+    }
+  } catch(e){}
   // Save device profile linked to user email
-  setTimeout(function(){ saveDeviceProfile(); applyDeviceLayout(); }, 500);
+  setTimeout(function(){ try { saveDeviceProfile(); applyDeviceLayout(); } catch(e){} }, 500);
   // Start real-time watching
-  startLiveWatching();
-  watchFollowerCount(state.user.uid);
-  initPresence();
+  try { startLiveWatching(); } catch(e){}
+  try { watchFollowerCount(state.user.uid); } catch(e){}
+  try { initPresence(); } catch(e){}
   // Load referral status for owner
-  if (isAdmin()) { loadReferralStatus(); }
+  try { if (isAdmin()) { loadReferralStatus(); } } catch(e){}
 }
 
 document.getElementById('btn-out').addEventListener('click',function(){ if(state.sparksUnsub) state.sparksUnsub(); auth.signOut(); });
@@ -14361,7 +14410,7 @@ function ensureRealtimeFeed() {
 
 // NOWPayments keys moved to secure backend — never expose API key in frontend
 var NOWPAY_PUBLIC_KEY = '440f0f69-11dd-4248-91f3-903e123538ee'; // public key only — safe
-var BACKEND_URL       = 'https://zync-backend-ickl.onrender.com';
+var BACKEND_URL       = 'http://localhost:3000';
 
 // ── SWITCH PAYMENT METHOD TABS ────────────────────────────────────────────
 function switchPayMethod(method) {
