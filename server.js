@@ -46,9 +46,9 @@ app.post('/api/crypto/create-invoice', async (req, res) => {
         pay_currency:      'usdtbsc',
         order_id:          orderId || ('MV-' + Date.now()),
         order_description: description,
-        ipn_callback_url:  process.env.IPN_URL || 'https://zync-backend-ickl.onrender.com/api/crypto/webhook',
-        success_url:       process.env.APP_URL  || 'https://mindvora.app',
-        cancel_url:        process.env.APP_URL  || 'https://mindvora.app',
+        ipn_callback_url:  process.env.IPN_URL || `https://${req.get('host')}/api/crypto/webhook`,
+        success_url:       process.env.APP_URL || (req.headers.origin ? req.headers.origin : 'https://mindvora.app'),
+        cancel_url:        process.env.APP_URL || (req.headers.origin ? req.headers.origin : 'https://mindvora.app'),
       }),
     });
     const data = await response.json();

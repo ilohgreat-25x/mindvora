@@ -1,4 +1,4 @@
-﻿:root{
+:root{
   --bg:#000000;--card:#0d0d0d;--deep:#000000;
   --green:#166534;--green2:#16a34a;--green3:#22c55e;
   --cream:#fefce8;--cream2:#fef9c3;--creamdim:rgba(254,252,232,.08);
@@ -111,6 +111,14 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .fi{width:100%;padding:11px 14px;background:var(--deep);border:1px solid var(--border);border-radius:12px;color:var(--white);font-size:13px;outline:none;transition:border-color .2s;font-family:'DM Sans',sans-serif}
 .fi:focus{border-color:var(--green3)}
 .fi::placeholder{color:var(--muted)}
+.fi:-webkit-autofill,
+.fi:-webkit-autofill:hover,
+.fi:-webkit-autofill:focus,
+.fi:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--deep) inset !important;
+  -webkit-text-fill-color: var(--white) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
 .pw-wrap{position:relative;display:flex;align-items:center}
 .pw-wrap .fi{padding-right:42px}
 .eye-btn{position:absolute;right:12px;background:none;border:none;cursor:pointer;font-size:13px;color:var(--muted);padding:4px;line-height:1}

@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://zync-backend-ickl.onrender.com/api/$1"
+    },
+    {
       "source": "/manifest.json",
       "destination": "/api/manifest.js"
     },
