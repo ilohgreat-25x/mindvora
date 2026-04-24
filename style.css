@@ -115,9 +115,32 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .fi:-webkit-autofill:hover,
 .fi:-webkit-autofill:focus,
 .fi:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px var(--deep) inset !important;
+  -webkit-box-shadow: 0 0 0 100px #000000 inset !important;
   -webkit-text-fill-color: var(--white) !important;
   transition: background-color 5000s ease-in-out 0s;
+  background-color: #000000 !important;
+  color: var(--white) !important;
+  caret-color: var(--white) !important;
+}
+.m-input:-webkit-autofill,
+.m-input:-webkit-autofill:hover,
+.m-input:-webkit-autofill:focus,
+.m-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 100px #000000 inset !important;
+  -webkit-text-fill-color: var(--white) !important;
+  transition: background-color 5000s ease-in-out 0s;
+  background-color: #000000 !important;
+  color: var(--white) !important;
+  caret-color: var(--white) !important;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 100px var(--deep, #000000) inset !important;
+  -webkit-text-fill-color: var(--white, #f0fdf4) !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: var(--white, #f0fdf4) !important;
 }
 .pw-wrap{position:relative;display:flex;align-items:center}
 .pw-wrap .fi{padding-right:42px}
@@ -970,6 +993,11 @@ img, video { max-width: 100%; height: auto; }
   border-bottom: 1px solid var(--border);
   background: linear-gradient(135deg, var(--green), var(--green2));
   flex-shrink: 0;
+}
+.drawer-header-logo {
+  font-family:'Great Vibes',cursive;
+  font-size:28px;
+  animation: mindvora-colors 12s linear infinite;
 }
 
 .drawer-profile {

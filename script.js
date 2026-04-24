@@ -551,11 +551,20 @@ function loadSecurityAlerts(){
     .get().then(function(snap){
       var unread = snap.docs.filter(function(d){ return !d.data().read; }).length;
       if(unread > 0){
-        showSecAlert(
-          '🔒 '+unread+' Security Alert'+(unread>1?'s':''),
-          'You have '+unread+' unread security alert'+(unread>1?'s':'')+' waiting in your Admin Panel.',
-          'warn'
-        );
+        // Don't spam toast on every login — just update the admin badge quietly
+        var adminNav = document.getElementById('nav-admin');
+        if(adminNav){
+          var existing = adminNav.querySelector('.security-badge-count');
+          if(!existing){
+            var badge = document.createElement('span');
+            badge.className = 'security-badge-count';
+            badge.style.cssText = 'background:#ef4444;color:#fff;font-size:9px;padding:1px 5px;border-radius:10px;margin-left:4px;font-weight:700';
+            badge.textContent = unread;
+            adminNav.appendChild(badge);
+          } else {
+            existing.textContent = unread;
+          }
+        }
       }
     }).catch(function(){});
 }
@@ -784,14 +793,15 @@ trackLoginAttempt = function(email, success){
 // ── SECURITY ALERTS VIEWER (for owner) ──
 function loadSecurityAlerts(){
   if(!isAdmin()) return;
+  // Just load quietly — do NOT show toast notifications on every login.
+  // The security alerts are viewable in the Admin Panel → Security tab.
+  // Marking all as read silently to prevent phantom "unread" notifications.
   db.collection('security_alerts')
-    .orderBy('timestamp','desc')
+    .where('read','==',false)
     .limit(50)
     .get().then(function(snap){
-      var unread = snap.docs.filter(function(d){ return !d.data().read; }).length;
-      if(unread > 0){
-        showToast('🔴 You have ' + unread + ' unread security alerts in your Admin panel');
-      }
+      // Auto-mark all as read so they don't keep triggering
+      snap.docs.forEach(function(d){ d.ref.update({read:true}).catch(function(){}); });
     }).catch(function(){});
 }
 
@@ -922,7 +932,24 @@ function doLogin(){
   btn.disabled = true;
   btn.textContent = 'Signing in…';
 
-  auth.signInWithEmailAndPassword(email, pass)
+  // If user entered a username (not an email), look up the email first
+  var isEmail = email.indexOf('@') !== -1;
+  var loginPromise;
+  if (!isEmail) {
+    // Username login — find the email from Firestore
+    loginPromise = db.collection('users').where('handle', '==', email).limit(1).get()
+      .then(function(snap) {
+        if (snap.empty) {
+          throw { code: 'auth/user-not-found' };
+        }
+        var userEmail = snap.docs[0].data().email;
+        return auth.signInWithEmailAndPassword(userEmail, pass);
+      });
+  } else {
+    loginPromise = auth.signInWithEmailAndPassword(email, pass);
+  }
+
+  loginPromise
     .then(function(cred) {
       // Success — onAuthStateChanged handles mounting the app
       btn.textContent = '✓ Welcome back!';
@@ -935,7 +962,7 @@ try { trackAdvancedLogin(email, true, cred.user.uid); } catch(e){}
         msg = '❌ Wrong password. Use Forgot Password below to reset it, or try Google sign-in.';
       }
       if (e.code === 'auth/user-not-found') {
-        msg = '❌ No account found with this email. Please register first.';
+        msg = '❌ No account found with this email/username. Please register first.';
       }
       if (e.code === 'auth/too-many-requests') {
         msg = '⏳ Account locked. Wait 5 minutes or click Forgot Password to reset.';
@@ -8833,7 +8860,65 @@ function signInWithGoogle() {
     .catch(function(err) {
       if (err.code === 'auth/popup-closed-by-user') return;
       if (err.code === 'auth/cancelled-popup-request') return;
-      showToast('Google sign-in failed: ' + err.message);
+      if (err.code === 'auth/unauthorized-domain') {
+        showToast('⚠️ This domain is not authorized for Google sign-in. The admin needs to add it in Firebase Console → Authentication → Settings → Authorized domains.');
+        return;
+      }
+      if (err.code === 'auth/popup-blocked') {
+        showToast('⚠️ Popup blocked! Please allow popups for this site and try again.');
+        return;
+      }
+      showToast('Google sign-in failed: ' + (err.message || err.code));
+    });
+}
+
+// ── DELETE ACCOUNT ────────────────────────────────────────────────────────
+function confirmDeleteAccount() {
+  if (!state || !state.user) {
+    showToast('Please log in first.');
+    return;
+  }
+  // Don't allow admin to delete their own account
+  if (isAdmin()) {
+    showToast('⛔ Admin account cannot be deleted from here.');
+    return;
+  }
+  var confirmed = confirm('⚠️ Are you sure you want to DELETE your account?\n\nThis action is PERMANENT and cannot be undone.\nAll your data, posts, messages, and earnings will be lost forever.');
+  if (!confirmed) return;
+  var doubleConfirm = confirm('🔴 FINAL WARNING: Type OK to permanently delete your Mindvora account.\n\nYou will lose everything. Are you absolutely sure?');
+  if (!doubleConfirm) return;
+
+  var uid = state.user.uid;
+  var userEmail = state.user.email;
+
+  // Delete user data from Firestore
+  showToast('🗑️ Deleting your account...');
+  
+  // Delete user document
+  db.collection('users').doc(uid).delete()
+    .then(function() {
+      // Delete user's sparks
+      return db.collection('sparks').where('uid', '==', uid).get();
+    })
+    .then(function(sparksSnap) {
+      var batch = db.batch();
+      sparksSnap.docs.forEach(function(doc) { batch.delete(doc.ref); });
+      return batch.commit();
+    })
+    .then(function() {
+      // Delete Firebase Auth account
+      return state.user.delete();
+    })
+    .then(function() {
+      showToast('✅ Account deleted successfully. Goodbye!');
+      setTimeout(function() { window.location.reload(); }, 1500);
+    })
+    .catch(function(err) {
+      if (err.code === 'auth/requires-recent-login') {
+        showToast('⚠️ For security, please sign out and sign back in, then try deleting again.');
+      } else {
+        showToast('Error deleting account: ' + err.message);
+      }
     });
 }
 
