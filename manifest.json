@@ -2,7 +2,7 @@
   "name": "Mindvora",
   "short_name": "Mindvora",
   "description": "Where Minds Connect — A next-generation social platform for creators, communities and connections worldwide.",
-  "start_url": "/",
+  "start_url": "https://mindvora-own8.vercel.app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
