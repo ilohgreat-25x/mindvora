@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║         MINDVORA — Firebase Push Notification               ║
-// ║         Service Worker (firebase-messaging-sw.js)           ║
+// ║         MINDVORA — Firebase Push Notification                ║
+// ║         Service Worker (firebase-messaging-sw.js)            ║
 // ║   Upload this file to GitHub ROOT (same folder as index.html)║
 // ╚══════════════════════════════════════════════════════════════╝
 
@@ -51,7 +51,7 @@ self.addEventListener('notificationclick', function(event) {
   if (event.action === 'dismiss') return;
 
   // Open the app when notification is tapped
-  const appURL = 'https://zync-social-vf8e.vercel.app';
+  const appURL = 'https://mindvora-own8.vercel.app'
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })

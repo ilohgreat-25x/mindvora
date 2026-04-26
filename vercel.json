@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://zync-backend-ickl.onrender.com/api/$1"
+      "destination": "mindvora-backend-production.up.railway.app/api/$1"
     },
     {
       "source": "/manifest.json",
