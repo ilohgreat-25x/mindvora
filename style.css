@@ -114,33 +114,32 @@ button,input,textarea,select{font-family:'DM Sans',sans-serif}
 .fi:-webkit-autofill,
 .fi:-webkit-autofill:hover,
 .fi:-webkit-autofill:focus,
-.fi:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 100px #000000 inset !important;
-  -webkit-text-fill-color: var(--white) !important;
-  transition: background-color 5000s ease-in-out 0s;
-  background-color: #000000 !important;
-  color: var(--white) !important;
-  caret-color: var(--white) !important;
-}
+.fi:-webkit-autofill:active,
 .m-input:-webkit-autofill,
 .m-input:-webkit-autofill:hover,
 .m-input:-webkit-autofill:focus,
-.m-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 100px #000000 inset !important;
-  -webkit-text-fill-color: var(--white) !important;
-  transition: background-color 5000s ease-in-out 0s;
-  background-color: #000000 !important;
-  color: var(--white) !important;
-  caret-color: var(--white) !important;
-}
+.m-input:-webkit-autofill:active,
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 100px var(--deep, #000000) inset !important;
-  -webkit-text-fill-color: var(--white, #f0fdf4) !important;
-  transition: background-color 5000s ease-in-out 0s;
-  caret-color: var(--white, #f0fdf4) !important;
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 9999px #000000 inset !important;
+  box-shadow: 0 0 0 9999px #000000 inset !important;
+  -webkit-text-fill-color: #f0fdf4 !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+  background-color: #000000 !important;
+  background: #000000 !important;
+  color: #f0fdf4 !important;
+  caret-color: #f0fdf4 !important;
+  border-color: rgba(255,255,255,.1) !important;
 }
 .pw-wrap{position:relative;display:flex;align-items:center}
 .pw-wrap .fi{padding-right:42px}
@@ -2839,13 +2838,22 @@ html {
   background: transparent !important;
   color: #fca5a5 !important;
 }
-/* Also fix inputs — kill blue autofill background on Chrome/Android */
+/* Also fix inputs — kill blue/white autofill background on Chrome/Android/iOS */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 40px #0d0d0d inset !important;
-  -webkit-text-fill-color: #ffffff !important;
-  caret-color: #ffffff !important;
-  border-color: rgba(34,197,94,.4) !important;
+input:-webkit-autofill:active,
+.fi:-webkit-autofill,
+.fi:-webkit-autofill:hover,
+.fi:-webkit-autofill:focus,
+.fi:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 9999px #000000 inset !important;
+  box-shadow: 0 0 0 9999px #000000 inset !important;
+  -webkit-text-fill-color: #f0fdf4 !important;
+  background-color: #000000 !important;
+  background: #000000 !important;
+  color: #f0fdf4 !important;
+  caret-color: #f0fdf4 !important;
+  border-color: rgba(255,255,255,.1) !important;
+  transition: background-color 5000s ease-in-out 0s !important;
 }

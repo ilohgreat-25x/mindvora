@@ -7306,6 +7306,10 @@ var WORDS_BANK = [
   {word:'Audacious',pos:'adjective',def:'Showing a willingness to take surprisingly bold risks.',eg:'Starting a social media platform from scratch is an audacious move.'},
   {word:'Prolific',pos:'adjective',def:'Producing much fruit or many works; highly creative and productive.',eg:'A prolific creator posts consistently and engages with their audience daily.'},
   {word:'Visionary',pos:'noun/adjective',def:'A person with original ideas about the future; thinking about the future with imagination.',eg:'Every great company was started by a visionary who saw what others couldn\'t.'},
+  {word:'Adamant',pos:'adjective',def:'Refusing to change one\'s mind or opinion.',eg:'His adamant attitude led to his downfall'},
+  {word:'Immense',pos:'adjective',def:'Extreme or Mighty.',eg:'He demonstrated his immense ability before his audience during a talent show programme.'},
+  {word:'Enraged',pos:'noun',def:'A feeling of anger.',eg:'The parent of that boy were enraged at his academic performance.'},
+  {word:'Racism',pos:'adjective',def:'Segregation or separation.',eg:'Racism downgrades peoples ability and confidence about something.'},
 ];
 
 function openWordOfDay() {
@@ -7635,9 +7639,9 @@ function ensureRealtimeFeed() {
 }
 
 // ╔══════════════════════════════════════════════════════════════╗
-// ║           NOWPAYMENTS CRYPTO INTEGRATION                    ║
-// ║   Keys stored securely in Render.com backend               ║
-// ║   Public Key only in frontend (safe)                        ║
+// ║           NOWPAYMENTS CRYPTO INTEGRATION                     ║
+// ║   Keys stored securely in Render.com backend                 ║
+// ║   Public Key only in frontend (safe)                         ║
 // ╚══════════════════════════════════════════════════════════════╝
 
 // NOWPayments keys moved to secure backend — never expose API key in frontend
