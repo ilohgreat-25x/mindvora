@@ -1498,33 +1498,48 @@ function buildSparkHTML(s){
   var pollHTML=s.poll?buildPollHTML(s):'';
   var reactHTML='<div class="reactions-bar">'+buildReactionsHTML(s)+'</div>';
   var linkPrev='';
-  if(s.linkUrl){var lu=esc(s.linkUrl);linkPrev='<div class="link-preview" onclick="openLink(\''+lu+'\')"><div class="link-preview-info"><div class="link-preview-title">🔗 External Link</div><div class="link-preview-url">'+lu+'</div></div></div>';}
+  if(s.linkUrl){var lu=esc(s.linkUrl);linkPrev='<div class="link-preview" onclick="openLink(\''+lu+'\')\"><div class="link-preview-info"><div class="link-preview-title">🔗 External Link</div><div class="link-preview-url">'+lu+'</div></div></div>';}
   setTimeout(function(){ trackPostView(s.id, s.authorId); }, 2000);
-  return '<div class="spark-card"'+(s.pinned?' style="border-color:var(--green3)"':'')+'>'+
-    '<div class="sk-head">'+
-      '<div class="sk-av" style="background:'+esc(s.authorColor||COLORS[0])+'">'+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div>'+
-      '<div><div class="sk-name">'+esc(s.authorName||'Mindvora user')+vbadge+'<span class="sk-cat">'+esc(s.category||'all')+'</span>'+pinBadge+'</div>'+
-      '<div class="sk-handle">@'+esc(s.authorHandle||'user')+'</div></div>'+
-      '<span class="sk-time">'+timeAgo(s.createdAt)+'</span>'+(s.viewCount?'<span class="sk-time" style="margin-left:4px">👁 '+s.viewCount+'</span>':'')+
-    '</div>'+
-    media+
-    '<div class="sk-body">'+parseMentions(s.text||'')+(s.edited?'<span style="font-size:10px;color:var(--muted);font-style:italic;margin-left:6px">(edited)</span>':'')+'</div>'+
-    pollHTML+linkPrev+
-    '<div class="sk-actions">'+
-      '<button class="s-btn'+(liked?' liked':'')+'" onclick="toggleLike(\''+s.id+'\')">'+( liked?'\u2764\ufe0f':'\U0001f90d')+' '+(s.likes||[]).length+'</button>'+
-      (s.commentsLocked
-        ? '<button class="s-btn" style="color:var(--muted);cursor:default" title="Comments disabled by author">🔒 Comments off</button>'
-        : '<button class="s-btn" onclick="openComments(\''+s.id+'\')">💬 '+(s.commentCount||0)+'</button>')+
-      '<button class="s-btn'+(saved?' saved':'')+'" onclick="toggleSave(\''+s.id+'\')">🔖</button>'+
-      (isOwn?'':'<button class="s-btn" onclick="openTip(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'Creator')+'\')">💝 Tip</button>')+
-      '<button class="s-btn" onclick="shareSpark(\''+s.id+'\')">↗</button>'+
-      '<button class="s-btn" onclick="repostSpark(\''+s.id+'\',\''+esc(s.authorName||'Mindvora user')+'\')">🔁 '+(s.reposts||0)+'</button>'+
-      (isOwn?'<button class="s-btn" onclick="pinSpark(\''+s.id+'\','+!!s.pinned+')">📌</button>':'')+
-      '<button class="s-btn" onclick="translatePost(\''+s.id+'\',\''+esc(s.text||'')+'\')">🌐</button>'+
-      locTag+
-      '<button class="s-btn" onclick="reportSpark(\''+s.id+'\',\''+esc(s.authorId)+'\')" title="Report">🚩</button>'+(!isOwn?'<button class="s-btn" onclick="toggleFollow(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'User')+'\')">'+( isFollowing(s.authorId)?'✅':'➕ Follow')+'</button>':'')+(isOwn?'<button class="s-btn" onclick="editSpark(\''+s.id+'\',\''+esc((s.text||'').replace(/\'/g,"&#39;"))+'\')">✏️</button>':'')+(isOwn?'<button class="s-btn" onclick="delSpark(\''+s.id+'\')" style="color:#fca5a5">🗑</button>':'')+'<button class="s-btn" onclick="openVoiceReply(\''+s.id+'\',\''+esc(s.authorName||'User')+'\')">🎙</button>'+
-    '</div>'+reactHTML+
-  '</div>';
+  return '<div class="spark-card"'+(s.pinned?' style="border-color:var(--green3)"':'')+'>'+'<div class="sk-head">'+'<div class="sk-av" style="background:'+esc(s.authorColor||COLORS[0])+'">'+''+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div>'+'<div><div class="sk-name">'+esc(s.authorName||'Mindvora user')+vbadge+'<span class="sk-cat">'+esc(s.category||'all')+'</span>'+pinBadge+'</div>'+'<div class="sk-handle">@'+esc(s.authorHandle||'user')+'</div></div>'+'<span class="sk-time">'+timeAgo(s.createdAt)+'</span>'+(s.viewCount?'<span class="sk-time" style="margin-left:4px">👁 '+s.viewCount+'</span>':'')+'</div>'+media+'<div class="sk-body">'+parseMentions(s.text||'')+(s.edited?'<span style="font-size:10px;color:var(--muted);font-style:italic;margin-left:6px">(edited)</span>':'')+'</div>'+pollHTML+linkPrev+'<div class="sk-actions">'+'<button class="s-btn'+(liked?' liked':'')+'" onclick="toggleLike(\''+s.id+'\')">'+(liked?'\u2764\ufe0f':'🤍')+' '+(s.likes||[]).length+'</button>'+(s.commentsLocked?'<button class="s-btn" style="color:var(--muted);cursor:default" title="Comments disabled by author">🔒 Comments off</button>':'<button class="s-btn" onclick="openComments(\''+s.id+'\')">💬 '+(s.commentCount||0)+'</button>')+'<button class="s-btn'+(saved?' saved':'')+'" onclick="toggleSave(\''+s.id+'\')">🔖 Save</button>'+'<button class="s-btn" onclick="shareSpark(\''+s.id+'\')">\u2197 Share</button>'+'<button class="s-btn" onclick="repostSpark(\''+s.id+'\',\''+esc(s.authorName||'Mindvora user')+'\')">🔁 '+(s.reposts||0)+'</button>'+(!isOwn?'<button class="s-btn" onclick="toggleFollow(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'User')+'\')">'+( isFollowing(s.authorId)?'✅ Following':'➕ Follow')+'</button>':'')+'<button class="s-btn" onclick="tagFriendOnPost(\''+s.id+'\',\''+esc(s.authorName||'User')+'\')" title="Tag a friend">🏷 Tag</button>'+(isOwn?'':'<button class="s-btn" onclick="openTip(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'Creator')+'\')">💝 Tip</button>')+(isOwn?'<button class="s-btn" onclick="pinSpark(\''+s.id+'\','+!!s.pinned+')">📌</button>':'')+'<button class="s-btn" onclick="translatePost(\''+s.id+'\',\''+esc(s.text||'')+'\')">🌐</button>'+locTag+'<button class="s-btn" onclick="reportSpark(\''+s.id+'\',\''+esc(s.authorId)+'\')" title="Report">🚩</button>'+(isOwn?'<button class="s-btn" onclick="editSpark(\''+s.id+'\',\''+esc((s.text||'').replace(/\'/g,"&#39;"))+'\')">✏️</button>':'')+(isOwn?'<button class="s-btn" onclick="delSpark(\''+s.id+'\')" style="color:#fca5a5">🗑</button>':'')+'<button class="s-btn" onclick="openVoiceReply(\''+s.id+'\',\''+esc(s.authorName||'User')+'\')">🎙</button>'+'</div>'+reactHTML+'</div>';
+}
+
+// ── TAG A FRIEND ON A POST ──
+function tagFriendOnPost(sparkId, authorName) {
+  if (!state.user) { showToast('Please login first'); return; }
+  var username = prompt('Enter the username of the person you want to tag (e.g. @username):');
+  if (!username) return;
+  username = username.replace(/^@/, '').trim().toLowerCase();
+  if (!username) { showToast('Please enter a valid username'); return; }
+  db.collection('users').where('handleLower', '==', username).limit(1).get()
+    .then(function(snap) {
+      if (snap.empty) {
+        // Try case-insensitive search by handle
+        return db.collection('users').where('handle', '==', username).limit(1).get();
+      }
+      return snap;
+    })
+    .then(function(snap) {
+      if (snap.empty) { showToast('User @' + username + ' not found'); return; }
+      var taggedUser = snap.docs[0];
+      var taggedId = taggedUser.id;
+      var taggedName = taggedUser.data().name || username;
+      // Add tag to the spark
+      db.collection('sparks').doc(sparkId).update({
+        tags: firebase.firestore.FieldValue.arrayUnion(taggedId)
+      }).catch(function(){});
+      // Notify the tagged user
+      db.collection('notifications').add({
+        toUid: taggedId,
+        fromName: state.profile.name || 'Someone',
+        type: 'tag',
+        text: (state.profile.name || 'Someone') + ' tagged you in a post by ' + authorName,
+        sparkId: sparkId,
+        read: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function(){});
+      showToast('Tagged @' + taggedName + ' successfully!');
+    })
+    .catch(function() { showToast('Could not find user. Try again.'); });
 }
 
 var compCat='all',pendingMedia=null,commentsLocked=false;
@@ -3837,10 +3852,10 @@ function sendLiveTip() {
 
 
 // ══════════════════════════════════════════════════════════════
-// FEATURE 1: PUSH NOTIFICATIONS (FCM)
+// FEATURE 1: PUSH NOTIFICATIONS (FCM + Native Notification API)
 // ══════════════════════════════════════════════════════════════
 var messaging = null;
-var VAPID_KEY = 'BE41egfg4EvNNlM_ZepYdR1TQ460QNYCkQmgEGJ8SvsUHtDNw4pOpGW7bo0wSu9w9YWM_GxrW71lpAi5IZf5QKA'; // placeholder - user must replace
+var VAPID_KEY = 'BE41egfg4EvNNlM_ZepYdR1TQ460QNYCkQmgEGJ8SvsUHtDNw4pOpGW7bo0wSu9w9YWM_GxrW71lpAi5IZf5QKA';
 
 function initPushNotifications() {
   if (!state.user) return;
@@ -3849,9 +3864,13 @@ function initPushNotifications() {
     messaging = firebase.messaging();
     if (Notification.permission === 'granted') {
       subscribePush();
+      startRealtimeNotifListener();
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then(function(perm) {
-        if (perm === 'granted') subscribePush();
+        if (perm === 'granted') {
+          subscribePush();
+          startRealtimeNotifListener();
+        }
       });
     }
   } catch(e) { console.warn('FCM init error:', e); }
@@ -3869,9 +3888,103 @@ function subscribePush() {
     var title = (payload.notification && payload.notification.title) || 'Mindvora';
     var body  = (payload.notification && payload.notification.body)  || 'New notification';
     showToast('🔔 ' + title + ': ' + body);
+    showNativeNotification(title, body);
     loadNotifications();
   });
 }
+
+// ── NATIVE NOTIFICATION API — show OS-level notifications ─────────────────
+function showNativeNotification(title, body, icon) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  // Only show native notification when page is not focused (simulates background)
+  if (document.hasFocus && document.hasFocus()) return;
+  try {
+    var n = new Notification(title || 'Mindvora', {
+      body: body || 'You have a new notification',
+      icon: icon || '/icons/icon-192.png',
+      badge: '/icons/icon-96.png',
+      tag: 'mindvora-' + Date.now(),
+      vibrate: [200, 100, 200],
+      requireInteraction: false,
+      silent: false
+    });
+    n.onclick = function() {
+      window.focus();
+      n.close();
+    };
+    // Auto-close after 6 seconds
+    setTimeout(function(){ try { n.close(); } catch(e){} }, 6000);
+  } catch(e) { /* SW-only environment */ }
+}
+
+// ── REALTIME FIRESTORE NOTIFICATION LISTENER ─────────────────────────────
+// Listens for new notifications in real-time and triggers native OS popups
+var _notifListenerActive = false;
+function startRealtimeNotifListener() {
+  if (_notifListenerActive || !state.user) return;
+  _notifListenerActive = true;
+  
+  db.collection('notifications')
+    .where('toUid', '==', state.user.uid)
+    .where('read', '==', false)
+    .orderBy('createdAt', 'desc')
+    .limit(10)
+    .onSnapshot(function(snap) {
+      snap.docChanges().forEach(function(change) {
+        if (change.type === 'added') {
+          var notif = change.doc.data();
+          var createdAt = notif.createdAt ? notif.createdAt.seconds * 1000 : 0;
+          // Only trigger native notification for notifications created in last 30 seconds
+          if (Date.now() - createdAt < 30000) {
+            var title = 'Mindvora';
+            var body = notif.text || 'You have a new notification';
+            if (notif.type === 'dm') title = '💬 New Message';
+            else if (notif.type === 'like') title = '❤️ New Like';
+            else if (notif.type === 'comment') title = '💬 New Comment';
+            else if (notif.type === 'follow') title = '➕ New Follower';
+            else if (notif.type === 'tip') title = '💝 Tip Received';
+            else if (notif.type === 'repost') title = '🔁 Repost';
+            showNativeNotification(title, body);
+          }
+        }
+      });
+      // Update notification bell
+      if (typeof updateNotifBell === 'function') updateNotifBell();
+      if (typeof loadNotifications === 'function') loadNotifications();
+    }, function(err) {
+      console.warn('Notification listener error:', err);
+      _notifListenerActive = false;
+    });
+}
+
+// ── BACKGROUND NOTIFICATION CHECK (polls every 60 seconds) ───────────────
+// Ensures notifications surface even if real-time listener drops
+var _lastNotifCheck = 0;
+setInterval(function() {
+  if (!state.user || !db) return;
+  if (Notification.permission !== 'granted') return;
+  var now = Date.now();
+  if (now - _lastNotifCheck < 55000) return; // Skip if checked recently
+  _lastNotifCheck = now;
+  
+  db.collection('notifications')
+    .where('toUid', '==', state.user.uid)
+    .where('read', '==', false)
+    .orderBy('createdAt', 'desc')
+    .limit(5)
+    .get()
+    .then(function(snap) {
+      if (!snap.empty && !document.hasFocus()) {
+        var count = snap.docs.length;
+        showNativeNotification(
+          'Mindvora',
+          'You have ' + count + ' unread notification' + (count > 1 ? 's' : ''),
+          '/icons/icon-192.png'
+        );
+      }
+    }).catch(function(){});
+}, 60000);
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -7659,15 +7772,12 @@ function switchPayMethod(method) {
 // ── CREATE NOWPAYMENTS INVOICE & OPEN PAYMENT PAGE ────────────────────────
 function createCryptoPayment(amountUSD, description, onSuccess) {
   if (!state.user) { showToast('Login first'); return; }
-  showToast('₿ Connecting to payment server… (may take 30s on first use)');
+  showToast('₿ Setting up crypto payment…');
 
-  // Wake up the Render backend first (free plan sleeps after inactivity)
-  fetch(BACKEND_URL + '/', { method: 'GET' }).catch(function(){});
-
-  // Small delay to let backend wake up then proceed
+  // Proceed with creating the invoice
   setTimeout(function() {
     createCryptoInvoice(amountUSD, description, onSuccess);
-  }, 3000);
+  }, 500);
 }
 
 function createCryptoInvoice(amountUSD, description, onSuccess) {
@@ -7713,7 +7823,7 @@ function createCryptoInvoice(amountUSD, description, onSuccess) {
     showToast('₿ Crypto payment page opened! Complete payment in the new tab.');
   })
   .catch(function(err) {
-    showToast('❌ Payment server is waking up. Please try again in 30 seconds.');
+    showToast('❌ Crypto payment setup failed. Please try again or use Card/Bank.');
     console.error('Crypto error:', err);
   });
 }
