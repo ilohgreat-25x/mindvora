@@ -4057,5 +4057,56 @@
   </div>
 </div>
 <script src="script.js"></script>
+
+<!-- THUMBNAIL PICKER OVERLAY — Task 1 -->
+<div class="thumb-picker-overlay" id="thumb-picker-overlay">
+  <div class="thumb-picker-box">
+    <div class="thumb-picker-head">
+      <h3>🎬 Choose Thumbnail</h3>
+      <button class="m-close" onclick="closeThumbPicker(false)">✕</button>
+    </div>
+    <div class="thumb-picker-body">
+      <div class="thumb-picker-preview" id="thumb-preview-area">
+        <video id="thumb-video-preview" muted playsinline style="width:100%;max-height:220px;object-fit:contain"></video>
+      </div>
+      <div class="thumb-picker-label">SELECT A THUMBNAIL</div>
+      <div class="thumb-grid" id="thumb-grid">
+        <!-- Auto-generated thumbnails inserted here by JS -->
+      </div>
+      <div class="thumb-picker-label" style="margin-top:8px">OR UPLOAD CUSTOM</div>
+      <div class="thumb-custom-upload" id="thumb-custom-upload" onclick="uploadCustomThumbnail()">
+        <span style="font-size:18px">📸</span>
+        <span>Upload custom thumbnail</span>
+      </div>
+      <div class="thumb-actions">
+        <button class="thumb-btn-skip" onclick="closeThumbPicker(true)">Skip</button>
+        <button class="thumb-btn-confirm" id="thumb-confirm-btn" onclick="confirmThumbnail()">✓ Use This Thumbnail</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SHORTS VIEWER — Task 2 -->
+<div class="short-viewer" id="short-viewer">
+  <button class="sv-close" onclick="closeShortViewer()">✕</button>
+  <video id="short-viewer-video" playsinline loop></video>
+  <div class="sv-actions">
+    <button class="sv-action-btn" id="short-like-btn">❤️<span id="short-like-count">0</span></button>
+    <button class="sv-action-btn" id="short-comment-btn">💬<span>Comment</span></button>
+    <button class="sv-action-btn" id="short-share-btn">↗️<span>Share</span></button>
+  </div>
+  <div class="sv-info">
+    <div class="sv-info-author" id="short-viewer-author">—</div>
+    <div class="sv-info-text" id="short-viewer-text"></div>
+  </div>
+  <div class="sv-nav">
+    <button onclick="prevShort()">‹</button>
+    <button onclick="nextShort()">›</button>
+  </div>
+</div>
+
+<!-- FILE SCAN NOTIFICATION (anti-malware) — Task 3 -->
+<div id="sec-alert-banner" class="sec-alert-banner"></div>
+
 </body>
 </html>

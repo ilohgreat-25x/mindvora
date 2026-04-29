@@ -9306,3 +9306,474 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Favicon — static, set in HTML head
+
+// ═══════════════════════════════════════════════════════════════
+// TASK 1: VIDEO THUMBNAIL PICKER — YouTube-style
+// ═══════════════════════════════════════════════════════════════
+var _thumbPickerState = { videoFile:null, videoUrl:null, thumbnails:[], selectedThumb:null, resolve:null, isShort:false };
+
+function generateVideoThumbnails(file, count){
+  return new Promise(function(resolve){
+    var url = URL.createObjectURL(file);
+    var video = document.createElement('video');
+    video.src = url; video.muted = true; video.preload = 'auto';
+    video.addEventListener('loadedmetadata', function(){
+      var dur = video.duration;
+      var times = [];
+      for(var i=0;i<count;i++) times.push(Math.min(dur*0.99, (dur/(count+1))*(i+1)));
+      var thumbs = []; var idx = 0;
+      function captureFrame(){
+        if(idx >= times.length){ URL.revokeObjectURL(url); resolve(thumbs); return; }
+        video.currentTime = times[idx];
+      }
+      video.addEventListener('seeked', function onSeeked(){
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.min(video.videoWidth, 640);
+        canvas.height = Math.round(canvas.width * (video.videoHeight / video.videoWidth));
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        thumbs.push({ time: times[idx], dataUrl: canvas.toDataURL('image/jpeg', 0.85) });
+        idx++;
+        if(idx < times.length){ video.currentTime = times[idx]; }
+        else { URL.revokeObjectURL(url); resolve(thumbs); }
+      });
+      captureFrame();
+    });
+    video.addEventListener('error', function(){ resolve([]); });
+  });
+}
+
+function openThumbPicker(file, isShort){
+  _thumbPickerState.videoFile = file;
+  _thumbPickerState.isShort = isShort || false;
+  _thumbPickerState.selectedThumb = null;
+  var overlay = document.getElementById('thumb-picker-overlay');
+  var preview = document.getElementById('thumb-video-preview');
+  var grid = document.getElementById('thumb-grid');
+  preview.src = URL.createObjectURL(file);
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:16px;color:var(--muted)">⏳ Generating thumbnails…</div>';
+  overlay.classList.add('open');
+  generateVideoThumbnails(file, 6).then(function(thumbs){
+    _thumbPickerState.thumbnails = thumbs;
+    if(!thumbs.length){ grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted)">Could not generate thumbnails</div>'; return; }
+    grid.innerHTML = thumbs.map(function(t, i){
+      return '<div class="thumb-option'+(i===0?' selected':'')+'" data-thumb-idx="'+i+'">' +
+        '<img src="'+t.dataUrl+'" alt="Thumbnail '+(i+1)+'">' +
+        '<div class="thumb-check">✓</div>' +
+        '<div class="thumb-duration-badge">'+formatDuration(t.time)+'</div></div>';
+    }).join('');
+    if(thumbs.length > 0) _thumbPickerState.selectedThumb = thumbs[0].dataUrl;
+    grid.querySelectorAll('.thumb-option').forEach(function(el){
+      el.addEventListener('click', function(){
+        grid.querySelectorAll('.thumb-option').forEach(function(x){ x.classList.remove('selected'); });
+        el.classList.add('selected');
+        _thumbPickerState.selectedThumb = thumbs[parseInt(el.dataset.thumbIdx)].dataUrl;
+      });
+    });
+  });
+  return new Promise(function(resolve){ _thumbPickerState.resolve = resolve; });
+}
+
+function formatDuration(secs){
+  var m = Math.floor(secs/60); var s = Math.floor(secs%60);
+  return m + ':' + (s<10?'0':'') + s;
+}
+
+function closeThumbPicker(skip){
+  document.getElementById('thumb-picker-overlay').classList.remove('open');
+  var pv = document.getElementById('thumb-video-preview'); if(pv) pv.src = '';
+  if(_thumbPickerState.resolve){
+    _thumbPickerState.resolve(skip ? null : _thumbPickerState.selectedThumb);
+    _thumbPickerState.resolve = null;
+  }
+}
+
+function confirmThumbnail(){
+  document.getElementById('thumb-picker-overlay').classList.remove('open');
+  var pv = document.getElementById('thumb-video-preview'); if(pv) pv.src = '';
+  if(_thumbPickerState.resolve){
+    _thumbPickerState.resolve(_thumbPickerState.selectedThumb || null);
+    _thumbPickerState.resolve = null;
+  }
+}
+
+function uploadCustomThumbnail(){
+  var inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = function(){
+    var f = inp.files[0]; if(!f) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      _thumbPickerState.selectedThumb = e.target.result;
+      var grid = document.getElementById('thumb-grid');
+      grid.querySelectorAll('.thumb-option').forEach(function(x){ x.classList.remove('selected'); });
+      showToast('✅ Custom thumbnail selected!');
+    };
+    reader.readAsDataURL(f);
+  };
+  inp.click();
+}
+
+// ── Patch the media upload to show thumbnail picker for videos ──
+(function(){
+  var origMediaBtn = document.getElementById('btn-media');
+  if(!origMediaBtn) return;
+  var origListeners = origMediaBtn.cloneNode(true);
+  var newBtn = origMediaBtn.cloneNode(true);
+  origMediaBtn.parentNode.replaceChild(newBtn, origMediaBtn);
+  newBtn.id = 'btn-media';
+  newBtn.addEventListener('click', function(){
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file'; fileInput.accept = 'image/*,video/*';
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.click();
+    fileInput.addEventListener('change', async function(){
+      var file = fileInput.files[0];
+      document.body.removeChild(fileInput);
+      if(!file) return;
+      // Task 3: Anti-malware scan
+      var scanResult = scanFileForMalware(file);
+      if(!scanResult.safe){ showToast('🛡️ ' + scanResult.reason); return; }
+      if(file.size > 209715200){ showToast('File too large! Max 200MB'); return; }
+      var isVideo = file.type.startsWith('video');
+      var thumbDataUrl = null;
+      // Task 1: Show thumbnail picker for videos
+      if(isVideo){
+        thumbDataUrl = await openThumbPicker(file, false);
+      }
+      var uploadBanner = document.createElement('div');
+      uploadBanner.id = 'upload-banner';
+      uploadBanner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:var(--green);color:var(--cream);text-align:center;padding:10px;font-size:13px;font-weight:700;z-index:9999;font-family:DM Sans,sans-serif';
+      uploadBanner.textContent = '⏳ Uploading media... Please wait.';
+      document.body.appendChild(uploadBanner);
+      var formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'ml_default');
+      formData.append('cloud_name', CLOUD_NAME);
+      try{
+        var resourceType = isVideo ? 'video' : 'image';
+        var resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/' + resourceType + '/upload', { method:'POST', body:formData });
+        var data = await resp.json();
+        if(document.getElementById('upload-banner')) document.body.removeChild(uploadBanner);
+        if(data.error){ showToast('Upload failed: ' + data.error.message); return; }
+        pendingMedia = { url: data.secure_url, type: resourceType, thumbnail: thumbDataUrl };
+        if(resourceType === 'image'){
+          document.getElementById('prev-img').src = data.secure_url;
+          document.getElementById('prev-img').style.display = 'block';
+          document.getElementById('prev-vid').style.display = 'none';
+        } else {
+          document.getElementById('prev-vid').src = data.secure_url;
+          document.getElementById('prev-vid').style.display = 'block';
+          document.getElementById('prev-img').style.display = 'none';
+        }
+        document.getElementById('media-prev').style.display = 'block';
+        showToast('✅ Media ready! Click Spark to post.');
+      } catch(e){
+        if(document.getElementById('upload-banner')) document.body.removeChild(uploadBanner);
+        showToast('Upload failed: ' + e.message);
+      }
+    });
+  });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TASK 2: SHORTS (3-MIN, 9:16 RATIO) — TikTok/Instagram style
+// ═══════════════════════════════════════════════════════════════
+var MAX_SHORT_DURATION = 180; // 3 minutes in seconds
+var shortsList = [];
+var currentShortIdx = -1;
+
+function openShortsUpload(){
+  if(!state.user || !state.profile){ showToast('Please sign in first'); return; }
+  var fileInp = document.createElement('input');
+  fileInp.type = 'file'; fileInp.accept = 'video/*';
+  fileInp.onchange = async function(){
+    var file = fileInp.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('video/')){ showToast('Please select a video file'); return; }
+    // Task 3: Anti-malware scan
+    var scanResult = scanFileForMalware(file);
+    if(!scanResult.safe){ showToast('🛡️ ' + scanResult.reason); return; }
+    if(file.size > 200*1024*1024){ showToast('File too large (max 200MB)'); return; }
+    // Check video duration (max 3 minutes)
+    var duration = await getVideoDuration(file);
+    if(duration > MAX_SHORT_DURATION){
+      showToast('⏱️ Shorts must be 3 minutes or less! Your video is ' + formatDuration(duration));
+      return;
+    }
+    // Show thumbnail picker
+    var thumbDataUrl = await openThumbPicker(file, true);
+    showToast('⏫ Uploading short…');
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('upload_preset', 'ml_default');
+    try {
+      var resp = await fetch('https://api.cloudinary.com/v1_1/'+CLOUD_NAME+'/video/upload', {method:'POST', body:fd});
+      var r = await resp.json();
+      if(!r.secure_url){ showToast('Upload failed'); return; }
+      await db.collection('sparks').add({
+        text: '', authorId: state.user.uid, authorName: state.profile.name,
+        authorHandle: state.profile.handle, authorColor: state.profile.color||COLORS[0],
+        isPremium: state.profile.isPremium||false, isShort: true,
+        category: 'fun', likes: [], saved: [], commentCount: 0,
+        mediaUrl: r.secure_url, mediaType: 'video',
+        thumbnailUrl: thumbDataUrl || null,
+        duration: Math.round(duration),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)});
+      showToast('🎬 Short uploaded!');
+      loadReels();
+    } catch(e){ showToast('Upload failed: ' + e.message); }
+  };
+  fileInp.click();
+}
+
+function getVideoDuration(file){
+  return new Promise(function(resolve){
+    var video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = function(){ URL.revokeObjectURL(video.src); resolve(video.duration); };
+    video.onerror = function(){ resolve(0); };
+    video.src = URL.createObjectURL(file);
+  });
+}
+
+function openShortViewer(idx){
+  if(idx < 0 || idx >= shortsList.length) return;
+  currentShortIdx = idx;
+  var s = shortsList[idx];
+  var vid = document.getElementById('short-viewer-video');
+  vid.src = s.mediaUrl || '';
+  vid.play().catch(function(){});
+  document.getElementById('short-viewer-author').textContent = s.authorName || 'Mindvora user';
+  document.getElementById('short-viewer-text').textContent = s.text || '';
+  document.getElementById('short-like-count').textContent = (s.likes||[]).length;
+  document.getElementById('short-viewer').classList.add('open');
+}
+function closeShortViewer(){
+  document.getElementById('short-viewer').classList.remove('open');
+  var vid = document.getElementById('short-viewer-video');
+  vid.pause(); vid.src = '';
+  currentShortIdx = -1;
+}
+function nextShort(){ if(currentShortIdx < shortsList.length-1) openShortViewer(currentShortIdx+1); }
+function prevShort(){ if(currentShortIdx > 0) openShortViewer(currentShortIdx-1); }
+
+// Wire short-like button
+document.addEventListener('DOMContentLoaded', function(){
+  var slb = document.getElementById('short-like-btn');
+  if(slb) slb.addEventListener('click', function(){
+    if(currentShortIdx < 0 || !state.user) return;
+    var s = shortsList[currentShortIdx];
+    if(s && s.id) toggleLike(s.id);
+    showToast('❤️ Liked!');
+  });
+});
+
+// Patch reel upload button to also support shorts
+(function(){
+  var reelBtn = document.getElementById('btn-upload-reel');
+  if(!reelBtn) return;
+  var newReelBtn = reelBtn.cloneNode(true);
+  reelBtn.parentNode.replaceChild(newReelBtn, reelBtn);
+  newReelBtn.id = 'btn-upload-reel';
+  newReelBtn.textContent = '📤 Upload Short (max 3min)';
+  newReelBtn.addEventListener('click', function(){ openShortsUpload(); });
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// TASK 3: ANTI-MALWARE FILE SCANNER + SECURITY HARDENING
+// ═══════════════════════════════════════════════════════════════
+
+// ── MAGIC BYTES — detect real file type regardless of extension ──
+var MAGIC_BYTES = {
+  'image/jpeg':  [[0xFF, 0xD8, 0xFF]],
+  'image/png':   [[0x89, 0x50, 0x4E, 0x47]],
+  'image/gif':   [[0x47, 0x49, 0x46, 0x38]],
+  'image/webp':  [[0x52, 0x49, 0x46, 0x46]],
+  'video/mp4':   [[0x00,0x00,0x00,0x18,0x66,0x74,0x79,0x70],[0x00,0x00,0x00,0x1C,0x66,0x74,0x79,0x70],[0x00,0x00,0x00,0x20,0x66,0x74,0x79,0x70]],
+  'video/webm':  [[0x1A, 0x45, 0xDF, 0xA3]],
+  'audio/mpeg':  [[0x49, 0x44, 0x33], [0xFF, 0xFB], [0xFF, 0xF3]],
+  'application/pdf': [[0x25, 0x50, 0x44, 0x46]],
+  'application/zip': [[0x50, 0x4B, 0x03, 0x04]],
+  'application/x-msdownload': [[0x4D, 0x5A]] // EXE
+};
+
+var DANGEROUS_EXTENSIONS = [
+  '.exe','.bat','.cmd','.com','.msi','.scr','.pif','.vbs','.vbe',
+  '.js','.jse','.ws','.wsf','.wsc','.wsh','.ps1','.ps2','.psc1',
+  '.reg','.inf','.lnk','.dll','.sys','.drv','.cpl','.jar',
+  '.hta','.htm','.html','.svg','.php','.asp','.aspx','.jsp','.py','.sh'
+];
+
+var ALLOWED_MEDIA_TYPES = [
+  'image/jpeg','image/png','image/gif','image/webp','image/bmp',
+  'video/mp4','video/webm','video/quicktime','video/x-msvideo',
+  'video/x-matroska','video/ogg','audio/mpeg','audio/wav','audio/ogg'
+];
+
+function scanFileForMalware(file){
+  if(!file) return { safe:false, reason:'No file provided' };
+  // 1. Check file extension
+  var name = (file.name || '').toLowerCase();
+  var ext = name.substring(name.lastIndexOf('.'));
+  if(DANGEROUS_EXTENSIONS.indexOf(ext) !== -1){
+    logSecurityEvent('malware_blocked', 'Dangerous file extension blocked: ' + ext);
+    return { safe:false, reason:'File type "' + ext + '" is not allowed for security reasons.' };
+  }
+  // 2. Check MIME type
+  if(file.type && ALLOWED_MEDIA_TYPES.indexOf(file.type) === -1){
+    // Allow empty MIME (some mobile browsers)
+    if(file.type !== ''){
+      logSecurityEvent('malware_blocked', 'Disallowed MIME type: ' + file.type);
+      return { safe:false, reason:'File type "' + file.type + '" is not supported.' };
+    }
+  }
+  // 3. Check for double extensions (e.g., photo.jpg.exe)
+  var parts = name.split('.');
+  if(parts.length > 2){
+    for(var i = 0; i < parts.length - 1; i++){
+      var testExt = '.' + parts[i];
+      if(DANGEROUS_EXTENSIONS.indexOf(testExt) !== -1){
+        logSecurityEvent('malware_blocked', 'Double extension attack detected: ' + name);
+        return { safe:false, reason:'Suspicious file name detected. Upload blocked.' };
+      }
+    }
+  }
+  // 4. File size sanity check
+  if(file.size > 250 * 1024 * 1024){
+    return { safe:false, reason:'File exceeds maximum size (250MB).' };
+  }
+  if(file.size === 0){
+    return { safe:false, reason:'Empty file detected.' };
+  }
+  // 5. Filename sanitization — block special chars
+  if(/[<>:"/\\|?*\x00-\x1F]/.test(file.name)){
+    logSecurityEvent('malware_blocked', 'Malicious filename characters: ' + name);
+    return { safe:false, reason:'File name contains invalid characters.' };
+  }
+  return { safe:true, reason:'File passed security scan.' };
+}
+
+// ── Async deep scan — checks magic bytes ──
+async function deepScanFile(file){
+  try {
+    var buffer = await file.slice(0, 16).arrayBuffer();
+    var bytes = new Uint8Array(buffer);
+    // Check for executable magic bytes (MZ = EXE/DLL)
+    if(bytes[0] === 0x4D && bytes[1] === 0x5A){
+      logSecurityEvent('malware_blocked', 'Executable file disguised as media: ' + file.name);
+      return { safe:false, reason:'🛡️ Malware detected! Executable file blocked.' };
+    }
+    // Check for ZIP (could contain malware)
+    if(bytes[0] === 0x50 && bytes[1] === 0x4B && !file.type.includes('zip')){
+      logSecurityEvent('malware_blocked', 'Archive disguised as media: ' + file.name);
+      return { safe:false, reason:'🛡️ Suspicious archive file blocked.' };
+    }
+    // Check for embedded scripts in SVG/HTML
+    if(file.type === 'image/svg+xml' || file.name.endsWith('.svg')){
+      var text = await file.text();
+      if(/<script/i.test(text) || /javascript:/i.test(text) || /on\w+\s*=/i.test(text)){
+        logSecurityEvent('malware_blocked', 'SVG with embedded script: ' + file.name);
+        return { safe:false, reason:'🛡️ Malicious SVG file blocked.' };
+      }
+    }
+    return { safe:true, reason:'Deep scan passed.' };
+  } catch(e){
+    return { safe:true, reason:'Scan skipped.' };
+  }
+}
+
+function logSecurityEvent(type, details){
+  console.warn('🛡️ Mindvora Security [' + type + ']: ' + details);
+  try {
+    if(db && state.user){
+      db.collection('security_alerts').add({
+        type: type, message: details,
+        severity: 'high', read: false, icon: '🛡️',
+        userId: state.user.uid,
+        userAgent: navigator.userAgent.slice(0, 100),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function(){});
+    }
+  } catch(e){}
+}
+
+// ── Enhanced CSP via meta tag ──
+(function(){
+  var existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+  if(!existingCSP){
+    var meta = document.createElement('meta');
+    meta.httpEquiv = 'Content-Security-Policy';
+    meta.content = "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://js.paystack.co https://upload-widget.cloudinary.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https://js.paystack.co https://checkout.paystack.com;";
+    document.head.appendChild(meta);
+  }
+})();
+
+// ── Prevent clickjacking ──
+(function(){
+  if(window.self !== window.top){
+    try { window.top.location = window.self.location; } catch(e){
+      document.body.innerHTML = '<h1 style="color:red;text-align:center;padding:40px">⚠️ Mindvora cannot be loaded in an iframe for security reasons.</h1>';
+    }
+  }
+})();
+
+// ── Sanitize all clipboard paste events ──
+document.addEventListener('paste', function(e){
+  var items = e.clipboardData && e.clipboardData.items;
+  if(!items) return;
+  for(var i = 0; i < items.length; i++){
+    if(items[i].type === 'text/html'){
+      e.preventDefault();
+      var text = e.clipboardData.getData('text/plain');
+      if(containsMalicious(text)){
+        showToast('⚠️ Suspicious content in clipboard blocked.');
+        return;
+      }
+      document.execCommand('insertText', false, sanitize(text));
+      return;
+    }
+  }
+});
+
+// ── Block drag-and-drop of dangerous files ──
+document.addEventListener('dragover', function(e){ e.preventDefault(); });
+document.addEventListener('drop', function(e){
+  e.preventDefault();
+  if(e.dataTransfer && e.dataTransfer.files.length > 0){
+    var file = e.dataTransfer.files[0];
+    var result = scanFileForMalware(file);
+    if(!result.safe){
+      showToast('🛡️ ' + result.reason);
+    }
+  }
+});
+
+
+
+// ── Periodic security health check ──
+setInterval(function(){
+  // Check for DOM manipulation attacks
+  var scripts = document.querySelectorAll('script:not([src])');
+  scripts.forEach(function(s){
+    if(s.textContent && /eval|Function\(|document\.write/i.test(s.textContent)){
+      if(!s.dataset.mvTrusted){
+        logSecurityEvent('dom_injection', 'Suspicious inline script detected and removed');
+        s.remove();
+      }
+    }
+  });
+  // Check for injected iframes
+  var iframes = document.querySelectorAll('iframe');
+  iframes.forEach(function(f){
+    var src = f.src || '';
+    if(src && !src.includes('paystack') && !src.includes('cloudinary') && !src.includes('mindvora')){
+      logSecurityEvent('iframe_injection', 'Unauthorized iframe removed: ' + src.substring(0,80));
+      f.remove();
+    }
+  });
+}, 30000);
+
