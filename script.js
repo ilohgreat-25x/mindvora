@@ -7000,7 +7000,7 @@ function addToClipboard(text) {
   if (!text || text.length < 3) return;
   clipboardHistory = clipboardHistory.filter(function(c){ return c !== text; });
   clipboardHistory.unshift(text);
-  if (clipboardHistory.length > 20) clipboardHistory = clipboardHistory.slice(0, 20);
+  if (clipboardHistory.length > 10) clipboardHistory = clipboardHistory.slice(0, 10);
   try { localStorage.setItem('mv_clipboard', JSON.stringify(clipboardHistory)); } catch(e){}
 }
 
@@ -9776,4 +9776,75 @@ setInterval(function(){
     }
   });
 }, 30000);
+
+// ═══════════════════════════════════════════════════════════════
+// STORAGE OPTIMIZATION — Keep device storage lean
+// ═══════════════════════════════════════════════════════════════
+var STORAGE_MAX_KB = 2048; // Max 2MB localStorage budget
+
+function getLocalStorageSize(){
+  var total = 0;
+  try {
+    for(var i = 0; i < localStorage.length; i++){
+      var key = localStorage.key(i);
+      total += (key.length + (localStorage.getItem(key) || '').length) * 2; // UTF-16
+    }
+  } catch(e){}
+  return Math.round(total / 1024); // KB
+}
+
+function cleanupLocalStorage(){
+  var sizeKB = getLocalStorageSize();
+  if(sizeKB <= STORAGE_MAX_KB) return;
+  // Remove clipboard history first (least critical)
+  try { localStorage.removeItem('mv_clipboard'); clipboardHistory = []; } catch(e){}
+  // Remove old streak data for users no longer logged in
+  try {
+    for(var i = localStorage.length - 1; i >= 0; i--){
+      var key = localStorage.key(i);
+      if(key && (key.indexOf('mv_streak_') === 0 || key.indexOf('mv_last_post_date_') === 0)){
+        if(state.user && key.indexOf(state.user.uid) === -1){
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch(e){}
+}
+
+// Clean up service worker cache — remove stale entries older than 7 days
+function cleanupCaches(){
+  if(!('caches' in window)) return;
+  try {
+    caches.open('mindvora-v4').then(function(cache){
+      cache.keys().then(function(keys){
+        // Keep only essential cached items (max 20 entries)
+        if(keys.length > 20){
+          var toDelete = keys.slice(20);
+          toDelete.forEach(function(req){ cache.delete(req); });
+        }
+      });
+    }).catch(function(){});
+  } catch(e){}
+}
+
+// Revoke any orphaned blob URLs to free memory
+var _blobUrls = [];
+var _origCreateObjectURL = URL.createObjectURL;
+URL.createObjectURL = function(obj){
+  var url = _origCreateObjectURL.call(URL, obj);
+  _blobUrls.push(url);
+  // Auto-revoke after 5 minutes to prevent memory leaks
+  setTimeout(function(){
+    try { URL.revokeObjectURL(url); } catch(e){}
+    _blobUrls = _blobUrls.filter(function(u){ return u !== url; });
+  }, 300000);
+  return url;
+};
+
+// Run cleanup on load and every 10 minutes
+cleanupLocalStorage();
+cleanupCaches();
+setInterval(function(){
+  cleanupLocalStorage();
+}, 600000);
 
