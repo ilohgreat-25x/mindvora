@@ -25,6 +25,14 @@ app.get('/', (req, res) => {
   res.json({ status: 'Mindvora Backend Running ✅', time: new Date().toISOString() });
 });
 
+// ── Keep-alive / Warmup endpoint ───────────────────────────────
+app.get('/api/crypto/status/ping', (req, res) => {
+  res.json({ status: 'awake', time: new Date().toISOString() });
+});
+app.get('/api/crypto/status/warmup', (req, res) => {
+  res.json({ status: 'warm', time: new Date().toISOString() });
+});
+
 // ══════════════════════════════════════════════════════════════
 // 1. NOWPAYMENTS — Create crypto invoice
 // ══════════════════════════════════════════════════════════════
