@@ -9001,7 +9001,7 @@ function ensureRealtimeFeed() {
 
 // NOWPayments keys moved to secure backend — never expose API key in frontend
 var NOWPAY_PUBLIC_KEY = '440f0f69-11dd-4248-91f3-903e123538ee'; // public key only — safe
-var BACKEND_URL       = window.BACKEND_URL || 'https://mindvora-backend-production.up.railway.app';
+var BACKEND_URL       = window.BACKEND_URL || '';
 
 // ── SWITCH PAYMENT METHOD TABS ────────────────────────────────────────────
 function switchPayMethod(method) {

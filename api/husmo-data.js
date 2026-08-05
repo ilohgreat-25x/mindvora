@@ -1,8 +1,8 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-  const { phone, network, bundle, amount } = req.body;
+  const { phone, network, bundle, amount } = req.body || {};
   if (!phone || !network || !bundle) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         'Authorization': `Token ${process.env.HUSMODATA_API_KEY}`
       },
       body: JSON.stringify({
-        network: networkMap[network.toLowerCase()] || '1',
+        network: networkMap[String(network).toLowerCase()] || '1',
         mobile_number: phone,
         plan: bundle,
         Ported_number: true
@@ -26,4 +26,4 @@ export default async function handler(req, res) {
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
-}
+};
