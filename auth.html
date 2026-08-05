@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#166534">
+    <title>Mindvora — Sign In</title>
+    <meta name="description" content="Sign in to Mindvora — Where Minds Connect">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://js.paystack.co/v1/inline.js" defer></script>
+    <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+    <div id="auth-screen">
+
+  <!-- LEFT SIDE: Sliding showcase like Facebook but premium -->
+  <div class="auth-showcase">
+    <!-- Animated slides -->
+    <div class="showcase-slides" id="showcase-slides">
+
+      <div class="showcase-slide active">
+        <div class="slide-bg" style="background:linear-gradient(135deg,#0a1628,#0d2818,#1a0a2e)">
+          <!-- Animated floating bubbles -->
+          <div class="slide-bubble" style="width:300px;height:300px;top:10%;left:5%;background:radial-gradient(circle,rgba(34,197,94,.15),transparent);animation:bubbleFloat 6s ease-in-out infinite"></div>
+          <div class="slide-bubble" style="width:200px;height:200px;top:50%;right:10%;background:radial-gradient(circle,rgba(99,102,241,.15),transparent);animation:bubbleFloat 8s ease-in-out infinite reverse"></div>
+          <div class="slide-bubble" style="width:150px;height:150px;bottom:20%;left:20%;background:radial-gradient(circle,rgba(201,168,76,.1),transparent);animation:bubbleFloat 7s ease-in-out infinite 1s"></div>
+          <!-- Floating cards -->
+          <div class="float-card fc1">
+            <div class="fc-av" style="background:linear-gradient(135deg,#166534,#22c55e)">A</div>
+            <div><div class="fc-name">Amara Okafor</div><div class="fc-text">Just shared a spark 🌿✨</div></div>
+            <div class="fc-heart">❤️ 124</div>
+          </div>
+          <div class="float-card fc2">
+            <div class="fc-av" style="background:linear-gradient(135deg,#6d28d9,#a78bfa)">K</div>
+            <div><div class="fc-name">Kofi Mensah</div><div class="fc-text">Live now! 🔴 Join me</div></div>
+            <div class="fc-heart">👁 2.4k</div>
+          </div>
+          <div class="float-card fc3">
+            <div class="fc-av" style="background:linear-gradient(135deg,#b45309,#fcd34d)">Z</div>
+            <div><div class="fc-name">Harvey Jones</div><div class="fc-text">🏆 Top creator this week!</div></div>
+            <div class="fc-heart">🔥 Hot</div>
+          </div>
+          <!-- Grid of profile avatars -->
+          <div class="avatar-grid">
+            <div class="ag-av" style="background:linear-gradient(135deg,#166534,#22c55e)">M</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#1d4ed8,#60a5fa)">A</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#7c3aed,#c4b5fd)">K</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#b45309,#fcd34d)">Z</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#be123c,#fda4af)">L</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#0f766e,#5eead4)">T</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#166534,#86efac)">S</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#92400e,#fde68a)">+</div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">🌍 Global Community</div>
+          <h2 class="slide-title">Connect with <em>Millions</em> of Minds Worldwide</h2>
+          <p class="slide-desc">Join creators, thinkers and innovators from every corner of the world. Share your spark and light up the world.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">👥 2M+ Users</div>
+            <div class="stat-pill">🌍 54 Languages</div>
+            <div class="stat-pill">⚡ Real-time</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-slide">
+        <div class="slide-bg" style="background:linear-gradient(135deg,#0a1f1a,#0d1628,#1a1028)">
+          <div class="slide-bubble" style="width:350px;height:350px;top:5%;right:0%;background:radial-gradient(circle,rgba(16,185,129,.12),transparent);animation:bubbleFloat 7s ease-in-out infinite"></div>
+          <div class="slide-bubble" style="width:250px;height:250px;bottom:10%;left:5%;background:radial-gradient(circle,rgba(245,158,11,.1),transparent);animation:bubbleFloat 9s ease-in-out infinite reverse"></div>
+          <!-- Earnings card -->
+          <div class="earn-showcase">
+            <div class="es-header">💰 Creator Earnings</div>
+            <div class="es-amount">$1,240.50</div>
+            <div class="es-sub">This month · +34% ↑</div>
+            <div class="es-bars">
+              <div class="es-bar" style="height:40%;background:rgba(34,197,94,.4)"></div>
+              <div class="es-bar" style="height:65%;background:rgba(34,197,94,.5)"></div>
+              <div class="es-bar" style="height:50%;background:rgba(34,197,94,.4)"></div>
+              <div class="es-bar" style="height:80%;background:rgba(34,197,94,.6)"></div>
+              <div class="es-bar" style="height:70%;background:rgba(34,197,94,.5)"></div>
+              <div class="es-bar" style="height:90%;background:var(--green3)"></div>
+              <div class="es-bar" style="height:100%;background:var(--green3);box-shadow:0 0 12px rgba(34,197,94,.5)"></div>
+            </div>
+          </div>
+          <!-- Feature pills floating -->
+          <div class="feat-pill fp1">💎 Premium Plans</div>
+          <div class="feat-pill fp2">📱 Data & Airtime</div>
+          <div class="feat-pill fp3">💸 Withdraw Earnings</div>
+          <div class="feat-pill fp4">🔗 Referral Bonuses</div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">💰 Earn on Mindvora</div>
+          <h2 class="slide-title">Post Content. <em>Get Paid.</em></h2>
+          <p class="slide-desc">Earn real money from tips, subscriptions, live streams and creator funds. Mindvora pays its creators generously.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">💝 Live Tipping</div>
+            <div class="stat-pill">📊 Analytics</div>
+            <div class="stat-pill">💳 Payouts</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-slide">
+        <div class="slide-bg" style="background:linear-gradient(135deg,#1a0828,#0a1628,#0d1f12)">
+          <div class="slide-bubble" style="width:400px;height:400px;top:-5%;left:-5%;background:radial-gradient(circle,rgba(139,92,246,.1),transparent);animation:bubbleFloat 10s ease-in-out infinite"></div>
+          <!-- Post types showcase -->
+          <div class="post-showcase">
+            <div class="ps-item ps-active">
+              <div class="ps-icon">🎥</div>
+              <div>
+                <div class="ps-label">Video Reels</div>
+                <div class="ps-sub">Share & go viral</div>
+              </div>
+              <div class="ps-views">2.4M views</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-icon">🔴</div>
+              <div>
+                <div class="ps-label">Live Streaming</div>
+                <div class="ps-sub">Connect in real-time</div>
+              </div>
+              <div class="ps-views">12k live</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-icon">📸</div>
+              <div>
+                <div class="ps-label">Photo Stories</div>
+                <div class="ps-sub">48h disappearing</div>
+              </div>
+              <div class="ps-views">850 views</div>
+            </div>
+            <div class="ps-item">
+              <div class="ps-icon">🤖</div>
+              <div>
+                <div class="ps-label">ARIA AI Assistant</div>
+                <div class="ps-sub">Your smart companion</div>
+              </div>
+              <div class="ps-views">Always on</div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">✨ All-in-One Platform</div>
+          <h2 class="slide-title">Every Feature You <em>Need.</em> Nothing You Don't.</h2>
+          <p class="slide-desc">Videos, reels, live streaming, AI assistant, marketplace, groups, games and so much more — all in one app.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">🎮 Mini Games</div>
+            <div class="stat-pill">🛒 Marketplace</div>
+            <div class="stat-pill">🤖 AI Chat</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Slide indicators -->
+    <div class="slide-dots">
+      <div class="dot active" onclick="goToSlide(0)"></div>
+      <div class="dot" onclick="goToSlide(1)"></div>
+      <div class="dot" onclick="goToSlide(2)"></div>
+    </div>
+
+    <!-- Bottom brand on showcase -->
+    <div class="showcase-brand">
+      <span style="font-family:'Great Vibes',cursive;font-size:28px;color:var(--cream)">Mindvora</span>
+      <span style="font-size:11px;color:rgba(254,252,232,.5);letter-spacing:2px;text-transform:uppercase">Where Minds Connect</span>
+    </div>
+  </div>
+
+  <!-- RIGHT SIDE: Auth form -->
+  <div class="auth-right">
+    <div class="auth-logo-sm">
+      <span style="font-family:'Great Vibes',cursive;font-size:36px;color:var(--green3)">Mindvora</span>
+    </div>
+    <div class="auth-box">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-reg" onclick="showAuthTab('reg')">Join Mindvora</button>
+      </div>
+      <div class="auth-panel active" id="panel-login">
+        <div class="fg"><label>email or username</label><input class="fi" id="li-email" type="text" placeholder="you@example.com" autocomplete="username"></div>
+        <div class="fg"><label>Password</label>
+          <div class="pw-wrap"><input class="fi" id="li-pass" type="password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"><button class="eye-btn" type="button" onclick="toggleEye('li-pass','e0')"><span id="e0">👁</span></button></div>
+        </div>
+        <div class="a-err" id="li-err"></div>
+        <div style="text-align:right;margin-bottom:10px">
+          <button type="button" onclick="doForgotPassword()" style="background:none;border:none;font-size:12px;color:rgba(34,197,94,.8);cursor:pointer;letter-spacing:.5px;font-family:'DM Sans',sans-serif;padding:0;text-decoration:underline;text-underline-offset:3px;">Forgot password?</button>
+        </div>
+        <button class="btn-auth" id="btn-login" onclick="doLogin()" type="button">Enter Mindvora →</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
+        <span style="font-size:11px;color:rgba(225,225,225,.1);letter-spacing:1px">OR</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
+      </div>
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+      </div>
+      <div class="auth-panel" id="panel-reg">
+        <div class="fg"><label>Full Name</label><input class="fi" id="r-name" type="text" placeholder="Your name" autocomplete="name"></div>
+        <div class="fg"><label>username</label><input class="fi" id="r-handle" type="text" placeholder="@username"></div>
+        <div class="fg"><label>email</label><input class="fi" id="r-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+        <div class="fg"><label>Password</label>
+          <div class="pw-wrap"><input class="fi" id="r-pass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"><button class="eye-btn" type="button" onclick="toggleEye('r-pass','e1')"><span id="e1">👁</span></button></div>
+        </div>
+        <div class="fg"><label>Confirm Password</label>
+          <div class="pw-wrap"><input class="fi" id="r-confirm" type="password" placeholder="Re-enter password" onkeydown="if(event.key==='Enter')doRegister()"><button class="eye-btn" type="button" onclick="toggleEye('r-confirm','e2')"><span id="e2">👁</span></button></div>
+        </div>
+        <div class="a-err" id="r-err"></div>
+        <button class="btn-auth" id="btn-reg" onclick="doRegister()" type="button">Create Account →</button>
+      <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
+        <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
+        <span style="font-size:11px;color:rgba(255,255,255,.35);letter-spacing:1px">OR</span>
+        <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
+      </div>
+      <button class="btn-google" onclick="signInWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign up with Google
+      </button>
+      </div>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);text-align:center;margin-top:16px;line-height:1.8">
+      By joining you agree to our Terms of Service &amp; Privacy Policy
+    </div>
+  </div>
+
+  <!-- RIGHT SHOWCASE (mirror animations) -->
+  <div class="auth-showcase auth-showcase-right">
+    <div class="showcase-slides" id="showcase-slides-right">
+      <div class="showcase-slide active">
+        <div class="slide-bg" style="background:linear-gradient(225deg,#0a1628,#0d2818,#1a0a2e)">
+          <div class="slide-bubble" style="width:320px;height:320px;top:15%;right:5%;background:radial-gradient(circle,rgba(34,197,94,.15),transparent);animation:bubbleFloat 7s ease-in-out infinite"></div>
+          <div class="slide-bubble" style="width:200px;height:200px;bottom:30%;left:5%;background:radial-gradient(circle,rgba(99,102,241,.12),transparent);animation:bubbleFloat 9s ease-in-out infinite reverse"></div>
+          <div class="float-card" style="top:20%;right:8%;left:auto;animation-delay:.5s">
+            <div class="fc-av" style="background:linear-gradient(135deg,#be123c,#fda4af)">N</div>
+            <div><div class="fc-name">Ngozi Adeyemi</div><div class="fc-text">🎓 Just posted a tutorial</div></div>
+            <div class="fc-heart">📚 89</div>
+          </div>
+          <div class="float-card" style="top:48%;left:5%;animation-delay:1.2s">
+            <div class="fc-av" style="background:linear-gradient(135deg,#0f766e,#5eead4)">E</div>
+            <div><div class="fc-name">Emeka Chukwu</div><div class="fc-text">💭 Sharing my thoughts</div></div>
+            <div class="fc-heart">💬 234</div>
+          </div>
+          <div class="avatar-grid" style="top:65%;left:50%;transform:translateX(-50%)">
+            <div class="ag-av" style="background:linear-gradient(135deg,#be123c,#fda4af)">N</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#0f766e,#5eead4)">E</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#166534,#22c55e)">O</div>
+            <div class="ag-av" style="background:linear-gradient(135deg,#1d4ed8,#60a5fa)">F</div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">🔒 Safe & Secure</div>
+          <h2 class="slide-title">Your Privacy is Our <em>Priority.</em></h2>
+          <p class="slide-desc">End-to-end encryption on messages. Your data stays yours. No ads selling your information.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">🔐 Encrypted DMs</div>
+            <div class="stat-pill">🛡 Secure Payments</div>
+            <div class="stat-pill">👁 You Control It</div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-slide">
+        <div class="slide-bg" style="background:linear-gradient(225deg,#0a1f1a,#0d1628,#1a1028)">
+          <div class="slide-bubble" style="width:280px;height:280px;top:10%;left:10%;background:radial-gradient(circle,rgba(245,158,11,.1),transparent);animation:bubbleFloat 8s ease-in-out infinite"></div>
+          <div class="post-showcase" style="top:30%;left:50%;transform:translateX(-50%)">
+            <div class="ps-item ps-active"><div class="ps-icon">🌍</div><div><div class="ps-label">News Feed</div><div class="ps-sub">Live world news</div></div><div class="ps-views">8 sources</div></div>
+            <div class="ps-item"><div class="ps-icon">🧠</div><div><div class="ps-label">Learn Tab</div><div class="ps-sub">Educational content</div></div><div class="ps-views">Auto-sorted</div></div>
+            <div class="ps-item"><div class="ps-icon">🎉</div><div><div class="ps-label">Fun Tab</div><div class="ps-sub">Comedy & memes</div></div><div class="ps-views">Going viral</div></div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">🤖 AI-Powered Feed</div>
+          <h2 class="slide-title">Content That <em>Finds You.</em></h2>
+          <p class="slide-desc">Our AI automatically sorts every post into the right category so you always see what matters most to you.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">🧠 Smart Sort</div>
+            <div class="stat-pill">📰 Live News</div>
+            <div class="stat-pill">🎯 Personalised</div>
+          </div>
+        </div>
+      </div>
+      <div class="showcase-slide">
+        <div class="slide-bg" style="background:linear-gradient(225deg,#1a0828,#0a1628,#0d1f12)">
+          <div class="slide-bubble" style="width:350px;height:350px;bottom:0%;right:-5%;background:radial-gradient(circle,rgba(139,92,246,.1),transparent);animation:bubbleFloat 11s ease-in-out infinite reverse"></div>
+          <div class="earn-showcase" style="top:20%;left:50%;transform:translateX(-50%)">
+            <div class="es-header">📱 Data & Airtime</div>
+            <div class="es-amount" style="font-size:28px">₦500 → 1GB</div>
+            <div class="es-sub">Instant delivery · All networks</div>
+            <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+              <div style="background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:20px;padding:4px 10px;font-size:10px;color:var(--green3)">MTN</div>
+              <div style="background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.2);border-radius:20px;padding:4px 10px;font-size:10px;color:#fca5a5">Airtel</div>
+              <div style="background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.2);border-radius:20px;padding:4px 10px;font-size:10px;color:#fde047">Glo</div>
+              <div style="background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:4px 10px;font-size:10px;color:#a5b4fc">9mobile</div>
+            </div>
+          </div>
+        </div>
+        <div class="slide-text">
+          <div class="slide-tag">📱 VTU Services</div>
+          <h2 class="slide-title">Buy Data & Airtime <em>Instantly.</em></h2>
+          <p class="slide-desc">Top up any network in seconds right inside Mindvora. MTN, Airtel, Glo, 9mobile — always the best rates.</p>
+          <div class="slide-stats">
+            <div class="stat-pill">⚡ Instant Top-up</div>
+            <div class="stat-pill">💰 Best Rates</div>
+            <div class="stat-pill">🔒 Secure</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="slide-dots" id="dots-right">
+      <div class="dot active" onclick="goToSlideRight(0)"></div>
+      <div class="dot" onclick="goToSlideRight(1)"></div>
+      <div class="dot" onclick="goToSlideRight(2)"></div>
+    </div>
+    <div class="showcase-brand">
+      <span style="font-family:'Great Vibes',cursive;font-size:28px;color:var(--cream)">Mindvora</span>
+      <span style="font-size:11px;color:rgba(254,252,232,.4);letter-spacing:2px">Where Minds Connect</span>
+    </div>
+  </div>
+</div>
+</body>
+</html>
