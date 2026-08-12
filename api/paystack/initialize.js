@@ -1,13 +1,18 @@
+const { rateLimit } = require('../_lib/security');
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ status: false, message: 'Method not allowed' });
+  }
+  if (rateLimit(req, 'paystack:init', 30, 60000)) {
+    return res.status(429).json({ status: false, message: 'Too many requests. Try again in a minute.' });
   }
   const { email, amount, currency, reference, metadata, description } = req.body || {};
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret) {
     return res.status(500).json({ status: false, message: 'Paystack is not configured yet (PAYSTACK_SECRET_KEY missing).' });
   }
-  if (!email || !amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email)) || !amount || isNaN(Number(amount)) || Number(amount) <= 0) {
     return res.status(400).json({ status: false, message: 'Missing payment details.' });
   }
   try {

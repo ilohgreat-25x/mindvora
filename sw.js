@@ -1,10 +1,8 @@
-// ══════════════════════════════════════════════════════════════
 // Mindvora Service Worker — sw.js
-// ══════════════════════════════════════════════════════════════
 const CACHE = 'mindvora-v5';
 const OFFLINE_URL = '/';
 
-// ── INSTALL ──────────────────────────────────────────────────
+// INSTALL
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(cache) {
@@ -19,7 +17,7 @@ self.addEventListener('install', function(e) {
   );
 });
 
-// ── ACTIVATE ─────────────────────────────────────────────────
+// ACTIVATE
 self.addEventListener('activate', function(e) {
   e.waitUntil(
     caches.keys().then(function(keys) {
@@ -33,7 +31,7 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-// ── FETCH: Network first, cache fallback ─────────────────────
+// FETCH: Network first, cache fallback
 self.addEventListener('fetch', function(e) {
   if (e.request.method !== 'GET') return;
   var url = e.request.url;
@@ -60,7 +58,7 @@ self.addEventListener('fetch', function(e) {
   );
 });
 
-// ── PUSH NOTIFICATIONS ───────────────────────────────────────
+// PUSH NOTIFICATIONS
 self.addEventListener('push', function(e) {
   var data = {};
   try { data = e.data ? e.data.json() : {}; } catch(err) {}
@@ -83,7 +81,7 @@ self.addEventListener('push', function(e) {
   );
 });
 
-// ── NOTIFICATION CLICK ───────────────────────────────────────
+// NOTIFICATION CLICK
 self.addEventListener('notificationclick', function(e) {
   e.notification.close();
   if (e.action === 'dismiss') return;
@@ -102,7 +100,7 @@ self.addEventListener('notificationclick', function(e) {
   );
 });
 
-// ── BACKGROUND SYNC ──────────────────────────────────────────
+// BACKGROUND SYNC
 self.addEventListener('sync', function(e) {
   if (e.tag === 'sync-posts') {
     e.waitUntil(
@@ -113,7 +111,7 @@ self.addEventListener('sync', function(e) {
   }
 });
 
-// ── PERIODIC BACKGROUND SYNC ─────────────────────────────────
+// PERIODIC BACKGROUND SYNC
 self.addEventListener('periodicsync', function(e) {
   if (e.tag === 'refresh-feed') {
     e.waitUntil(
@@ -124,7 +122,7 @@ self.addEventListener('periodicsync', function(e) {
   }
 });
 
-// ── MESSAGE HANDLER ──────────────────────────────────────────
+// MESSAGE HANDLER
 self.addEventListener('message', function(e) {
   if (e.data && e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();

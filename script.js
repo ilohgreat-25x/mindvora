@@ -6,17 +6,14 @@
 
 'use strict';
 
-// ╔══════════════════════════════════════════════════════════════════════╗
-// ║              DEVICE DETECTION & RESPONSIVE HANDLER                  ║
-// ║                                                                      ║
-// ║  Features:                                                           ║
-// ║   • Detects device type (mobile, tablet, desktop)                    ║
-// ║   • Detects screen orientation (portrait, landscape)                 ║
-// ║   • Stores device info with user email                               ║
-// ║   • Applies responsive CSS classes to body                           ║
-// ║   • Handles window resize and orientation changes                    ║
-// ║   • Preserves login functionality across devices                     ║
-// ╚══════════════════════════════════════════════════════════════════════╝
+// DEVICE DETECTION & RESPONSIVE HANDLER
+// Features:
+// • Detects device type (mobile, tablet, desktop)
+// • Detects screen orientation (portrait, landscape)
+// • Stores device info with user email
+// • Applies responsive CSS classes to body
+// • Handles window resize and orientation changes
+// • Preserves login functionality across devices
 
 window.DeviceResponsive = (function() {
   'use strict';
@@ -31,14 +28,14 @@ window.DeviceResponsive = (function() {
     isTouchDevice: false
   };
 
-  // Detect if device has touch capability
+// Detect if device has touch capability
   function detectTouchDevice() {
     return (('ontouchstart' in window) ||
             (navigator.maxTouchPoints > 0) ||
             (navigator.msMaxTouchPoints > 0));
   }
 
-  // Detect device type based on screen width
+// Detect device type based on screen width
   function detectDeviceType(width) {
     if (width < 768) {
       return 'mobile';
@@ -49,12 +46,12 @@ window.DeviceResponsive = (function() {
     }
   }
 
-  // Detect orientation
+// Detect orientation
   function detectOrientation() {
     return window.innerHeight >= window.innerWidth ? 'portrait' : 'landscape';
   }
 
-  // Update device info
+// Update device info
   function updateDeviceInfo() {
     var prevType = deviceInfo.type;
     var prevOrientation = deviceInfo.orientation;
@@ -66,7 +63,7 @@ window.DeviceResponsive = (function() {
     deviceInfo.isPortrait = deviceInfo.orientation === 'portrait';
     deviceInfo.isTouchDevice = detectTouchDevice();
 
-    // Apply device classes to body
+// Apply device classes to body
     document.documentElement.classList.remove('device-mobile', 'device-tablet', 'device-desktop');
     document.documentElement.classList.add('device-' + deviceInfo.type);
 
@@ -79,7 +76,7 @@ window.DeviceResponsive = (function() {
       document.documentElement.classList.remove('touch-device');
     }
 
-    // Log device change
+// Log device change
     if (prevType !== deviceInfo.type || prevOrientation !== deviceInfo.orientation) {
       console.log('📱 Device updated:', deviceInfo);
     }
@@ -91,7 +88,7 @@ window.DeviceResponsive = (function() {
     };
   }
 
-  // Store device info with user email
+// Store device info with user email
   function storeDeviceInfo(userEmail) {
     if (!userEmail) return;
 
@@ -114,7 +111,7 @@ window.DeviceResponsive = (function() {
     }
   }
 
-  // Retrieve device info by user email
+// Retrieve device info by user email
   function getStoredDeviceInfo(userEmail) {
     if (!userEmail) return null;
 
@@ -127,7 +124,7 @@ window.DeviceResponsive = (function() {
     }
   }
 
-  // Handle window resize
+// Handle window resize
   function onWindowResize() {
     var change = updateDeviceInfo();
     if (change.changed) {
@@ -135,7 +132,7 @@ window.DeviceResponsive = (function() {
     }
   }
 
-  // Handle orientation change
+// Handle orientation change
   function onOrientationChange() {
     var change = updateDeviceInfo();
     if (change.orientationChanged) {
@@ -143,13 +140,13 @@ window.DeviceResponsive = (function() {
     }
   }
 
-  // Initialize device responsive
+// Initialize device responsive
   function init() {
     updateDeviceInfo();
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('orientationchange', onOrientationChange);
     
-    // Set up media query listeners
+// Set up media query listeners
     if (window.matchMedia) {
       var mobileQuery = window.matchMedia('(max-width: 767px)');
       var tabletQuery = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
@@ -163,37 +160,37 @@ window.DeviceResponsive = (function() {
     console.log('✅ Device Responsive initialized:', deviceInfo);
   }
 
-  // Get current device info
+// Get current device info
   function getDeviceInfo() {
     return Object.assign({}, deviceInfo);
   }
 
-  // Check if device is mobile
+// Check if device is mobile
   function isMobile() {
     return deviceInfo.type === 'mobile';
   }
 
-  // Check if device is tablet
+// Check if device is tablet
   function isTablet() {
     return deviceInfo.type === 'tablet';
   }
 
-  // Check if device is desktop
+// Check if device is desktop
   function isDesktop() {
     return deviceInfo.type === 'desktop';
   }
 
-  // Check if portrait
+// Check if portrait
   function isPortrait() {
     return deviceInfo.orientation === 'portrait';
   }
 
-  // Check if landscape
+// Check if landscape
   function isLandscape() {
     return deviceInfo.orientation === 'landscape';
   }
 
-  // Return public API
+// Return public API
   return {
     init: init,
     getDeviceInfo: getDeviceInfo,
@@ -217,26 +214,23 @@ if (document.readyState === 'loading') {
   window.DeviceResponsive.init();
 }
 
-// ╔══════════════════════════════════════════════════════════════════════╗
-// ║       MINDVORA REAL-TIME ENGINE  —  WebSocket + WebRTC             ║
-// ║                                                                      ║
-// ║  Features:                                                           ║
-// ║   • WebSocket connection to Mindvora backend (auto-reconnect)        ║
-// ║   • Live streaming: creator goes live → all followers notified       ║
-// ║   • WebRTC peer connections for video streaming                      ║
-// ║   • Real-time viewer count for live streams                          ║
-// ║   • CRLF-safe message parsing                                        ║
-// ╚══════════════════════════════════════════════════════════════════════╝
+// MINDVORA REAL-TIME ENGINE  —  WebSocket + WebRTC
+// Features:
+// • WebSocket connection to Mindvora backend (auto-reconnect)
+// • Live streaming: creator goes live → all followers notified
+// • WebRTC peer connections for video streaming
+// • Real-time viewer count for live streams
+// • CRLF-safe message parsing
 
 var MindvoraRT = (function() {
   'use strict';
 
-  // ── Config ──────────────────────────────────────────────────────────
+// Config
   var WS_URL = 'wss://mindvora-backend-production.up.railway.app/ws';
   var RECONNECT_DELAY = 3000;
   var MAX_RECONNECT = 10;
 
-  // ── State ────────────────────────────────────────────────────────────
+// State
   var ws = null;
   var reconnectAttempts = 0;
   var pingInterval = null;
@@ -246,7 +240,7 @@ var MindvoraRT = (function() {
   var localStream = null;
   var isLiveHost = false;
 
-  // ICE servers for WebRTC
+// ICE servers for WebRTC
   var ICE_SERVERS = {
     iceServers: [
       { urls: 'stun:stun.l.google.com:19302' },
@@ -254,7 +248,7 @@ var MindvoraRT = (function() {
     ]
   };
 
-  // ── Sanitize incoming WS message (CRLF-safe) ─────────────────────────
+// Sanitize incoming WS message (CRLF-safe)
   function safeParseMsg(raw) {
     try {
       var str = String(raw).replace(/[\r\n\x00]/g, '');
@@ -262,14 +256,14 @@ var MindvoraRT = (function() {
     } catch(e) { return null; }
   }
 
-  // ── Send a message over WebSocket ────────────────────────────────────
+// Send a message over WebSocket
   function send(payload) {
     if (ws && ws.readyState === WebSocket.OPEN) {
       try { ws.send(JSON.stringify(payload)); } catch(e) {}
     }
   }
 
-  // ── Connect ──────────────────────────────────────────────────────────
+// Connect
   function connect() {
     if (ws && ws.readyState === WebSocket.CONNECTING) return;
     try {
@@ -299,7 +293,7 @@ var MindvoraRT = (function() {
     };
   }
 
-  // ── Reconnect with backoff ────────────────────────────────────────────
+// Reconnect with backoff
   function scheduleReconnect() {
     if (reconnectAttempts >= MAX_RECONNECT) return;
     reconnectAttempts++;
@@ -307,7 +301,7 @@ var MindvoraRT = (function() {
     setTimeout(connect, delay);
   }
 
-  // ── Keepalive ping ────────────────────────────────────────────────────
+// Keepalive ping
   function startPing() {
     stopPing();
     pingInterval = setInterval(function() {
@@ -318,41 +312,41 @@ var MindvoraRT = (function() {
     if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
   }
 
-  // ── Handle incoming messages ──────────────────────────────────────────
+// Handle incoming messages
   function handleMessage(msg) {
     switch(msg.type) {
 
-      // Server broadcasts: a creator just went live
+// Server broadcasts: a creator just went live
       case 'LIVE_STARTED':
         onLiveStarted(msg);
         break;
 
-      // Server broadcasts: stream ended
+// Server broadcasts: stream ended
       case 'LIVE_ENDED':
         onLiveEnded(msg);
         break;
 
-      // Viewer count update
+// Viewer count update
       case 'VIEWER_COUNT':
         updateViewerCount(msg.roomId, msg.count);
         break;
 
-      // A viewer joined our stream (host receives this)
+// A viewer joined our stream (host receives this)
       case 'VIEWER_JOINED':
         if (isLiveHost) onViewerJoined(msg);
         break;
 
-      // A viewer left our stream
+// A viewer left our stream
       case 'VIEWER_LEFT':
         if (isLiveHost) onViewerLeft(msg);
         break;
 
-      // WebRTC signaling relay
+// WebRTC signaling relay
       case 'SIGNAL_RELAY':
         handleSignal(msg);
         break;
 
-      // Room info after going live
+// Room info after going live
       case 'ROOM_INFO':
         currentRoomId = msg.roomId;
         updateLiveUI('started', msg.roomId);
@@ -367,15 +361,15 @@ var MindvoraRT = (function() {
     }
   }
 
-  // ── LIVE STARTED — notify all followers ──────────────────────────────
+// LIVE STARTED — notify all followers
   function onLiveStarted(msg) {
-    // Don't notify ourselves
+// Don't notify ourselves
     if (typeof state !== 'undefined' && state.user && msg.hostUid === state.user.uid) return;
 
-    // Show live notification banner
+// Show live notification banner
     showLiveBanner(msg);
 
-    // Save to Firestore so offline followers see it on next login
+// Save to Firestore so offline followers see it on next login
     if (typeof db !== 'undefined' && typeof state !== 'undefined' && state.user) {
       db.collection('notifications').add({
         to: state.user.uid,
@@ -390,11 +384,11 @@ var MindvoraRT = (function() {
       }).catch(function(){});
     }
 
-    // Update notification bell
+// Update notification bell
     if (typeof updateNotifBell === 'function') updateNotifBell();
   }
 
-  // ── LIVE ENDED ────────────────────────────────────────────────────────
+// LIVE ENDED
   function onLiveEnded(msg) {
     hideLiveBanner(msg.roomId);
     if (msg.roomId === currentRoomId) {
@@ -403,7 +397,7 @@ var MindvoraRT = (function() {
       isLiveHost = false;
       updateLiveUI('ended', null);
     }
-    // Close all peer connections for this room
+// Close all peer connections for this room
     Object.keys(peerConnections).forEach(function(uid) {
       if (peerConnections[uid]) {
         peerConnections[uid].close();
@@ -412,13 +406,13 @@ var MindvoraRT = (function() {
     });
   }
 
-  // ── VIEWER COUNT ─────────────────────────────────────────────────────
+// VIEWER COUNT
   function updateViewerCount(roomId, count) {
     var el = document.getElementById('live-viewer-count');
     if (el) el.textContent = count + (count === 1 ? ' viewer' : ' viewers');
   }
 
-  // ── VIEWER JOINED (host side) — initiate WebRTC offer ────────────────
+// VIEWER JOINED (host side) — initiate WebRTC offer
   function onViewerJoined(msg) {
     if (!localStream) return;
     var uid = msg.uid;
@@ -439,7 +433,7 @@ var MindvoraRT = (function() {
     }).catch(function(e) {});
   }
 
-  // ── VIEWER LEFT (host side) ───────────────────────────────────────────
+// VIEWER LEFT (host side)
   function onViewerLeft(msg) {
     var uid = msg.uid;
     if (peerConnections[uid]) {
@@ -449,14 +443,14 @@ var MindvoraRT = (function() {
     if (typeof showToast === 'function') showToast('👋 ' + (msg.name || 'A viewer') + ' left the stream');
   }
 
-  // ── HANDLE WEBRTC SIGNAL ─────────────────────────────────────────────
+// HANDLE WEBRTC SIGNAL
   function handleSignal(msg) {
     var sig = msg.signal;
     if (!sig) return;
     var fromUid = msg.fromUid;
 
     if (sig.type === 'offer') {
-      // We are a viewer receiving the host's offer
+// We are a viewer receiving the host's offer
       var pc = createPeerConnection(fromUid);
       pc.setRemoteDescription(new RTCSessionDescription({ type: 'offer', sdp: sig.sdp }))
         .then(function() { return pc.createAnswer(); })
@@ -472,12 +466,12 @@ var MindvoraRT = (function() {
         }).catch(function(e) {});
 
     } else if (sig.type === 'answer') {
-      // Host receives viewer's answer
+// Host receives viewer's answer
       var pc = peerConnections[fromUid];
       if (pc) pc.setRemoteDescription(new RTCSessionDescription({ type: 'answer', sdp: sig.sdp })).catch(function(){});
 
     } else if (sig.candidate) {
-      // ICE candidate
+// ICE candidate
       var pc = peerConnections[fromUid];
       if (pc) {
         pc.addIceCandidate(new RTCIceCandidate(sig.candidate)).catch(function(){});
@@ -485,7 +479,7 @@ var MindvoraRT = (function() {
     }
   }
 
-  // ── CREATE RTCPeerConnection ──────────────────────────────────────────
+// CREATE RTCPeerConnection
   function createPeerConnection(uid) {
     if (peerConnections[uid]) return peerConnections[uid];
     var pc = new RTCPeerConnection(ICE_SERVERS);
@@ -503,7 +497,7 @@ var MindvoraRT = (function() {
     };
 
     pc.ontrack = function(event) {
-      // Viewer receives host's stream
+// Viewer receives host's stream
       var liveVideo = document.getElementById('live-remote-video');
       if (liveVideo && event.streams && event.streams[0]) {
         liveVideo.srcObject = event.streams[0];
@@ -521,7 +515,7 @@ var MindvoraRT = (function() {
     return pc;
   }
 
-  // ── STOP LOCAL CAMERA/MIC ─────────────────────────────────────────────
+// STOP LOCAL CAMERA/MIC
   function stopLocalStream() {
     if (localStream) {
       localStream.getTracks().forEach(function(t) { t.stop(); });
@@ -531,7 +525,7 @@ var MindvoraRT = (function() {
     if (liveVideo) liveVideo.srcObject = null;
   }
 
-  // ── UI: show live notification banner ────────────────────────────────
+// UI: show live notification banner
   function showLiveBanner(msg) {
     var banner = document.getElementById('live-notification-banner');
     if (!banner) {
@@ -565,7 +559,7 @@ var MindvoraRT = (function() {
 
     banner.dataset.roomId = msg.roomId;
 
-    // Auto-hide after 8 seconds
+// Auto-hide after 8 seconds
     setTimeout(function() {
       if (banner && banner.parentNode) {
         banner.style.animation = 'fadeOut .3s ease';
@@ -583,7 +577,7 @@ var MindvoraRT = (function() {
     }
   }
 
-  // ── UI: update live host controls ────────────────────────────────────
+// UI: update live host controls
   function updateLiveUI(status, roomId) {
     var startBtn = document.getElementById('btn-go-live');
     var endBtn   = document.getElementById('btn-end-live');
@@ -599,7 +593,7 @@ var MindvoraRT = (function() {
     }
   }
 
-  // ── PUBLIC API ───────────────────────────────────────────────────────
+// PUBLIC API
 
   /**
    * openGoLive() — called when user clicks "Go Live" button
@@ -618,7 +612,7 @@ var MindvoraRT = (function() {
         localStream = stream;
         isLiveHost  = true;
 
-        // Show local preview
+// Show local preview
         var preview = document.getElementById('live-local-video');
         if (preview) {
           preview.srcObject = stream;
@@ -626,7 +620,7 @@ var MindvoraRT = (function() {
           preview.play().catch(function(){});
         }
 
-        // Announce to server
+// Announce to server
         send({
           type:   'LIVE_START',
           uid:    state.user.uid,
@@ -684,19 +678,19 @@ var MindvoraRT = (function() {
     joinLiveStream(msg.roomId);
   }
 
-  // ── Initialize ───────────────────────────────────────────────────────
+// Initialize
   function init() {
     connect();
   }
 
-  // Auto-init when DOM ready
+// Auto-init when DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     setTimeout(init, 500);
   }
 
-  // Expose to global scope
+// Expose to global scope
   return {
     openGoLive:    openGoLive,
     endLive:       endLive,
@@ -708,16 +702,14 @@ var MindvoraRT = (function() {
 
 })();
 
-// ── Global shortcuts for HTML onclick handlers ────────────────────────
+// Global shortcuts for HTML onclick handlers
 function openGoLive()    { MindvoraRT.openGoLive(); }
 function endLive()       { MindvoraRT.endLive(); }
 function openLiveView(m) { MindvoraRT.openLiveView(m); }
 
-// ═══════════════════════════════════════════════
 // MINDVORA SECURITY SYSTEM v1.0
-// ═══════════════════════════════════════════════
 
-// ── INPUT SANITIZER ──
+// INPUT SANITIZER
 function sanitize(str){
   if(typeof str !== 'string') return '';
   if(typeof DOMPurify !== 'undefined'){
@@ -728,7 +720,7 @@ function sanitize(str){
   });
 }
 
-// ── URL VALIDATOR — block malicious links ──
+// URL VALIDATOR — block malicious links
 var BLOCKED_DOMAINS = ['bit.ly','tinyurl.com','goo.gl','ow.ly','t.co/','is.gd','buff.ly','adf.ly','bc.vc'];
 var SAFE_PROTOCOLS = ['https:','http:','mailto:'];
 function isSafeUrl(url){
@@ -737,19 +729,19 @@ function isSafeUrl(url){
   try {
     var u = new URL(url);
     if(!SAFE_PROTOCOLS.includes(u.protocol)) return false;
-    // Block javascript: and data: URIs
+// Block javascript: and data: URIs
     if(/^(javascript|data|vbscript):/i.test(url)) return false;
     return true;
   } catch(e){ return false; }
 }
 
-// ── RATE LIMITER — prevent spam/abuse ──
+// RATE LIMITER — prevent spam/abuse
 var rateLimits = {};
 function checkRateLimit(action, maxPerMin){
   var now = Date.now();
   var key = action + '_' + (window._mvUid||'anon');
   if(!rateLimits[key]) rateLimits[key] = [];
-  // Remove entries older than 1 minute
+// Remove entries older than 1 minute
   rateLimits[key] = rateLimits[key].filter(function(t){ return now-t < 60000; });
   if(rateLimits[key].length >= maxPerMin){
     showToast('⚠️ Too many attempts. Please wait a moment.');
@@ -759,7 +751,7 @@ function checkRateLimit(action, maxPerMin){
   return true;
 }
 
-// ── CONTENT VALIDATOR — block malicious content ──
+// CONTENT VALIDATOR — block malicious content
 var BLOCKED_PATTERNS = [
   /<script/gi, /javascript:/gi, /on\w+\s*=/gi,
   /data:text\/html/gi, /vbscript:/gi, /<iframe/gi,
@@ -773,7 +765,7 @@ function containsMalicious(text){
   return BLOCKED_PATTERNS.some(function(p){ return p.test(text); });
 }
 
-// ── PAYWALL PROTECTION — verify premium server-side style ──
+// PAYWALL PROTECTION — verify premium server-side style
 function verifyPremiumAccess(feature){
   if(!state.user){ showToast('Please log in to access this feature.'); return false; }
   var premiumFeatures = ['analytics','verified','creatorFund'];
@@ -785,10 +777,10 @@ function verifyPremiumAccess(feature){
   return true;
 }
 
-// ── PAYMENT INTEGRITY — prevent payment bypass ──
+// PAYMENT INTEGRITY — prevent payment bypass
 function verifyPayment(ref, expectedAmount, callback){
   if(!ref || !expectedAmount){ showToast('❌ Invalid payment reference.'); return; }
-  // Store pending verification in Firestore
+// Store pending verification in Firestore
   db.collection('payment_verifications').add({
     ref: ref, amount: expectedAmount,
     userId: state.user ? state.user.uid : null,
@@ -798,7 +790,7 @@ function verifyPayment(ref, expectedAmount, callback){
   .catch(function(){ if(callback) callback(); });
 }
 
-// ── ACCOUNT PROTECTION — detect suspicious activity ──
+// ACCOUNT PROTECTION — detect suspicious activity
 var failedLoginAttempts = {};
 function trackLoginAttempt(email, success){
   if(!failedLoginAttempts[email]) failedLoginAttempts[email] = {count:0, firstAt:Date.now()};
@@ -807,7 +799,7 @@ function trackLoginAttempt(email, success){
     return true;
   }
   var now = Date.now();
-  // Reset after 15 mins
+// Reset after 15 mins
   if(now - failedLoginAttempts[email].firstAt > 900000){
     failedLoginAttempts[email] = {count:0, firstAt:now};
   }
@@ -820,16 +812,16 @@ function trackLoginAttempt(email, success){
 }
 
 function isLoginLocked(email){
-  // Never lock out owner accounts
+// Never lock out owner accounts
   if (email && (email === 'ilohgreat25@gmail.com' || email === 'mindvoraofficial@outlook.com')) return false;
   if (!failedLoginAttempts[email]) return false;
   var now = Date.now();
-  // Reset after 15 minutes
+// Reset after 15 minutes
   if (now - failedLoginAttempts[email].firstAt > 900000) {
     failedLoginAttempts[email] = {count:0, firstAt:now};
     return false;
   }
-  // Only lock after 10 attempts (was 5 — too aggressive)
+// Only lock after 10 attempts (was 5 — too aggressive)
   var locked = failedLoginAttempts[email].count >= 10;
   if (locked) {
     var li_err = document.getElementById('li-err');
@@ -838,7 +830,7 @@ function isLoginLocked(email){
   return locked;
 }
 
-// ── SPAM DETECTOR — detect bot-like behavior ──
+// SPAM DETECTOR — detect bot-like behavior
 var actionLog = [];
 function logAction(type){
   var now = Date.now();
@@ -851,7 +843,7 @@ function logAction(type){
   return true;
 }
 
-// ── LINK SAFETY — silently open all external links safely ──
+// LINK SAFETY — silently open all external links safely
 document.addEventListener('click', function(e){
   var a = e.target.closest('a[href]');
   if(!a) return;
@@ -861,13 +853,13 @@ document.addEventListener('click', function(e){
     var u = new URL(href);
     if(u.hostname !== window.location.hostname){
       e.preventDefault();
-      // Silently open safely — no popup, no interruption
+// Silently open safely — no popup, no interruption
       window.open(href, '_blank', 'noopener,noreferrer');
     }
   } catch(err){}
 });
 
-// ── DEVTOOLS DETECTION — warn against console injection ──
+// DEVTOOLS DETECTION — warn against console injection
 var devtoolsWarned = false;
 setInterval(function(){
   var threshold = 160;
@@ -880,7 +872,7 @@ setInterval(function(){
   }
 }, 3000);
 
-// ── SECURITY ALERT SYSTEM ──
+// SECURITY ALERT SYSTEM
 var OWNER_EMAIL = 'zyncofficial06@gmail.com';
 var securityAlerts = {
   loginFailures: {},
@@ -893,7 +885,7 @@ function sendSecurityAlert(type, details){
   if(!db || !type) return;
   try {
   
-  // Cooldown — don't spam same alert type (max 1 per 5 mins)
+// Cooldown — don't spam same alert type (max 1 per 5 mins)
   var now = Date.now();
   var cooldownKey = type;
   if(securityAlerts.alertCooldowns[cooldownKey] && 
@@ -914,7 +906,7 @@ function sendSecurityAlert(type, details){
   var message = alertMessages[type] || '🔴 SECURITY ALERT: Suspicious activity detected on Mindvora. Type: ' + type;
   if(details) message += ' Details: ' + details;
 
-  // Save to Firestore security_alerts collection
+// Save to Firestore security_alerts collection
   db.collection('security_alerts').add({
     type: type,
     message: message,
@@ -923,7 +915,7 @@ function sendSecurityAlert(type, details){
     resolved: false
   }).catch(function(){});
 
-  // Send notification to owner's Mindvora account
+// Send notification to owner's Mindvora account
   db.collection('users').where('email','==',ADMIN_EMAIL).limit(1).get().then(function(snap){
     if(!snap.empty){
       var ownerId = snap.docs[0].id;
@@ -938,12 +930,12 @@ function sendSecurityAlert(type, details){
     }
   }).catch(function(){});
 
-  // Log to console with red styling
+// Log to console with red styling
   console.log('%c' + message, 'color:red;font-weight:bold;font-size:13px');
   } catch(e) { /* silent fail */ }
 }
 
-// ── BRUTE FORCE DETECTION ──
+// BRUTE FORCE DETECTION
 var originalTrackLogin = typeof trackLoginAttempt === 'function' ? trackLoginAttempt : function(){};
 trackLoginAttempt = function(email, success){
   if(!success){
@@ -959,7 +951,7 @@ trackLoginAttempt = function(email, success){
   return originalTrackLogin(email, success);
 };
 
-// ── ADMIN PANEL PROBE DETECTION ──
+// ADMIN PANEL PROBE DETECTION
 var originalOpenModal = openModal;
 openModal = function(id){
   if(id === 'modal-admin' && !isAdmin() && state && state.user){
@@ -968,7 +960,7 @@ openModal = function(id){
   return originalOpenModal(id);
 };
 
-// ── MALICIOUS CONTENT DETECTION ──
+// MALICIOUS CONTENT DETECTION
 var originalContainsMalicious = containsMalicious;
 containsMalicious = function(text){
   var result = originalContainsMalicious(text);
@@ -978,7 +970,7 @@ containsMalicious = function(text){
   return result;
 };
 
-// ── RATE LIMIT ALERT ──
+// RATE LIMIT ALERT
 var originalCheckRateLimit = checkRateLimit;
 checkRateLimit = function(action, maxPerMin){
   var result = originalCheckRateLimit(action, maxPerMin);
@@ -992,19 +984,19 @@ checkRateLimit = function(action, maxPerMin){
   return result;
 };
 
-// ── SUSPICIOUS PAYMENT DETECTION ──
+// SUSPICIOUS PAYMENT DETECTION
 function checkPaymentSuspicion(amount, email){
-  // Alert if single payment exceeds $500
+// Alert if single payment exceeds $500
   if(amount > 500){
     sendSecurityAlert('suspicious_payment', 'Large payment detected: $' + amount + ' from ' + email);
   }
-  // Alert if payment amount is 0 or negative
+// Alert if payment amount is 0 or negative
   if(amount <= 0){
     sendSecurityAlert('suspicious_payment', 'Invalid payment amount: $' + amount + ' from ' + email);
   }
 }
 
-// ── INVALID AD URL ALERT ──
+// INVALID AD URL ALERT
 var originalIsSafeUrl = typeof isSafeUrl === 'function' ? isSafeUrl : function(){ return true; };
 isSafeUrl = function(url){
   var result = originalIsSafeUrl(url);
@@ -1014,12 +1006,12 @@ isSafeUrl = function(url){
   return result;
 };
 
-// ── SECURITY DASHBOARD — view all alerts ──
+// SECURITY DASHBOARD — view all alerts
 function loadSecurityAlerts(){
   if(!isAdmin()) return;
   db.collection('security_alerts').limit(50).get().then(function(snap){
     var unresolvedCount = snap.docs.filter(function(d){ return !d.data().resolved; }).length;
-    // Update admin nav badge if there are unresolved alerts
+// Update admin nav badge if there are unresolved alerts
     var adminNav = document.getElementById('nav-admin');
     if(adminNav && unresolvedCount > 0){
       var existing = adminNav.querySelector('.security-alert-dot');
@@ -1038,7 +1030,7 @@ setInterval(function(){
   if(isAdmin()) loadSecurityAlerts();
 }, 120000);
 
-// ── SESSION SECURITY ──
+// SESSION SECURITY
 var SESSION_TIMEOUT = 7 * 24 * 60 * 60 * 1000; // 7 days
 var lastActivity = Date.now();
 // Reset activity on any interaction
@@ -1059,10 +1051,10 @@ setInterval(function(){
   }
 }, 60000);
 
-// ── FIRESTORE SECURITY HELPERS ──
+// FIRESTORE SECURITY HELPERS
 // Validate all user inputs before writing to Firestore
 function safeFirestoreWrite(collection, data, docId){
-  // Sanitize all string fields
+// Sanitize all string fields
   var cleaned = {};
   Object.keys(data).forEach(function(k){
     var v = data[k];
@@ -1087,14 +1079,12 @@ if(typeof auth !== 'undefined') // _mvUid updated inside initAuthListener
 
 // Security system active
 
-// ═══════════════════════════════════════════════
 // MINDVORA SECURITY ALERT SYSTEM
-// ═══════════════════════════════════════════════
 
 var OWNER_EMAIL = 'zyncofficial06@gmail.com';
 var securityLog = [];
 
-// ── SHOW SECURITY ALERT BANNER ──
+// SHOW SECURITY ALERT BANNER
 function showSecAlert(title, message, type){
   type = type || 'danger';
   var banner = document.getElementById('sec-alert-banner');
@@ -1105,13 +1095,13 @@ function showSecAlert(title, message, type){
   var now = new Date().toLocaleTimeString();
   alert.innerHTML = '<div class="sa-icon">'+icon+'</div><div class="sa-content"><div class="sa-title '+(type==='warn'?'warn':type==='info'?'info':'')+'">'+title+'</div><div class="sa-msg">'+message+'</div><div class="sa-time">'+now+'</div></div>';
   banner.appendChild(alert);
-  // Auto remove after 8 seconds
+// Auto remove after 8 seconds
   setTimeout(function(){ 
     alert.style.opacity='0'; 
     alert.style.transition='opacity .3s';
     setTimeout(function(){ if(alert.parentNode) alert.parentNode.removeChild(alert); }, 300);
   }, 8000);
-  // Log to Firestore if user logged in
+// Log to Firestore if user logged in
   if(state.user){
     db.collection('security_logs').add({
       type: type, title: title, message: message,
@@ -1121,25 +1111,25 @@ function showSecAlert(title, message, type){
   }
 }
 
-// ── NOTIFY OWNER IN Mindvora + FIRESTORE ──
+// NOTIFY OWNER IN Mindvora + FIRESTORE
 function notifyOwner(title, message, severity){
-  // Store in Firestore security_alerts collection
+// Store in Firestore security_alerts collection
   db.collection('security_alerts').add({
     title: title, message: message, severity: severity||'high',
     read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(function(){});
-  // Show in owner's notification if they're logged in as admin
+// Show in owner's notification if they're logged in as admin
   if(isAdmin()){
     showSecAlert(title, message, severity==='high'?'danger':'warn');
   }
-  // Save to local security log
+// Save to local security log
   securityLog.push({title:title, message:message, time:new Date().toISOString()});
 }
 
-// ── WATCH FOR SECURITY ALERTS IN REALTIME (ADMIN ONLY) ──
+// WATCH FOR SECURITY ALERTS IN REALTIME (ADMIN ONLY)
 function startSecurityWatch(){
   if(!isAdmin()) return;
-  // Listen for new security alerts in real time
+// Listen for new security alerts in real time
   db.collection('security_alerts')
     .where('read','==',false)
     .orderBy('createdAt','desc')
@@ -1148,12 +1138,12 @@ function startSecurityWatch(){
       snap.docChanges().forEach(function(change){
         if(change.type === 'added'){
           var alert = change.doc.data();
-          // Only show alerts added in last 30 seconds
+// Only show alerts added in last 30 seconds
           var now = Date.now();
           var alertTime = alert.createdAt ? alert.createdAt.seconds * 1000 : 0;
           if(now - alertTime < 30000){
             showSecAlert(alert.title, alert.message, alert.severity==='high'?'danger':'warn');
-            // Update notification bell
+// Update notification bell
             updateNotifBell();
           }
         }
@@ -1161,7 +1151,7 @@ function startSecurityWatch(){
     }, function(){});
 }
 
-// ── ENHANCED LOGIN FAILURE TRACKING ──
+// ENHANCED LOGIN FAILURE TRACKING
 var origTrackLogin = trackLoginAttempt;
 trackLoginAttempt = function(email, success){
   var result = origTrackLogin(email, success);
@@ -1178,7 +1168,7 @@ trackLoginAttempt = function(email, success){
   return result;
 };
 
-// ── MONITOR SUSPICIOUS PAYMENT ACTIVITY ──
+// MONITOR SUSPICIOUS PAYMENT ACTIVITY
 function checkSuspiciousPayment(amount, type){
   var MAX_AMOUNTS = {tip:50, premium:20, airtime:100, data:50, ad:500};
   var max = MAX_AMOUNTS[type] || 1000;
@@ -1193,7 +1183,7 @@ function checkSuspiciousPayment(amount, type){
   return true;
 }
 
-// ── MONITOR RAPID REQUESTS (DDoS Detection) ──
+// MONITOR RAPID REQUESTS (DDoS Detection)
 var requestCounts = {};
 function monitorRequests(action){
   var now = Date.now();
@@ -1210,11 +1200,11 @@ function monitorRequests(action){
   }
 }
 
-// ── MONITOR ADMIN PANEL ACCESS ──
+// MONITOR ADMIN PANEL ACCESS
 var origOpenAdmin = document.getElementById('nav-admin').onclick;
 document.getElementById('nav-admin').addEventListener('click', function(){
   if(isAdmin()){
-    // Log legitimate admin access
+// Log legitimate admin access
     db.collection('security_logs').add({
       type:'info', title:'Admin Panel Accessed',
       message:'Owner accessed admin panel at '+new Date().toLocaleString(),
@@ -1224,9 +1214,9 @@ document.getElementById('nav-admin').addEventListener('click', function(){
   }
 });
 
-// ── MONITOR NEW USER SIGNUPS FOR SUSPICIOUS PATTERNS ──
+// MONITOR NEW USER SIGNUPS FOR SUSPICIOUS PATTERNS
 function monitorNewSignup(email, uid){
-  // Check for disposable email patterns
+// Check for disposable email patterns
   var disposableDomains = ['tempmail','guerrillamail','mailinator','throwaway','fakeinbox','yopmail'];
   var emailDomain = email.split('@')[1]||'';
   if(disposableDomains.some(function(d){ return emailDomain.includes(d); })){
@@ -1238,7 +1228,7 @@ function monitorNewSignup(email, uid){
   }
 }
 
-// ── MONITOR WITHDRAWAL REQUESTS ──
+// MONITOR WITHDRAWAL REQUESTS
 function monitorWithdrawal(amount, userId){
   if(amount > 500){
     notifyOwner(
@@ -1249,7 +1239,7 @@ function monitorWithdrawal(amount, userId){
   }
 }
 
-// ── ADMIN SECURITY DASHBOARD ──
+// ADMIN SECURITY DASHBOARD
 function loadSecurityAlerts(){
   if(!isAdmin()) return;
   db.collection('security_alerts')
@@ -1258,7 +1248,7 @@ function loadSecurityAlerts(){
     .get().then(function(snap){
       var unread = snap.docs.filter(function(d){ return !d.data().read; }).length;
       if(unread > 0){
-        // Don't spam toast on every login — just update the admin badge quietly
+// Don't spam toast on every login — just update the admin badge quietly
         var adminNav = document.getElementById('nav-admin');
         if(adminNav){
           var existing = adminNav.querySelector('.security-badge-count');
@@ -1276,7 +1266,7 @@ function loadSecurityAlerts(){
     }).catch(function(){});
 }
 
-// ── START SECURITY WATCH WHEN ADMIN LOGS IN ──
+// START SECURITY WATCH WHEN ADMIN LOGS IN
 var origCheckAdmin = checkAdminAccess;
 checkAdminAccess = function(){
   origCheckAdmin();
@@ -1286,12 +1276,12 @@ checkAdminAccess = function(){
   }
 };
 
-// ── ADD SECURITY TAB TO ADMIN PANEL ──
+// ADD SECURITY TAB TO ADMIN PANEL
 setTimeout(function(){
   var adminTabs = document.querySelector('#modal-admin .admin-tabs');
   if(adminTabs && isAdmin()){
-    // Security tab already in HTML — no need to add dynamically
-    // Add security panel div
+// Security tab already in HTML — no need to add dynamically
+// Add security panel div
     var secPanel = document.createElement('div');
     secPanel.id = 'admin-security';
     secPanel.style.display = 'none';
@@ -1328,7 +1318,7 @@ function loadSecurityAlertsList(){
       list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">🛡️</div>No security alerts yet</div>';
       return;
     }
-    // Mark all as read
+// Mark all as read
     snap.docs.forEach(function(d){ d.ref.update({read:true}).catch(function(){}); });
     list.innerHTML = snap.docs.map(function(d){
       var a = Object.assign({id:d.id}, d.data());
@@ -1349,18 +1339,16 @@ function loadSecurityAlertsList(){
   });
 }
 
-// ═══════════════════════════════════════════════
 // MINDVORA SECURITY ALERT SYSTEM
-// ═══════════════════════════════════════════════
 
 var OWNER_ALERT_EMAIL = 'ilohgreat25@gmail.com';
 var alertCooldowns = {};
 
-// ── SEND SECURITY ALERT ──
+// SEND SECURITY ALERT
 function sendSecurityAlert(type, message, severity){
   if(!db) return;
   var now = Date.now();
-  // Cooldown — don't spam same alert type within 5 mins
+// Cooldown — don't spam same alert type within 5 mins
   if(alertCooldowns[type] && now - alertCooldowns[type] < 300000) return;
   alertCooldowns[type] = now;
 
@@ -1375,7 +1363,7 @@ function sendSecurityAlert(type, message, severity){
   var icon = icons[type] || '🔒';
   var severityColors = {high:'#ef4444', medium:'#f59e0b', low:'#22c55e'};
 
-  // Save alert to Firestore
+// Save alert to Firestore
   db.collection('security_alerts').add({
     type: type,
     message: message,
@@ -1387,7 +1375,7 @@ function sendSecurityAlert(type, message, severity){
     url: window.location.href
   }).catch(function(){});
 
-  // Show in owner's notification bell if they're logged in
+// Show in owner's notification bell if they're logged in
   if(state.user && state.user.email === OWNER_ALERT_EMAIL){
     db.collection('notifications').add({
       to: state.user.uid,
@@ -1397,25 +1385,25 @@ function sendSecurityAlert(type, message, severity){
       read: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(function(){});
-    // Show immediate toast for high severity
+// Show immediate toast for high severity
     if(severity === 'high'){
       showToast(icon + ' Security Alert: ' + message);
     }
   }
 
-  // Log to console with styling
+// Log to console with styling
   console.warn('%c' + icon + ' Mindvora Security Alert [' + (severity||'medium').toUpperCase() + ']: ' + message,
     'color:' + (severityColors[severity||'medium']) + ';font-weight:bold');
 }
 
-// ── MONITOR ADMIN PANEL ACCESS ──
+// MONITOR ADMIN PANEL ACCESS
 var adminAccessLog = [];
 function logAdminAccess(){
   if(!isAdmin()) return;
   var now = Date.now();
   adminAccessLog.push(now);
   adminAccessLog = adminAccessLog.filter(function(t){ return now-t < 60000; });
-  // Alert if admin panel accessed more than 10 times per minute (suspicious)
+// Alert if admin panel accessed more than 10 times per minute (suspicious)
   if(adminAccessLog.length > 10){
     sendSecurityAlert('admin_breach',
       'Admin panel accessed ' + adminAccessLog.length + ' times in 1 minute. Possible unauthorized access attempt.',
@@ -1423,7 +1411,7 @@ function logAdminAccess(){
   }
 }
 
-// ── MONITOR FAILED LOGINS ──
+// MONITOR FAILED LOGINS
 var failedLoginLog = {};
 function alertOnFailedLogins(email, count){
   if(count === 3){
@@ -1438,15 +1426,15 @@ function alertOnFailedLogins(email, count){
   }
 }
 
-// ── MONITOR SUSPICIOUS PAYMENTS ──
+// MONITOR SUSPICIOUS PAYMENTS
 function checkPaymentAnomaly(amount, email){
-  // Alert on unusually large payments
+// Alert on unusually large payments
   if(amount > 500){
     sendSecurityAlert('suspicious_payment',
       'Large payment detected: $' + amount + ' from ' + email + '. Please verify.',
       'medium');
   }
-  // Alert on rapid multiple payments
+// Alert on rapid multiple payments
   var payKey = 'pay_' + (email||'anon');
   if(!rateLimits[payKey]) rateLimits[payKey] = [];
   var now = Date.now();
@@ -1459,7 +1447,7 @@ function checkPaymentAnomaly(amount, email){
   }
 }
 
-// ── MONITOR MALICIOUS CONTENT ATTEMPTS ──
+// MONITOR MALICIOUS CONTENT ATTEMPTS
 var maliciousAttempts = 0;
 var origContainsMalicious = containsMalicious;
 containsMalicious = function(text){
@@ -1474,7 +1462,7 @@ containsMalicious = function(text){
   return result;
 };
 
-// ── MONITOR SPAM ATTACKS ──
+// MONITOR SPAM ATTACKS
 var origCheckRateLimit = checkRateLimit;
 checkRateLimit = function(action, maxPerMin){
   var result = origCheckRateLimit(action, maxPerMin);
@@ -1487,7 +1475,7 @@ checkRateLimit = function(action, maxPerMin){
   return result;
 };
 
-// ── HOOK INTO LOGIN TRACKING ──
+// HOOK INTO LOGIN TRACKING
 var origTrackLogin = trackLoginAttempt;
 trackLoginAttempt = function(email, success){
   var result = origTrackLogin(email, success);
@@ -1497,17 +1485,17 @@ trackLoginAttempt = function(email, success){
   return result;
 };
 
-// ── SECURITY ALERTS VIEWER (for owner) ──
+// SECURITY ALERTS VIEWER (for owner)
 function loadSecurityAlerts(){
   if(!isAdmin()) return;
-  // Just load quietly — do NOT show toast notifications on every login.
-  // The security alerts are viewable in the Admin Panel → Security tab.
-  // Marking all as read silently to prevent phantom "unread" notifications.
+// Just load quietly — do NOT show toast notifications on every login.
+// The security alerts are viewable in the Admin Panel → Security tab.
+// Marking all as read silently to prevent phantom "unread" notifications.
   db.collection('security_alerts')
     .where('read','==',false)
     .limit(50)
     .get().then(function(snap){
-      // Auto-mark all as read so they don't keep triggering
+// Auto-mark all as read so they don't keep triggering
       snap.docs.forEach(function(d){ d.ref.update({read:true}).catch(function(){}); });
     }).catch(function(){});
 }
@@ -1517,7 +1505,7 @@ setTimeout(function(){
   if(isAdmin()) loadSecurityAlerts();
 }, 3000);
 
-// ── REAL-TIME SECURITY ALERT LISTENER ──
+// REAL-TIME SECURITY ALERT LISTENER
 function startSecurityAlertListener(){
   if(!isAdmin() || !state.user) return;
   db.collection('notifications')
@@ -1565,7 +1553,7 @@ function loadSecurityAlertsPanel(){
         '<div style="font-size:10px;color:var(--muted)">'+time+'</div>' +
         '</div>';
     }).join('');
-    // Mark all as read
+// Mark all as read
     snap.docs.forEach(function(d){ d.ref.update({read:true}).catch(function(){}); });
   }).catch(function(e){
     list.innerHTML = '<div style="color:#fca5a5;padding:14px">Error: '+esc(e.message)+'</div>';
@@ -1590,7 +1578,7 @@ try {
 var auth = firebase.auth();
 var db   = firebase.firestore();
 
-// ── Force Firebase to persist login locally forever ──────────────────────
+// Force Firebase to persist login locally forever
 // NOTE: onAuthStateChanged is registered INSIDE .then() to ensure
 // persistence is set BEFORE auth state is checked
 console.log('[Mindvora] Setting Firebase persistence...');
@@ -1608,7 +1596,7 @@ var PAYSTACK_KEY = 'pk_live_1a3a25c1a562f8a054e34167dded3e1268f6c28c';
 var CLOUD_NAME   = 'dk4svvssf';
 var state = { user:null,profile:null,sparks:[],filter:'all',plan:{id:'basic',amount:2000,name:'Mindvora Basic'},tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:150},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
 
-// ── PAYSTACK: reliable script loader + NGN amounts ─────────────────────────
+// PAYSTACK: reliable script loader + NGN amounts
 // Paystack only accepts NGN for Nigerian accounts. We convert the app's
 // dollar prices to NGN at 1 USD ≈ 1600 NGN (matches the premium flow).
 var _psPromise = null;
@@ -1620,7 +1608,7 @@ function loadPaystack() {
     s.src = 'https://js.paystack.co/v1/inline.js';
     s.async = true;
     s.onload = function() {
-      // Some browsers resolve onload before the global is defined
+// Some browsers resolve onload before the global is defined
       var tries = 0;
       var iv = setInterval(function() {
         tries++;
@@ -1658,13 +1646,43 @@ function payWithPaystack(opts) {
       onError: function() { if (opts.onError) opts.onError(); }
     }).openIframe();
   }).catch(function() {
-    // Fallback: hosted redirect checkout
+// Fallback: hosted redirect checkout
     if (opts.onRedirectFallback) { opts.onRedirectFallback(); return; }
     showToast('Payment gateway is unavailable right now. Please try again.');
   });
 }
 
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escJs(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'\\x27'); }
+var RECAPTCHA_SITE_KEY = ''; // set your Google reCAPTCHA v3 site key here
+var _grecaptchaPromise = null;
+function loadRecaptcha() {
+  if (typeof grecaptcha !== 'undefined') return Promise.resolve();
+  if (_grecaptchaPromise) return _grecaptchaPromise;
+  _grecaptchaPromise = new Promise(function(resolve) {
+    if (!RECAPTCHA_SITE_KEY) { resolve(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://www.google.com/recaptcha/api.js?render=' + RECAPTCHA_SITE_KEY;
+    s.async = true;
+    s.onload = function() {
+      var tries = 0;
+      var iv = setInterval(function() {
+        tries++;
+        if (typeof grecaptcha !== 'undefined') { clearInterval(iv); resolve(); }
+        else if (tries > 20) { clearInterval(iv); resolve(); }
+      }, 250);
+    };
+    s.onerror = function() { _grecaptchaPromise = null; resolve(); };
+    document.head.appendChild(s);
+  });
+  return _grecaptchaPromise;
+}
+function getCaptchaToken(action) {
+  return loadRecaptcha().then(function() {
+    if (typeof grecaptcha === 'undefined' || !RECAPTCHA_SITE_KEY) return '';
+    return grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: action }).then(function(t){ return t; }, function(){ return ''; });
+  });
+}
 function timeAgo(ts){ if(!ts) return ''; var d=ts.toDate?ts.toDate():new Date(ts),s=Math.floor((Date.now()-d)/1000); if(s<60) return s+'s'; if(s<3600) return Math.floor(s/60)+'m'; if(s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
 function showToast(msg){ var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },2600); }
 function openModal(id){ document.getElementById(id).classList.add('open'); }
@@ -1694,7 +1712,7 @@ function showAuthTab(tab){ document.querySelectorAll('.auth-tab').forEach(functi
 
 function doLogin(){
   var emailVal = document.getElementById('li-email').value.trim();
-  // Safety: check login lock but don't block if lock system has a bug
+// Safety: check login lock but don't block if lock system has a bug
   try { if(isLoginLocked(emailVal)) return; } catch(le){}
   var email = emailVal.toLowerCase();
   var pass  = document.getElementById('li-pass').value;
@@ -1706,11 +1724,11 @@ function doLogin(){
   btn.textContent = 'Signing in…';
   console.log('[Mindvora] Starting login for:', email);
 
-  // If user entered a username (not an email), look up the email first
+// If user entered a username (not an email), look up the email first
   var isEmail = email.indexOf('@') !== -1;
   var loginPromise;
   if (!isEmail) {
-    // Username login — find the email from Firestore
+// Username login — find the email from Firestore
     console.log('[Mindvora] Username login detected, looking up email...');
     loginPromise = db.collection('users').where('handle', '==', email).limit(1).get()
       .then(function(snap) {
@@ -1729,7 +1747,7 @@ function doLogin(){
   loginPromise
     .then(function(cred) {
       console.log('[Mindvora] Login successful! User UID:', cred.user.uid);
-      // Success — onAuthStateChanged handles mounting the app
+// Success — onAuthStateChanged handles mounting the app
       btn.textContent = '✓ Welcome back!';
       try { trackAdvancedLogin(email, true, cred.user.uid); } catch(e){ console.warn('[Mindvora] trackAdvancedLogin error:', e); }
     })
@@ -1778,7 +1796,7 @@ function doRegister(){
       state.user = cred.user;
       var newUid = auth.currentUser.uid;
       var color=COLORS[Math.floor(Math.random()*COLORS.length)];
-      // Store user profile in Firestore
+// Store user profile in Firestore
       var userProfile = {
         id: newUid,
         name: name,
@@ -1798,32 +1816,32 @@ function doRegister(){
       };
       otpState.pendingPhone = phone;
       return db.collection('users').doc(newUid).set(userProfile).then(function(){
-        // Send OTP for email verification
+// Send OTP for email verification
         return sendOTPCode(email, newUid);
       });
     })
     .then(function(){
-      // Show OTP screen after profile creation
+// Show OTP screen after profile creation
       showOTPScreen(email);
-      // Check referral code in URL
+// Check referral code in URL
       var urlParams = new URLSearchParams(window.location.search);
       var refCode = urlParams.get('ref');
       var newUid = auth.currentUser.uid;
-      // ONE-CHAIN REFERRAL: only the DIRECT referrer earns $1
-      // A refers B → A gets $1. When B refers C → B gets $1, A gets nothing.
+// ONE-CHAIN REFERRAL: only the DIRECT referrer earns $1
+// A refers B → A gets $1. When B refers C → B gets $1, A gets nothing.
       if(refCode && refCode !== newUid){
-        // ── REFERRAL SYSTEM: check if enabled by owner first ──
+// REFERRAL SYSTEM: check if enabled by owner first
         db.collection('app_settings').doc('referral').get().then(function(settingDoc) {
           var isEnabled = !settingDoc.exists || settingDoc.data().enabled !== false;
           if (!isEnabled) return; // Referral system deactivated by owner — do nothing
 
-          // Check this new user has never been referred before (prevent abuse)
+// Check this new user has never been referred before (prevent abuse)
           db.collection('referrals').where('newUserId','==',newUid).get().then(function(snap){
             if(!snap.empty) return; // already referred — do nothing
-            // Check referrer exists
+// Check referrer exists
             db.collection('users').doc(refCode).get().then(function(referrerDoc){
               if(!referrerDoc.exists) return; // referrer not found
-              // Credit $1 to DIRECT referrer only
+// Credit $1 to DIRECT referrer only
               db.collection('users').doc(refCode).update({
                 earnings: firebase.firestore.FieldValue.increment(1),
                 referralCount: firebase.firestore.FieldValue.increment(1)
@@ -1835,7 +1853,7 @@ function doRegister(){
                 read: false,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
               });
-              // Store the referral record
+// Store the referral record
               db.collection('referrals').add({
                 referrerId: refCode,
                 referrerName: referrerDoc.data().name||'Mindvora user',
@@ -1858,14 +1876,11 @@ function doRegister(){
 document.getElementById('btn-reg').addEventListener('click',doRegister);
 document.getElementById('r-confirm').addEventListener('keydown',function(e){ if(e.key==='Enter') doRegister(); });
 
-// ═══════════════════════════════════════════════════════════
 // OTP VERIFICATION SYSTEM — Email verification before app access
-// ═══════════════════════════════════════════════════════════
 
 var otpState = {
   email: null,
   userId: null,
-  otpCode: null,
   expiresAt: null,
   attempts: 0,
   maxAttempts: 5,
@@ -1874,33 +1889,27 @@ var otpState = {
   pendingPhone: null
 };
 
-// Generate a random 6-digit OTP code
-function generateOTPCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-// Send OTP code via email using NodeMailer backend
+// Send OTP code via email using the backend (code is generated server-side)
 function sendOTPCode(email, userId) {
   return new Promise(function(resolve, reject) {
     try {
-      var otpCode = generateOTPCode();
       otpState.email = email;
       otpState.userId = userId;
-      otpState.otpCode = otpCode;
-      otpState.expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes
       otpState.attempts = 0;
-      otpState.resendCooldown = Date.now() + (60 * 1000); // 1 minute cooldown
+      otpState.resendCooldown = Date.now() + (60 * 1000);
 
-      // Send via NodeMailer on the backend
-      fetch(BACKEND_URL + '/api/otp/send-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email, code: otpCode })
+      getCaptchaToken('send_email_otp').then(function(token) {
+        return fetch(BACKEND_URL + '/api/otp/send-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, recaptcha: token })
+        });
       })
       .then(function(r){ return r.json(); })
       .then(function(data) {
         if (data && data.status) {
-          console.log('OTP email sent successfully to', email);
+          otpState.expiresAt = Date.now() + (10 * 60 * 1000);
+          console.log('OTP email sent to', email);
           resolve();
         } else {
           console.error('OTP email failed:', data && data.message);
@@ -1914,9 +1923,33 @@ function sendOTPCode(email, userId) {
         reject(error);
       });
     } catch (e) {
-      console.error('OTP generation error:', e);
+      console.error('OTP send error:', e);
       reject(e);
     }
+  });
+}
+
+// Verify the email OTP with the backend (code is checked server-side)
+function verifyEmailOTP(email, code) {
+  return new Promise(function(resolve, reject) {
+    fetch(BACKEND_URL + '/api/otp/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, code: String(code) })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      if (data && data.status) {
+        resolve();
+      } else {
+        showToast('❌ ' + ((data && data.message) || 'Incorrect code.'));
+        reject(new Error('Verify failed'));
+      }
+    })
+    .catch(function() {
+      showToast('❌ Could not verify code. Try again.');
+      reject(new Error('Verify error'));
+    });
   });
 }
 
@@ -1930,10 +1963,12 @@ function sendPhoneOTP(phone) {
     }
     var btn = document.getElementById('phone-send-btn');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-    fetch(BACKEND_URL + '/api/otp/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone.trim() })
+    getCaptchaToken('send_phone_otp').then(function(token) {
+      return fetch(BACKEND_URL + '/api/otp/send-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.trim(), recaptcha: token })
+      });
     })
     .then(function(r){ return r.json(); })
     .then(function(data) {
@@ -1998,7 +2033,7 @@ function showOTPScreen(email) {
   
   otpState.email = email;
   
-  // Hide auth screen and app screen, show OTP screen
+// Hide auth screen and app screen, show OTP screen
   if (authScreen) {
     authScreen.style.setProperty('display', 'none', 'important');
     authScreen.style.visibility = 'hidden';
@@ -2011,20 +2046,20 @@ function showOTPScreen(email) {
     appScreen.style.zIndex = '-1';
   }
   
-  // Show OTP screen
+// Show OTP screen
   otpScreen.style.display = 'flex';
   otpScreen.style.visibility = 'visible';
   otpScreen.style.zIndex = '200';
   otpScreen.style.pointerEvents = 'auto';
   
-  // Reset OTP input
+// Reset OTP input
   var otpInput = document.getElementById('otp-input');
   if (otpInput) {
     otpInput.value = '';
     otpInput.focus();
   }
   
-  // Start expiration timer
+// Start expiration timer
   startOTPTimer();
 }
 
@@ -2035,40 +2070,39 @@ function verifyOTP() {
   
   var enteredCode = otpInput.value.trim();
   
-  // Validate input
+// Validate input
   if (!enteredCode || enteredCode.length !== 6) {
     showToast('❌ Please enter a valid 6-digit code.');
     return;
   }
   
-  // Check cooldown
+// Check cooldown
   if (otpState.resendCooldown && Date.now() < otpState.resendCooldown) {
-    // Still in cooldown, but allow verification
+// Still in cooldown, but allow verification
   }
   
-  // Check expiration
+// Check expiration
   if (Date.now() > otpState.expiresAt) {
     showToast('⏰ OTP code has expired. Click "Resend Code" to get a new one.');
     return;
   }
   
-  // Check attempts
+// Check attempts
   otpState.attempts++;
   if (otpState.attempts > otpState.maxAttempts) {
     showToast('❌ Too many attempts. Please request a new code.');
     auth.signOut();
     return;
   }
-  
-  // Verify code
-  if (enteredCode === otpState.otpCode) {
-    // Success! Mark user as verified and proceed
+
+// Verify the code against the backend
+  verifyEmailOTP(otpState.email, enteredCode).then(function() {
+// Success! Mark user as verified and proceed
     verifyUserEmail();
-  } else {
-    showToast('❌ Invalid code. Please try again. (' + (otpState.maxAttempts - otpState.attempts) + ' attempts left)');
+  }, function() {
     otpInput.value = '';
     otpInput.focus();
-  }
+  });
 }
 
 // Mark user email as verified and proceed to app
@@ -2080,7 +2114,7 @@ function verifyUserEmail() {
   
   var userId = otpState.userId;
   
-  // Update user profile with emailVerified flag
+// Update user profile with emailVerified flag
   db.collection('users').doc(userId).update({
     emailVerified: true,
     verifiedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -2088,7 +2122,7 @@ function verifyUserEmail() {
     state.profile.emailVerified = true;
     showToast('✅ Email verified! Welcome to Mindvora 🌿');
 
-    // If a phone number was captured during signup, show the phone verification card
+// If a phone number was captured during signup, show the phone verification card
     var phoneCard = document.getElementById('otp-phone-card');
     var phoneInput = document.getElementById('phone-otp-input');
     if (phoneCard && phoneInput && (state.profile.phone || otpState.pendingPhone)) {
@@ -2099,7 +2133,7 @@ function verifyUserEmail() {
       return;
     }
 
-    // Otherwise mount the app immediately
+// Otherwise mount the app immediately
     finishEmailVerification();
   }).catch(function(e) {
     showToast('❌ Error: ' + e.message);
@@ -2115,13 +2149,13 @@ function finishEmailVerification() {
     otpScreen.style.zIndex = '-1';
   }
   
-  // Clear timer
+// Clear timer
   if (otpTimerInterval) {
     clearInterval(otpTimerInterval);
     otpTimerInterval = null;
   }
   
-  // Mount the app
+// Mount the app
   setTimeout(function() {
     mountApp();
   }, 500);
@@ -2148,7 +2182,7 @@ function verifyPhoneOTPFromScreen() {
   if (!phone) { showToast('❌ Enter your phone number first.'); return; }
   otpState.pendingPhone = phone;
   verifyPhoneOTP(phone, code).then(function() {
-    // Persist verified phone on the user profile
+// Persist verified phone on the user profile
     var update = { phone: phone, phoneVerified: true };
     db.collection('users').doc(otpState.userId).update(update).catch(function(){});
     if (state.profile) { state.profile.phone = phone; state.profile.phoneVerified = true; }
@@ -2169,7 +2203,7 @@ function skipPhoneOTP() {
 
 // Resend OTP code
 function resendOTP() {
-  // Check cooldown
+// Check cooldown
   if (otpState.resendCooldown && Date.now() < otpState.resendCooldown) {
     var secondsLeft = Math.ceil((otpState.resendCooldown - Date.now()) / 1000);
     showToast('⏳ Please wait ' + secondsLeft + ' seconds before requesting a new code.');
@@ -2181,18 +2215,18 @@ function resendOTP() {
     return;
   }
   
-  // Generate new code
+// Generate new code
   sendOTPCode(otpState.email, otpState.userId).then(function() {
     showToast('📧 New code sent to your email!');
     
-    // Reset input
+// Reset input
     var otpInput = document.getElementById('otp-input');
     if (otpInput) {
       otpInput.value = '';
       otpInput.focus();
     }
     
-    // Restart timer
+// Restart timer
     startOTPTimer();
   }).catch(function(e) {
     showToast('❌ Failed to resend: ' + e.message);
@@ -2219,12 +2253,11 @@ function startOTPTimer() {
     var seconds = Math.floor((timeLeft % 60000) / 1000);
     var timerText = 'Code expires in ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
     
-    // Update the timer display
+// Update the timer display
     if (timerEl) timerEl.textContent = timerText;
   }, 1000);
 }
 
-// ══════════════════════════════════════════════════════════
 
 function initAuthListener(){
 console.log('[Mindvora] Registering onAuthStateChanged listener...');
@@ -2234,13 +2267,13 @@ auth.onAuthStateChanged(function(user){
     state.user=user;
     window._mvUid = user.uid;
     console.log('[Mindvora] User object set, loading profile from Firestore...');
-    // Safety timeout — if Firestore hangs (e.g. offline / rules issue), still mount after 6s
+// Safety timeout — if Firestore hangs (e.g. offline / rules issue), still mount after 6s
     var _mountFired = false;
     var _mountTimeout = setTimeout(function(){
       if(!_mountFired){
         _mountFired = true;
         if(!state.profile) state.profile={name:user.displayName||user.email.split('@')[0],handle:(user.email||'user').split('@')[0],color:COLORS[0],plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0};
-        // Skip email verification for existing users
+// Skip email verification for existing users
         if(state.profile && state.profile.emailVerified) {
           mountApp();
         }
@@ -2253,7 +2286,7 @@ auth.onAuthStateChanged(function(user){
       if(snap.exists){
         state.profile=snap.data();
         console.log('[Mindvora] Profile loaded from Firestore:', state.profile.name);
-        // Check if user is banned
+// Check if user is banned
         if(snap.data().banned === true){
           console.warn('[Mindvora] User is banned');
           auth.signOut();
@@ -2262,11 +2295,11 @@ auth.onAuthStateChanged(function(user){
           }, 500);
           return;
         }
-        // Check if email is verified (for new users)
+// Check if email is verified (for new users)
         if(snap.data().emailVerified === false){
           console.log('[Mindvora] Email not verified, showing OTP screen');
           otpState.pendingPhone = snap.data().phone || '';
-          // Show OTP screen if email not yet verified, and send a fresh code
+// Show OTP screen if email not yet verified, and send a fresh code
           showOTPScreen(snap.data().email);
           sendOTPCode(snap.data().email, user.uid).then(function(){
             showToast('📧 A verification code was sent to ' + snap.data().email);
@@ -2291,7 +2324,7 @@ auth.onAuthStateChanged(function(user){
       console.log('[Mindvora] Calling mountApp()');
       mountApp();
       setTimeout(checkAdminAccess, 500);
-      // Track lastSeen for online status
+// Track lastSeen for online status
       db.collection('users').doc(user.uid).update({ lastSeen: Date.now() }).catch(function(){});
       setInterval(function(){ 
         if(state.user) db.collection('users').doc(state.user.uid).update({ lastSeen: Date.now() }).catch(function(){}); 
@@ -2326,7 +2359,7 @@ auth.onAuthStateChanged(function(user){
     }
     if(state.sparksUnsub){ state.sparksUnsub(); state.sparksUnsub=null; }
     if(state.notifsUnsub){ state.notifsUnsub(); state.notifsUnsub=null; }
-    // Reset login button in case it was stuck
+// Reset login button in case it was stuck
     var loginBtn = document.getElementById('btn-login');
     if(loginBtn){ loginBtn.disabled=false; loginBtn.textContent='Enter Mindvora →'; }
     var liErr = document.getElementById('li-err');
@@ -2362,9 +2395,9 @@ function mountApp(){
     var premWidget = document.getElementById('prem-widget');
     if(p.isPremium && premWidget) premWidget.style.display='none';
   } catch(e){ console.warn('[Mindvora] mountApp sidebar error:', e); }
-  // Always show app screen regardless of sidebar errors
-  // NOTE: auth-screen CSS has display:flex !important, so display:none is overridden.
-  // Use visibility + pointer-events + z-index to force-hide it.
+// Always show app screen regardless of sidebar errors
+// NOTE: auth-screen CSS has display:flex !important, so display:none is overridden.
+// Use visibility + pointer-events + z-index to force-hide it.
   var authSc = document.getElementById('auth-screen');
   var appSc  = document.getElementById('app-screen');
   console.log('[Mindvora] Hiding auth-screen, showing app-screen');
@@ -2392,19 +2425,19 @@ function mountApp(){
   try { listenNotifs(); } catch(e){}
   try { loadStories(); } catch(e){}
   try { loadConversations(); } catch(e){}
-  // Re-apply language after login
+// Re-apply language after login
   try {
     if (currentLang && currentLang !== 'en') {
       setTimeout(function(){ applyTranslations(currentLang); }, 300);
     }
   } catch(e){}
-  // Save device profile linked to user email
+// Save device profile linked to user email
   setTimeout(function(){ try { saveDeviceProfile(); applyDeviceLayout(); } catch(e){} }, 500);
-  // Start real-time watching
+// Start real-time watching
   try { startLiveWatching(); } catch(e){}
   try { watchFollowerCount(state.user.uid); } catch(e){}
   try { initPresence(); } catch(e){}
-  // Load referral status for owner
+// Load referral status for owner
   try { if (isAdmin()) { loadReferralStatus(); } } catch(e){}
 }
 
@@ -2428,16 +2461,16 @@ function renderFeed(){
   var fc = document.getElementById('feed-cont');
   var q  = ((document.getElementById('search-inp')||{}).value||'').trim().toLowerCase();
 
-  // ── NEWS TAB ── always live world news + user news posts
+// NEWS TAB ── always live world news + user news posts
   if (state.filter === 'news') {
     loadNewsTab();
     return;
   }
 
-  // ── ALL TAB ── shows ALL posts from ALL categories mixed
+// ALL TAB ── shows ALL posts from ALL categories mixed
   if (state.filter === 'all') {
-    // Use local realtime cache (state.sparks is already subscribed via onSnapshot)
-    // This includes posts from ALL categories: education, fun, thoughts, news, all
+// Use local realtime cache (state.sparks is already subscribed via onSnapshot)
+// This includes posts from ALL categories: education, fun, thoughts, news, all
     var sparks = state.sparks.slice();
     if (q) sparks = sparks.filter(function(s){
       return (s.text||'').toLowerCase().indexOf(q) > -1 ||
@@ -2452,7 +2485,7 @@ function renderFeed(){
     return;
   }
 
-  // ── CATEGORY TABS: education / fun / thoughts ──
+// CATEGORY TABS: education / fun / thoughts
   var cfg = {
     education: {
       icon: '🧠',
@@ -2477,10 +2510,10 @@ function renderFeed(){
     return;
   }
 
-  // Show loading indicator immediately
+// Show loading indicator immediately
   fc.innerHTML = '<div class="feed-empty"><div class="fi">'+d.icon+'</div><h3>Loading…</h3></div>';
 
-  // Query Firestore directly for exact category match
+// Query Firestore directly for exact category match
   db.collection('sparks')
     .where('category', '==', state.filter)
     .orderBy('createdAt', 'desc')
@@ -2490,13 +2523,13 @@ function renderFeed(){
       var results = [];
       var seenIds = {};
 
-      // Add Firestore results
+// Add Firestore results
       snap.docs.forEach(function(doc) {
         seenIds[doc.id] = true;
         results.push(Object.assign({ id: doc.id }, doc.data()));
       });
 
-      // Merge local cache (catches posts not yet indexed)
+// Merge local cache (catches posts not yet indexed)
       state.sparks.forEach(function(s) {
         if (!seenIds[s.id] && (s.category||'').toLowerCase() === state.filter) {
           seenIds[s.id] = true;
@@ -2504,14 +2537,14 @@ function renderFeed(){
         }
       });
 
-      // Sort newest first
+// Sort newest first
       results.sort(function(a, b) {
         var ta = a.createdAt ? (a.createdAt.seconds || 0) : 0;
         var tb = b.createdAt ? (b.createdAt.seconds || 0) : 0;
         return tb - ta;
       });
 
-      // Apply search
+// Apply search
       if (q) {
         results = results.filter(function(s) {
           return (s.text||'').toLowerCase().indexOf(q) > -1 ||
@@ -2532,7 +2565,7 @@ function renderFeed(){
       fc.innerHTML = results.map(buildSparkHTML).join('');
     })
     .catch(function(err) {
-      // Firestore index not built yet — fall back to local cache
+// Firestore index not built yet — fall back to local cache
       console.warn('[Mindvora] Feed query fallback:', err.message);
       var results = state.sparks.filter(function(s) {
         return (s.category||'').toLowerCase() === state.filter;
@@ -2561,7 +2594,7 @@ function loadNewsTab() {
   var fc = document.getElementById('feed-cont');
   fc.innerHTML = '<div class="feed-empty"><div class="fi">🌍</div><h3>Loading world news…</h3><p>Fetching latest updates from global sources</p></div>';
 
-  // Show user-posted news posts FIRST (instant)
+// Show user-posted news posts FIRST (instant)
   var userNewsPosts = state.sparks.filter(function(s){
     var cat = (s.category||'').toLowerCase();
     var text = (s.text||'').toLowerCase();
@@ -2584,12 +2617,12 @@ function loadNewsTab() {
   function finish() {
     done++;
     if (done >= total) {
-      // Mix user posts + live news
+// Mix user posts + live news
       renderNewsItems(allItems, userNewsPosts);
     }
   }
 
-  // Try two proxies for reliability
+// Try two proxies for reliability
   var proxies = [
     'https://api.allorigins.win/get?url=',
     'https://corsproxy.io/?'
@@ -2628,7 +2661,7 @@ function loadNewsTab() {
     tryProxy(0);
   });
 
-  // Safety timeout — show whatever loaded after 8s
+// Safety timeout — show whatever loaded after 8s
   setTimeout(function(){
     if (done < total) renderNewsItems(allItems, userNewsPosts);
   }, 8000);
@@ -2639,7 +2672,7 @@ function renderNewsItems(items, userPosts) {
   userPosts = userPosts || [];
   var html = '';
 
-  // Show user-posted news at the top
+// Show user-posted news at the top
   if (userPosts.length) {
     html += '<div style="padding:8px 14px 4px;font-size:11px;font-weight:700;color:var(--green3);letter-spacing:1px">📣 COMMUNITY NEWS</div>';
     html += userPosts.map(buildSparkHTML).join('');
@@ -2700,8 +2733,8 @@ function buildSparkHTML(s){
   if(s.mediaUrl&&s.mediaType==='video'){
     var vid_id = 'vid-'+s.id;
     var wrap_id = 'wrap-'+s.id;
-    // Smart display — determined after video metadata loads
-    // Default: blur bg for unknown aspect ratio
+// Smart display — determined after video metadata loads
+// Default: blur bg for unknown aspect ratio
     media = '<div class="sk-media-wrap" id="'+wrap_id+'" data-display="auto">' +
       '<video class="sk-media-blur" id="blur-'+esc(s.id)+'" src="'+esc(s.mediaUrl)+'" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>' +
       '<video class="sk-media-main" id="'+vid_id+'" src="'+esc(s.mediaUrl)+'" playsinline preload="metadata" data-vid="'+vid_id+'" data-wrapid="'+wrap_id+'" style="cursor:pointer" onloadedmetadata="adaptVideoDisplay(this)"></video>' +
@@ -2718,12 +2751,12 @@ function buildSparkHTML(s){
   var pollHTML=s.poll?buildPollHTML(s):'';
   var reactHTML='<div class="reactions-bar">'+buildReactionsHTML(s)+'</div>';
   var linkPrev='';
-  if(s.linkUrl){var lu=esc(s.linkUrl);linkPrev='<div class="link-preview" onclick="openLink(\''+lu+'\')\"><div class="link-preview-info"><div class="link-preview-title">🔗 External Link</div><div class="link-preview-url">'+lu+'</div></div></div>';}
+  if(s.linkUrl){var lu=escJs(s.linkUrl);linkPrev='<div class="link-preview" onclick="openLink(\''+lu+'\')\"><div class="link-preview-info"><div class="link-preview-title">🔗 External Link</div><div class="link-preview-url">'+lu+'</div></div></div>';}
   setTimeout(function(){ trackPostView(s.id, s.authorId); }, 2000);
-  return '<div class="spark-card"'+(s.pinned?' style="border-color:var(--green3)"':'')+'>'+'<div class="sk-head">'+'<div class="sk-av" style="background:'+esc(s.authorColor||COLORS[0])+'">'+''+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div>'+'<div><div class="sk-name">'+esc(s.authorName||'Mindvora user')+vbadge+'<span class="sk-cat">'+esc(s.category||'all')+'</span>'+pinBadge+'</div>'+'<div class="sk-handle">@'+esc(s.authorHandle||'user')+'</div></div>'+'<span class="sk-time">'+timeAgo(s.createdAt)+'</span>'+(s.viewCount?'<span class="sk-time" style="margin-left:4px">👁 '+s.viewCount+'</span>':'')+'</div>'+media+'<div class="sk-body">'+parseMentions(s.text||'')+(s.edited?'<span style="font-size:10px;color:var(--muted);font-style:italic;margin-left:6px">(edited)</span>':'')+'</div>'+pollHTML+linkPrev+'<div class="sk-actions">'+'<button class="s-btn'+(liked?' liked':'')+'" onclick="toggleLike(\''+s.id+'\')">'+(liked?'\u2764\ufe0f':'🤍')+' '+(s.likes||[]).length+'</button>'+(s.commentsLocked?'<button class="s-btn" style="color:var(--muted);cursor:default" title="Comments disabled by author">🔒 Comments off</button>':'<button class="s-btn" onclick="openComments(\''+s.id+'\')">💬 '+(s.commentCount||0)+'</button>')+'<button class="s-btn'+(saved?' saved':'')+'" onclick="toggleSave(\''+s.id+'\')">🔖 Save</button>'+'<button class="s-btn" onclick="shareSpark(\''+s.id+'\')">\u2197 Share</button>'+'<button class="s-btn" onclick="repostSpark(\''+s.id+'\',\''+esc(s.authorName||'Mindvora user')+'\')">🔁 '+(s.reposts||0)+'</button>'+(!isOwn?'<button class="s-btn" onclick="toggleFollow(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'User')+'\')">'+( isFollowing(s.authorId)?'✅ Following':'➕ Follow')+'</button>':'')+'<button class="s-btn" onclick="tagFriendOnPost(\''+s.id+'\',\''+esc(s.authorName||'User')+'\')" title="Tag a friend">🏷 Tag</button>'+(isOwn?'':'<button class="s-btn" onclick="openTip(\''+esc(s.authorId)+'\',\''+esc(s.authorName||'Creator')+'\')">💝 Tip</button>')+(isOwn?'<button class="s-btn" onclick="pinSpark(\''+s.id+'\','+!!s.pinned+')">📌</button>':'')+'<button class="s-btn" onclick="translatePost(\''+s.id+'\',\''+esc(s.text||'')+'\')">🌐</button>'+locTag+'<button class="s-btn" onclick="reportSpark(\''+s.id+'\',\''+esc(s.authorId)+'\')" title="Report">🚩</button>'+(isOwn?'<button class="s-btn" onclick="editSpark(\''+s.id+'\',\''+esc((s.text||'').replace(/\'/g,"&#39;"))+'\')">✏️</button>':'')+(isOwn?'<button class="s-btn" onclick="delSpark(\''+s.id+'\')" style="color:#fca5a5">🗑</button>':'')+'<button class="s-btn" onclick="openVoiceReply(\''+s.id+'\',\''+esc(s.authorName||'User')+'\')">🎙</button>'+'</div>'+reactHTML+'</div>';
+  return '<div class="spark-card"'+(s.pinned?' style="border-color:var(--green3)"':'')+'>'+'<div class="sk-head">'+'<div class="sk-av" style="background:'+esc(s.authorColor||COLORS[0])+'">'+''+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div>'+'<div><div class="sk-name">'+esc(s.authorName||'Mindvora user')+vbadge+'<span class="sk-cat">'+esc(s.category||'all')+'</span>'+pinBadge+'</div>'+'<div class="sk-handle">@'+esc(s.authorHandle||'user')+'</div></div>'+'<span class="sk-time">'+timeAgo(s.createdAt)+'</span>'+(s.viewCount?'<span class="sk-time" style="margin-left:4px">👁 '+s.viewCount+'</span>':'')+'</div>'+media+'<div class="sk-body">'+parseMentions(s.text||'')+(s.edited?'<span style="font-size:10px;color:var(--muted);font-style:italic;margin-left:6px">(edited)</span>':'')+'</div>'+pollHTML+linkPrev+'<div class="sk-actions">'+'<button class="s-btn'+(liked?' liked':'')+'" onclick="toggleLike(\''+s.id+'\')">'+(liked?'\u2764\ufe0f':'🤍')+' '+(s.likes||[]).length+'</button>'+(s.commentsLocked?'<button class="s-btn" style="color:var(--muted);cursor:default" title="Comments disabled by author">🔒 Comments off</button>':'<button class="s-btn" onclick="openComments(\''+s.id+'\')">💬 '+(s.commentCount||0)+'</button>')+'<button class="s-btn'+(saved?' saved':'')+'" onclick="toggleSave(\''+s.id+'\')">🔖 Save</button>'+'<button class="s-btn" onclick="shareSpark(\''+s.id+'\')">\u2197 Share</button>'+'<button class="s-btn" onclick="repostSpark(\''+s.id+'\',\''+escJs(s.authorName||'Mindvora user')+'\')">🔁 '+(s.reposts||0)+'</button>'+(!isOwn?'<button class="s-btn" onclick="toggleFollow(\''+escJs(s.authorId)+'\',\''+escJs(s.authorName||'User')+'\')">'+( isFollowing(s.authorId)?'✅ Following':'➕ Follow')+'</button>':'')+'<button class="s-btn" onclick="tagFriendOnPost(\''+s.id+'\',\''+escJs(s.authorName||'User')+'\')" title="Tag a friend">🏷 Tag</button>'+(isOwn?'':'<button class="s-btn" onclick="openTip(\''+escJs(s.authorId)+'\',\''+escJs(s.authorName||'Creator')+'\')">💝 Tip</button>')+(isOwn?'<button class="s-btn" onclick="pinSpark(\''+s.id+'\','+!!s.pinned+')">📌</button>':'')+'<button class="s-btn" onclick="translatePost(\''+s.id+'\',\''+escJs(s.text||'')+'\')">🌐</button>'+locTag+'<button class="s-btn" onclick="reportSpark(\''+s.id+'\',\''+escJs(s.authorId)+'\')" title="Report">🚩</button>'+(isOwn?'<button class="s-btn" onclick="editSpark(\''+s.id+'\',\''+escJs((s.text||'').replace(/\'/g,"&#39;"))+'\')">✏️</button>':'')+(isOwn?'<button class="s-btn" onclick="delSpark(\''+s.id+'\')" style="color:#fca5a5">🗑</button>':'')+'<button class="s-btn" onclick="openVoiceReply(\''+s.id+'\',\''+escJs(s.authorName||'User')+'\')">🎙</button>'+'</div>'+reactHTML+'</div>';
 }
 
-// ── TAG A FRIEND ON A POST ──
+// TAG A FRIEND ON A POST
 function tagFriendOnPost(sparkId, authorName) {
   if (!state.user) { showToast('Please login first'); return; }
   var username = prompt('Enter the username of the person you want to tag (e.g. @username):');
@@ -2733,7 +2766,7 @@ function tagFriendOnPost(sparkId, authorName) {
   db.collection('users').where('handleLower', '==', username).limit(1).get()
     .then(function(snap) {
       if (snap.empty) {
-        // Try case-insensitive search by handle
+// Try case-insensitive search by handle
         return db.collection('users').where('handle', '==', username).limit(1).get();
       }
       return snap;
@@ -2743,11 +2776,11 @@ function tagFriendOnPost(sparkId, authorName) {
       var taggedUser = snap.docs[0];
       var taggedId = taggedUser.id;
       var taggedName = taggedUser.data().name || username;
-      // Add tag to the spark
+// Add tag to the spark
       db.collection('sparks').doc(sparkId).update({
         tags: firebase.firestore.FieldValue.arrayUnion(taggedId)
       }).catch(function(){});
-      // Notify the tagged user
+// Notify the tagged user
       db.collection('notifications').add({
         toUid: taggedId,
         fromName: state.profile.name || 'Someone',
@@ -2778,13 +2811,13 @@ document.querySelectorAll('.c-bot .f-pill').forEach(function(b){ b.addEventListe
   };
   ta.placeholder = placeholders[compCat] || placeholders.all;
   ta.focus();
-  // Brief glow on compose box
+// Brief glow on compose box
   var box = document.getElementById('compose-box');
   if (box) { box.style.borderColor='var(--green3)'; setTimeout(function(){ box.style.borderColor=''; },700); }
 }); });
 document.getElementById('comp-ta').addEventListener('input',function(){
   document.getElementById('cc').textContent = 280 - this.value.length;
-  // Auto-detect category from hashtags
+// Auto-detect category from hashtags
   var text = this.value.toLowerCase();
   var detected = null;
   if (/#(education|learn|study|tutorial|science|knowledge|howto|tip|history|tech)/i.test(text)) detected = 'education';
@@ -2792,7 +2825,7 @@ document.getElementById('comp-ta').addEventListener('input',function(){
   else if (/#(thought|mindset|motivation|opinion|perspective|wisdom|philosophy|quote|inspire|reflect)/i.test(text)) detected = 'thoughts';
   else if (/#(news|breaking|update|headline|report|latest|alert)/i.test(text)) detected = 'news';
   if (detected && detected !== compCat) {
-    // Switch category automatically
+// Switch category automatically
     compCat = detected;
     document.querySelectorAll('.c-bot .f-pill').forEach(function(p){ p.classList.remove('active'); });
     var catBtn = document.getElementById('cat-' + (detected === 'education' ? 'edu' : detected));
@@ -2801,7 +2834,7 @@ document.getElementById('comp-ta').addEventListener('input',function(){
       catBtn.style.transform = 'scale(1.05)';
       setTimeout(function(){ if(catBtn) catBtn.style.transform = ''; }, 300);
     }
-    // Update placeholder
+// Update placeholder
     var placeholders = {
       all:'What is on your mind? Share anything…',
       education:'📚 Share something educational — a tip, fact, tutorial or use #education',
@@ -2828,16 +2861,16 @@ document.getElementById('btn-post').addEventListener('click',function(){ var tex
     }).catch(function(){btn.disabled=false;btn.textContent='✦ Spark';showToast('Error scheduling');});
     return;
   }
-  // ── SCAN POST FOR MALICIOUS LINKS BEFORE SAVING ──
+// SCAN POST FOR MALICIOUS LINKS BEFORE SAVING
   if(scanForMaliciousLink(text, 'Post/Spark', state.user.uid, state.profile.name)){
     showToast('⚠️ Suspicious link detected. Post blocked and reported.');
     btn.disabled=false; btn.textContent='✦ Spark';
     return;
   }
-  // Auto-detect best category silently
+// Auto-detect best category silently
   var finalCat = autoDetectCategory(text, pendingMedia ? pendingMedia.type : null, compCat);
   db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:finalCat,userCategory:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,commentsLocked:commentsLocked,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark';
-              // Reset comments lock
+// Reset comments lock
               commentsLocked=false;
               var ctBtn=document.getElementById('btn-comments-toggle');
               if(ctBtn){ctBtn.textContent='💬';ctBtn.style.color='';ctBtn.style.borderColor='';} db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)}); showToast('Spark launched! 🌿'); }).catch(function(e){ showToast('Failed: '+e.message); btn.disabled=false; btn.textContent='✦ Spark'; }); });
@@ -2878,7 +2911,7 @@ document.getElementById('btn-schedule').addEventListener('click', function(){
 });
 
 document.getElementById('btn-media').addEventListener('click',function(){
-  // Use hidden file input — bypasses Cloudinary widget CSP issues completely
+// Use hidden file input — bypasses Cloudinary widget CSP issues completely
   var fileInput = document.createElement('input');
   fileInput.type = 'file';
   fileInput.accept = 'image/*,video/*';
@@ -2890,7 +2923,7 @@ document.getElementById('btn-media').addEventListener('click',function(){
     document.body.removeChild(fileInput);
     if(!file) return;
     if(file.size > 209715200){ showToast('File too large! Max 200MB'); return; }
-    // Show persistent uploading banner
+// Show persistent uploading banner
     var uploadBanner = document.createElement('div');
     uploadBanner.id = 'upload-banner';
     uploadBanner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:var(--green);color:var(--cream);text-align:center;padding:10px;font-size:13px;font-weight:700;z-index:9999;font-family:DM Sans,sans-serif';
@@ -2933,7 +2966,7 @@ document.querySelectorAll('#filter-bar .f-pill').forEach(function(b){ b.addEvent
   document.querySelectorAll('#filter-bar .f-pill').forEach(function(x){ x.classList.remove('active'); });
   this.classList.add('active');
   state.filter = this.dataset.filter || 'all';
-  // Hide compose box on news tab (news is read-only), show on others
+// Hide compose box on news tab (news is read-only), show on others
   var compose = document.getElementById('compose-box');
   if (compose) compose.style.display = state.filter === 'news' ? 'none' : 'block';
   renderFeed();
@@ -2982,7 +3015,7 @@ function openComments(sparkId){ state.currentSparkId=sparkId; document.getElemen
     '</div>';
   }).join(''):'<div style="text-align:center;padding:24px;color:var(--muted)">No comments yet. Be first!</div>'; }); }
 document.getElementById('btn-cmt').addEventListener('click',function(){
-  // Check if comments are locked on this post
+// Check if comments are locked on this post
   var spark = state.sparks.find(function(s){ return s.id === state.currentSparkId; });
   if (spark && spark.commentsLocked) {
     showToast('🔒 The author has disabled comments on this post.');
@@ -2996,7 +3029,7 @@ function viewStory(id,s){ document.getElementById('sv-av').textContent=(s.author
 document.getElementById('sv-x').addEventListener('click',function(){ document.getElementById('sv-overlay').classList.remove('open'); });
 
 
-// ── DM USER SEARCH ──
+// DM USER SEARCH
 var dmNewMsgOpen = false;
 
 function toggleNewMessage() {
@@ -3016,7 +3049,7 @@ function toggleNewMessage() {
 }
 
 function showAllUsers() {
-  // Show recent/popular users on open before any typing
+// Show recent/popular users on open before any typing
   if (!state.user) return;
   var res = document.getElementById('dm-user-results');
   res.innerHTML = '<div style="font-size:10px;color:var(--muted);padding:4px">Loading users...</div>';
@@ -3028,18 +3061,18 @@ function showAllUsers() {
 function searchUsersForDM(q) {
   var res = document.getElementById('dm-user-results');
   q = (q||'').trim().toLowerCase();
-  // Strip leading @ if user types @handle
+// Strip leading @ if user types @handle
   if (q.startsWith('@')) q = q.slice(1);
   
   if (!q) { showAllUsers(); return; }
   res.innerHTML = '<div style="font-size:10px;color:var(--muted);padding:4px">Searching...</div>';
 
-  // Search by name AND handle simultaneously
+// Search by name AND handle simultaneously
   var byName   = db.collection('users').orderBy('name').startAt(q).endAt(q+'').limit(8).get();
   var byHandle = db.collection('users').orderBy('handle').startAt(q).endAt(q+'').limit(8).get();
 
   Promise.all([byName, byHandle]).then(function(results) {
-    // Merge and deduplicate
+// Merge and deduplicate
     var seen = {};
     var docs = [];
     results.forEach(function(snap) {
@@ -3085,11 +3118,11 @@ function renderDMUserResults(docs) {
   });
 }
 function startDMWithUser(uid, name, color) {
-  // Close new message panel
+// Close new message panel
   dmNewMsgOpen = false;
   var panel = document.getElementById('dm-new-msg-panel');
   if (panel) panel.style.display = 'none';
-  // Open chat
+// Open chat
   var dmId = [state.user.uid, uid].sort().join('_');
   openChat(dmId, uid, name, color);
 }
@@ -3097,7 +3130,7 @@ function startDMWithUser(uid, name, color) {
 function loadConversations(){ if(!state.user) return; db.collection('dms').where('members','array-contains',state.user.uid).limit(20).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; if(!snap.docs.length){ list.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--muted)">No conversations yet</div>'; return; } snap.docs.forEach(function(d){ var dm=d.data(),oid=dm.members.find(function(m){ return m!==state.user.uid; }),oname=dm.names?dm.names[oid]:'User',ocolor=dm.colors?dm.colors[oid]:COLORS[0]; var row=document.createElement('div'); row.className='dm-row'; row.innerHTML='<div class="dm-av" style="background:'+ocolor+'">'+esc(oname.charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="dm-nm">'+esc(oname)+'</div><div class="dm-pv">'+esc(dm.lastMsg||'')+'</div></div>'+(dm.unread?'<div class="dm-ud"></div>':''); row.addEventListener('click',function(){ openChat(d.id,oid,oname,ocolor); }); list.appendChild(row); }); }); }
 var dmTimer; document.getElementById('dm-search').addEventListener('input',function(){ clearTimeout(dmTimer); var q=this.value.trim().toLowerCase(); if(!q){ loadConversations(); return; } dmTimer=setTimeout(function(){ db.collection('users').orderBy('name').startAt(q).endAt(q+'\uf8ff').limit(10).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; snap.docs.forEach(function(d){ var u=d.data(); if(u.id===state.user.uid) return; var row=document.createElement('div'); row.className='dm-row'; row.innerHTML='<div class="dm-av" style="background:'+(u.color||COLORS[0])+'">'+esc((u.name||'U').charAt(0))+'</div><div><div class="dm-nm">'+esc(u.name||'User')+'</div><div class="dm-pv">@'+esc(u.handle||'')+'</div></div>'; row.addEventListener('click',function(){ openChat([state.user.uid,u.id].sort().join('_'),u.id,u.name,u.color); }); list.appendChild(row); }); if(!snap.docs.length) list.innerHTML='<div style="padding:16px;text-align:center;font-size:12px;color:var(--muted)">No users found</div>'; }); },400); });
 function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForScam(dmId, otherId);
-  // Mark all unread messages from other user as read
+// Mark all unread messages from other user as read
   if(state.user) {
     db.collection('dms').doc(dmId).collection('messages')
       .where('fromId','==',otherId)
@@ -3109,7 +3142,7 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
         });
         if(!snap.empty) batch.commit().catch(function(){});
       }).catch(function(){});
-  } var right=document.getElementById('dm-right'); right.innerHTML='<div class="chat-hd"><div class="dm-av" style="background:'+(otherColor||COLORS[0])+';width:32px;height:32px">'+esc((otherName||'U').charAt(0))+'</div><div style="font-size:13px;font-weight:700;color:var(--white)">'+esc(otherName)+'</div></div><div class="chat-msgs" id="cm-'+dmId+'"></div><div class="chat-bar"><textarea class="chat-inp" id="ci-'+dmId+'" placeholder="Message…" rows="1"></textarea><button class="chat-send" onclick="sendMsg(\''+dmId+'\',\''+otherId+'\',\''+esc(otherName)+'\',\''+esc(otherColor||COLORS[0])+'\')">➤</button></div>'; db.collection('dms').doc(dmId).collection('messages').orderBy('createdAt','asc').limit(50).onSnapshot(function(snap){ var box=document.getElementById('cm-'+dmId); if(!box) return; box.innerHTML=snap.docs.map(function(d){
+  } var right=document.getElementById('dm-right'); right.innerHTML='<div class="chat-hd"><div class="dm-av" style="background:'+(otherColor||COLORS[0])+';width:32px;height:32px">'+esc((otherName||'U').charAt(0))+'</div><div style="font-size:13px;font-weight:700;color:var(--white)">'+esc(otherName)+'</div></div><div class="chat-msgs" id="cm-'+dmId+'"></div><div class="chat-bar"><textarea class="chat-inp" id="ci-'+dmId+'" placeholder="Message…" rows="1"></textarea><button class="chat-send" onclick="sendMsg(\''+dmId+'\',\''+otherId+'\',\''+escJs(otherName)+'\',\''+escJs(otherColor||COLORS[0])+'\')">➤</button></div>'; db.collection('dms').doc(dmId).collection('messages').orderBy('createdAt','asc').limit(50).onSnapshot(function(snap){ var box=document.getElementById('cm-'+dmId); if(!box) return; box.innerHTML=snap.docs.map(function(d){
     var m=d.data(), mine=m.fromId===state.user.uid;
     var col=mine?(state.profile.color||COLORS[0]):(otherColor||COLORS[0]);
     var editedTag = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
@@ -3119,14 +3152,14 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
         '<button class="act-btn" data-action="edit-msg" data-dmid="'+dmId+'" data-msgid="'+d.id+'" data-text="'+safeText+'">✏️ Edit</button>' +
         '<button class="act-btn del" data-action="del-msg" data-dmid="'+dmId+'" data-msgid="'+d.id+'">🗑 Delete</button>' +
       '</div>' : '';
-    // Read receipts — show ticks on sender's messages
+// Read receipts — show ticks on sender's messages
     var readReceipt = '';
     if (mine) {
       if (m.read) {
-        // Double blue tick — message was read
+// Double blue tick — message was read
         readReceipt = '<span style="color:#22c55e;font-size:11px;margin-left:4px" title="Read">✓✓</span>';
       } else {
-        // Single grey tick — sent but not read
+// Single grey tick — sent but not read
         readReceipt = '<span style="color:var(--muted);font-size:11px;margin-left:4px" title="Sent">✓</span>';
       }
     }
@@ -3144,7 +3177,7 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
 function sendMsg(dmId,otherId,otherName,otherColor){
   var inp=document.getElementById('ci-'+dmId);
   if(inp && containsMalicious(inp.value)){ showToast('❌ Message contains invalid content.'); return; }
-  // ── SCAM DETECTION ──────────────────────────────────────────
+// SCAM DETECTION
   if(inp){ scanMessageForScam(inp.value, dmId, state.user.uid, otherId); }
   if(!checkRateLimit('dm',20)){ return; } var inp=document.getElementById('ci-'+dmId); if(!inp) return; var text=inp.value.trim(); if(!text||!state.user) return; inp.value=''; var batch=db.batch(),dmRef=db.collection('dms').doc(dmId),msgRef=dmRef.collection('messages').doc(),names={},colors={}; names[state.user.uid]=state.profile.name||'User'; names[otherId]=otherName; colors[state.user.uid]=state.profile.color||COLORS[0]; colors[otherId]=otherColor||COLORS[0]; batch.set(dmRef,{members:[state.user.uid,otherId],names:names,colors:colors,lastMsg:text,lastAt:firebase.firestore.FieldValue.serverTimestamp(),unread:true},{merge:true}); batch.set(msgRef,{text:text,fromId:state.user.uid,fromName:state.profile.name,createdAt:firebase.firestore.FieldValue.serverTimestamp(),read:false,readAt:null}); batch.commit().then(function(){ openChat(dmId,otherId,otherName,otherColor||COLORS[0]); db.collection('notifications').add({toUid:otherId,fromName:state.profile.name,type:'dm',text:state.profile.name+' sent you a message',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }); }
 
@@ -3183,7 +3216,7 @@ function buyVerifiedBadge(){
         state.profile.isVerified = true;
         closeModal('modal-prem');
         showToast('🎉 Congratulations! You are now Verified on Mindvora! ✅');
-        // Send notification to user
+// Send notification to user
         db.collection('notifications').add({
           uid: state.user.uid,
           type: 'verified',
@@ -3202,7 +3235,7 @@ function setTip(amount){ document.getElementById('tip-amt').value=amount; }
 document.getElementById('btn-tip').addEventListener('click',function(){ var amount=parseInt(document.getElementById('tip-amt').value)||0; if(amount<1){ document.getElementById('tip-err').textContent='Minimum tip is $1'; return; } if(!state.user||!state.tipTarget) return; payWithPaystack({amount:usdToNGNKobo(amount),currency:'NGN',ref:'ZT-'+Date.now(),onSuccess:function(){ db.collection('users').doc(state.tipTarget.id).update({tips:firebase.firestore.FieldValue.increment(amount)}); db.collection('notifications').add({toUid:state.tipTarget.id,fromName:state.profile.name,type:'tip',text:state.profile.name+' tipped you $'+amount.toLocaleString(),read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); closeModal('modal-tip'); showToast('Tip sent! 💝'); },onClose:function(){ showToast('Tip cancelled'); }}); });
 
 function switchTab(group,tab,btn){ document.querySelectorAll('#modal-'+group+' .tab-row .f-pill').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); document.querySelectorAll('#modal-'+group+' .e-panel').forEach(function(p){ p.classList.remove('active'); }); document.getElementById(group+'-'+tab).classList.add('active'); }
-// ── WITHDRAWAL SYSTEM ──
+// WITHDRAWAL SYSTEM
 var currentWdMethod = 'bank';
 
 function switchWdTab(method, btn) {
@@ -3297,13 +3330,13 @@ function requestWithdrawal() {
   var btn = document.getElementById('btn-wd');
   btn.disabled=true; btn.textContent='Submitting...';
 
-  // Deduct balance immediately so user can't double-withdraw
+// Deduct balance immediately so user can't double-withdraw
   db.collection('users').doc(state.user.uid).update({
     earnings: firebase.firestore.FieldValue.increment(-amt)
   }).then(function(){
     return db.collection('withdrawals').add(wdData);
   }).then(function(){
-    // Notify admin
+// Notify admin
     db.collection('notifications').add({
       uid: 'ilohgreat25@gmail.com',
       type: 'withdrawal_request',
@@ -3315,7 +3348,7 @@ function requestWithdrawal() {
     showToast('✅ Withdrawal submitted! Processing in 24-48 hours.');
     document.getElementById('wd-amt').value='';
     loadWdHistory();
-    // Refresh balance display
+// Refresh balance display
     if(state.profile) state.profile.earnings = (state.profile.earnings||0) - amt;
     var balEl = document.getElementById('wd-bal-display');
     if(balEl) balEl.textContent='$'+Math.max(0,(state.profile&&state.profile.earnings)||0).toFixed(2);
@@ -3330,9 +3363,9 @@ function setNetwork(btn,network){ state.network=network; btn.closest('.ntabs').q
 function setAmt(id,amount){ document.getElementById(id).value=amount; }
 function selPkg(card){ document.querySelectorAll('.pkg-card').forEach(function(c){ c.classList.remove('sel'); }); card.classList.add('sel'); state.selectedPkg={size:card.dataset.size,dur:card.dataset.dur,price:parseInt(card.dataset.price)}; }
 document.getElementById('btn-airtime').addEventListener('click',function(){ state.network=document.getElementById('air-network').value; var phone=document.getElementById('air-phone').value.trim(),amt=parseInt(document.getElementById('air-amt').value)||0,err=document.getElementById('air-err'); err.textContent=''; if(!phone||!phone.trim()||phone.length<6){ err.textContent='Enter a valid 11-digit phone number'; return; } if(amt<1){ err.textContent='Minimum airtime is $1'; return; } if(!state.user) return; var ngn = amt * 1600; payWithPaystack({amount:ngn*100,currency:'NGN',ref:'ZA-'+Date.now(),metadata:{type:'airtime',network:state.network,phone:phone,amount:ngn},onSuccess:function(r){
-            // Payment successful — now deliver airtime via Husmo API
+// Payment successful — now deliver airtime via Husmo API
             var networkCode = {'MTN Nigeria':'MTN','Airtel Nigeria':'AIR','Glo Nigeria':'GLO','9mobile Nigeria':'ETI'}[state.network]||'MTN';
-            // Save to Firestore first
+// Save to Firestore first
             db.collection('topups').add({
               uid:state.user.uid,name:state.profile.name,
               email:state.user.email,type:'airtime',
@@ -3340,7 +3373,7 @@ document.getElementById('btn-airtime').addEventListener('click',function(){ stat
               ref:r.reference,status:'processing',
               createdAt:firebase.firestore.FieldValue.serverTimestamp()
             }).then(function(docRef){
-              // Deliver airtime via secure backend proxy
+// Deliver airtime via secure backend proxy
               deliverAirtimeHusmo(phone, state.network, ngn, r.reference, docRef);
             });
             closeModal('modal-topup');
@@ -3358,7 +3391,7 @@ document.getElementById('btn-data').addEventListener('click',function(){ state.n
               status:'processing',
               createdAt:firebase.firestore.FieldValue.serverTimestamp()
             }).then(function(docRef){
-              // Data delivery via secure backend proxy
+// Data delivery via secure backend proxy
               deliverDataHusmo(phone, state.network, pkg.size, pkg.price*1600, r.reference, docRef);
             });
             closeModal('modal-topup');
@@ -3367,7 +3400,7 @@ document.getElementById('btn-data').addEventListener('click',function(){ state.n
 
 document.querySelectorAll('.modal-overlay').forEach(function(o){ o.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); }); });
 
-// ── ADS SYSTEM ──
+// ADS SYSTEM
 var adState = { type:'free', budget:5, impressions:500, videoAdTimer:null, videoAdSeconds:5, currentAds:[], adIndex:0, postCount:0 };
 
 document.getElementById('nav-ads').addEventListener('click',function(){ setNav(this); openModal('modal-ads'); });
@@ -3412,7 +3445,7 @@ document.getElementById('btn-submit-free').addEventListener('click', function(){
   if(!cta){ err.textContent='Enter call to action text'; return; }
   if(!state.user) return;
   var btn = this; btn.disabled=true; btn.textContent='Submitting…';
-  // ── SCAN AD FOR MALICIOUS CONTENT ──
+// SCAN AD FOR MALICIOUS CONTENT
   var _adDesc = (document.getElementById('ad-desc')||{}).value||'';
   var _adTitle = (document.getElementById('ad-title')||{}).value||'';
   var _adUrl = (document.getElementById('ad-url')||{}).value||'';
@@ -3512,7 +3545,7 @@ function loadAdStats(){
   });
 }
 
-// ── INJECT ADS INTO FEED ──
+// INJECT ADS INTO FEED
 var origRenderFeed = renderFeed;
 renderFeed = function(){
   origRenderFeed();
@@ -3520,7 +3553,7 @@ renderFeed = function(){
   var fc = document.getElementById('feed-cont');
   var cards = fc.querySelectorAll('.spark-card');
   if(cards.length < 3) return;
-  // Insert ad after every 3rd post
+// Insert ad after every 3rd post
   var adsToShow = adState.currentAds.filter(function(a){ return a.type==='free'||a.type==='paid'; });
   if(!adsToShow.length) return;
   var adIdx = 0;
@@ -3532,7 +3565,7 @@ renderFeed = function(){
     adEl.innerHTML='<div class="ad-banner-ph">'+esc(ad.emoji||'📣')+'</div><div class="ad-title">'+esc(ad.title||'')+'</div><div class="ad-desc">'+esc(ad.description||'')+'</div><button class="ad-cta" data-ad-id="'+esc(ad.id)+'" data-ad-url="'+esc(ad.url||'#')+'">'+esc(ad.cta||'Learn More')+' →</button><div class="ad-sponsor">Sponsored by '+esc(ad.advertiserName||'Mindvora User')+'</div>';
     adEl.querySelector('.ad-cta').addEventListener('click',function(){ trackAdClick(this.dataset.adId, this.dataset.adUrl); });
     if(cards[i] && cards[i].parentNode) cards[i].parentNode.insertBefore(adEl, cards[i].nextSibling);
-    // Track view
+// Track view
     db.collection('ads').doc(ad.id).update({views:firebase.firestore.FieldValue.increment(1)}).catch(function(){});
   }
 };
@@ -3542,7 +3575,7 @@ function trackAdClick(adId, url){
   if(url && url!=='#') window.open(url,'_blank');
 }
 
-// ── VIDEO AD BEFORE REELS ──
+// VIDEO AD BEFORE REELS
 var origOpenReel = openReel;
 openReel = function(id, url, author, text, likes){
   var paidAds = adState.currentAds.filter(function(a){ return a.type==='paid'; });
@@ -3567,7 +3600,7 @@ function showVideoAd(ad, callback){
   skipBtn.textContent='Skip in 5s';
   skipBtn.onclick = null;
   document.getElementById('video-ad-overlay').classList.add('open');
-  // Track view
+// Track view
   db.collection('ads').doc(ad.id).update({views:firebase.firestore.FieldValue.increment(1)}).catch(function(){});
   var secs = 5;
   adState.videoAdTimer = setInterval(function(){
@@ -3593,7 +3626,7 @@ function closeVideoAd(callback){
 // Load ads on mount
 setTimeout(loadAds, 2000);
 
-// ── ADMIN SYSTEM ──
+// ADMIN SYSTEM
 var ADMIN_EMAIL = 'ilohgreat25@gmail.com';
 
 function isAdmin(){ return state && state.user && state.user.email === ADMIN_EMAIL; }
@@ -3602,14 +3635,14 @@ function isAdmin(){ return state && state.user && state.user.email === ADMIN_EMA
 function checkAdminAccess(){
   var adminNav = document.getElementById('nav-admin');
   if(!adminNav) return;
-  // Triple check — must match owner email exactly, case-insensitive
+// Triple check — must match owner email exactly, case-insensitive
   var isOwner = state && state.user && 
                 state.user.email && 
                 state.user.email.toLowerCase().trim() === ADMIN_EMAIL.toLowerCase().trim();
   adminNav.style.display = isOwner ? 'flex' : 'none';
   adminNav.style.visibility = isOwner ? 'visible' : 'hidden';
   adminNav.style.pointerEvents = isOwner ? 'auto' : 'none';
-  // Extra security — remove from DOM entirely for non-owners
+// Extra security — remove from DOM entirely for non-owners
   if(!isOwner){
     adminNav.setAttribute('aria-hidden','true');
     adminNav.style.opacity = '0';
@@ -3627,7 +3660,7 @@ function checkAdminAccess(){
 
 // Admin nav click
 document.getElementById('nav-admin').addEventListener('click', function(){
-  // Security: verify ownership before opening admin panel
+// Security: verify ownership before opening admin panel
   if(!state || !state.user || state.user.email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()){
     showToast('⛔ Access denied.');
     return;
@@ -3700,7 +3733,7 @@ function loadAdminAds(status, listId){
   }).catch(function(e){
     if(list) list.innerHTML = '<div style="color:#fca5a5;padding:14px">Error: '+esc(e.message)+'</div>';
   });
-  // event delegation for approve/reject buttons
+// event delegation for approve/reject buttons
   if(list && !list.dataset.delegated){
     list.dataset.delegated='1';
     list.addEventListener('click',function(e){
@@ -3723,7 +3756,7 @@ function adminApproveAd(adId){
     showToast('✅ Ad approved and now live!');
     loadAdminTab('pending');
     loadAds();
-    // notify advertiser
+// notify advertiser
     db.collection('ads').doc(adId).get().then(function(d){
       if(d.exists && d.data().advertiserId){
         db.collection('notifications').add({
@@ -3751,7 +3784,7 @@ function adminRejectAd(adId){
     showToast('❌ Ad rejected');
     loadAdminTab('pending');
     loadAds();
-    // notify advertiser
+// notify advertiser
     db.collection('ads').doc(adId).get().then(function(d){
       if(d.exists && d.data().advertiserId){
         db.collection('notifications').add({
@@ -3791,7 +3824,7 @@ function loadAdminOverview(){
   });
 }
 
-// ── SECURITY ALERTS PANEL ──
+// SECURITY ALERTS PANEL
 function loadSecurityAlertsPanel(){
   if(!isAdmin()) return;
   var list = document.getElementById('security-alerts-list');
@@ -3818,7 +3851,7 @@ function loadSecurityAlertsPanel(){
         (!a.resolved ? '<button style="font-size:10px;padding:4px 12px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);border-radius:20px;color:var(--green3);cursor:pointer" data-alertid="'+esc(a.id)+'" data-action="resolve">Mark Resolved</button>' : '')+
       '</div>';
     }).join('');
-    // Event delegation for resolve buttons
+// Event delegation for resolve buttons
     if(!list.dataset.secDelegated){
       list.dataset.secDelegated='1';
       list.addEventListener('click',function(e){
@@ -3834,7 +3867,7 @@ function loadSecurityAlertsPanel(){
   });
 }
 
-// ── ADMIN USERS PANEL ──
+// ADMIN USERS PANEL
 var allUsersCache = [];
 
 function loadUsersPanel(){
@@ -3844,11 +3877,11 @@ function loadUsersPanel(){
   if(!list) return;
   list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Loading users...</div>';
   
-  // Get all users from Firestore
+// Get all users from Firestore
   db.collection('users').get().then(function(snap){
     allUsersCache = snap.docs.map(function(d){ return Object.assign({id:d.id}, d.data()); });
     
-    // Count online (active in last 5 minutes)
+// Count online (active in last 5 minutes)
     var now = Date.now();
     var onlineCount = allUsersCache.filter(function(u){ 
       return u.lastSeen && (now - u.lastSeen) < 300000; 
@@ -3871,7 +3904,7 @@ function renderUsersList(users){
     return;
   }
   var now = Date.now();
-  // Sort: online first, then by join date
+// Sort: online first, then by join date
   users.sort(function(a,b){
     var aOnline = a.lastSeen && (now - a.lastSeen) < 300000;
     var bOnline = b.lastSeen && (now - b.lastSeen) < 300000;
@@ -3915,7 +3948,7 @@ function renderUsersList(users){
     '</div>';
   }).join('');
 
-  // Event delegation for ban/unban
+// Event delegation for ban/unban
   if(!list.dataset.usersDelegated){
     list.dataset.usersDelegated = '1';
     list.addEventListener('click', function(e){
@@ -3949,18 +3982,18 @@ function banUser(userId, username, ban){
   if(!isAdmin()) return;
   db.collection('users').doc(userId).update({ banned: ban }).then(function(){
     showToast(ban ? ('🚫 ' + username + ' has been banned!') : ('✅ ' + username + ' has been unbanned!'));
-    // Update cache
+// Update cache
     allUsersCache = allUsersCache.map(function(u){ 
       return u.id === userId ? Object.assign({}, u, {banned: ban}) : u; 
     });
     renderUsersList(allUsersCache);
-    // Send security alert for bans
+// Send security alert for bans
     if(ban) sendSecurityAlert('brute_force', 'Admin banned user: ' + username + ' (ID: ' + userId + ')');
   }).catch(function(e){ showToast('Error: ' + e.message); });
 }
 
-// ── SUPPORT / CONTACT ──
-// ── Mindvora CAMERA ──
+// SUPPORT / CONTACT
+// Mindvora CAMERA
 var camStream = null;
 var camFacingMode = 'user';
 var camMediaRecorder = null;
@@ -4034,7 +4067,7 @@ function applyFilterToPreview(filter){
 
 function takePhoto(){
   if(!camStream) return;
-  // Countdown from 3
+// Countdown from 3
   var count = 3;
   var cd = document.getElementById('cam-countdown');
   cd.style.display = 'flex';
@@ -4058,9 +4091,9 @@ function captureSnapshot(){
   canvas.width = preview.videoWidth;
   canvas.height = preview.videoHeight;
   var ctx = canvas.getContext('2d');
-  // Apply filter to canvas
+// Apply filter to canvas
   if(camCurrentFilter !== 'none') ctx.filter = camCurrentFilter;
-  // Flip horizontally for selfie
+// Flip horizontally for selfie
   if(camFacingMode === 'user'){
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
@@ -4162,14 +4195,14 @@ function retakeCamera(){
 
 function useCaptured(){
   if(!camCapturedBlob){ showToast('Nothing captured yet!'); return; }
-  // Upload to Cloudinary
+// Upload to Cloudinary
   var formData = new FormData();
   var ext = camCapturedType === 'image' ? 'jpg' : 'webm';
   formData.append('file', camCapturedBlob, 'zync-cam-' + Date.now() + '.' + ext);
   formData.append('upload_preset', 'ml_default');
   var resourceType = camCapturedType === 'image' ? 'image' : 'video';
   closeCameraModal();
-  // Show upload banner
+// Show upload banner
   var banner = document.createElement('div');
   banner.id = 'upload-banner';
   banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,var(--green),var(--green2));color:var(--cream);text-align:center;padding:10px;font-size:13px;font-weight:700;z-index:9999';
@@ -4207,10 +4240,10 @@ function useCaptured(){
 }
 
 
-// ── OPEN LINK SAFELY ──
+// OPEN LINK SAFELY
 function openLink(url){ window.open(url,'_blank','noopener,noreferrer'); }
 
-// ── BUILD POLL HTML ──
+// BUILD POLL HTML
 function buildPollHTML(s){
   if(!s.poll||!s.poll.options) return '';
   var total=s.poll.votes?Object.values(s.poll.votes).reduce(function(a,b){return a+(b||0);},0):0;
@@ -4232,7 +4265,7 @@ function buildPollHTML(s){
   return html+'</div>';
 }
 
-// ── BUILD REACTIONS HTML ──
+// BUILD REACTIONS HTML
 // Quick reactions bar (top picks)
 var REACTIONS=['❤️','😂','😮','😢','🔥','👏','🎉','💯','😍','🤣','😭','😱','🥰','👍','💪','🙏'];
 
@@ -4265,7 +4298,7 @@ function buildReactionsHTML(s){
 }
 
 function showReactionPicker(sparkId, btn) {
-  // Remove any existing picker
+// Remove any existing picker
   var existing = document.getElementById('rxpicker-' + sparkId);
   if (existing) { existing.remove(); return; }
   document.querySelectorAll('.reaction-picker-full').forEach(function(p){ p.remove(); });
@@ -4274,7 +4307,7 @@ function showReactionPicker(sparkId, btn) {
   picker.className = 'reaction-picker-full';
   picker.id = 'rxpicker-' + sparkId;
 
-  // ── Quick reactions row ──
+// Quick reactions row
   var quickDiv = document.createElement('div');
   quickDiv.className = 'rxpick-quick';
   REACTIONS.forEach(function(em) {
@@ -4286,7 +4319,7 @@ function showReactionPicker(sparkId, btn) {
   });
   picker.appendChild(quickDiv);
 
-  // ── Search bar ──
+// Search bar
   var searchDiv = document.createElement('div');
   searchDiv.className = 'rxpick-search';
   var searchInp = document.createElement('input');
@@ -4295,7 +4328,7 @@ function showReactionPicker(sparkId, btn) {
   searchDiv.appendChild(searchInp);
   picker.appendChild(searchDiv);
 
-  // ── Category tabs ──
+// Category tabs
   var tabsDiv = document.createElement('div');
   tabsDiv.className = 'rxpick-tabs';
   EMOJI_CATS.forEach(function(cat, i) {
@@ -4315,7 +4348,7 @@ function showReactionPicker(sparkId, btn) {
   });
   picker.appendChild(tabsDiv);
 
-  // ── Emoji body ──
+// Emoji body
   var body = document.createElement('div');
   body.className = 'rxpick-body';
   picker.appendChild(body);
@@ -4334,7 +4367,7 @@ function showReactionPicker(sparkId, btn) {
   }
   renderCat(0);
 
-  // ── Search logic ──
+// Search logic
   searchInp.oninput = function() {
     var q = this.value.trim().toLowerCase();
     tabsDiv.querySelectorAll('.rxpick-tab').forEach(function(t){ t.classList.remove('active'); });
@@ -4344,7 +4377,7 @@ function showReactionPicker(sparkId, btn) {
     var count = 0;
     EMOJI_CATS.forEach(function(cat) {
       cat.emojis.forEach(function(em) {
-        // Show all emojis when searching (user scans visually)
+// Show all emojis when searching (user scans visually)
         var b = document.createElement('button');
         b.textContent = em;
         b.onclick = function(e){ e.stopPropagation(); toggleReaction(sparkId, em); picker.remove(); };
@@ -4357,7 +4390,7 @@ function showReactionPicker(sparkId, btn) {
     else body.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:10px;text-align:center">No emojis</div>';
   };
 
-  // ── Position ──
+// Position
   document.body.appendChild(picker);
   var rect = btn.getBoundingClientRect();
   var top = rect.top - 340;
@@ -4367,7 +4400,7 @@ function showReactionPicker(sparkId, btn) {
   picker.style.top  = top + 'px';
   picker.style.left = left + 'px';
 
-  // ── Auto-close ──
+// Auto-close
   setTimeout(function() {
     function closeHandler(e) {
       if (!picker.contains(e.target) && e.target !== btn) {
@@ -4673,9 +4706,7 @@ function openCreatorSub(creatorId,creatorName,price){
 }
 
 
-// ══════════════════════════════════════════════════════
 // 🔴 Mindvora LIVE STREAMING — WebRTC + Firestore Signaling
-// ══════════════════════════════════════════════════════
 
 var liveState = {
   localStream: null,
@@ -4694,7 +4725,7 @@ var ICE_SERVERS = { iceServers: [
   { urls: 'stun:stun2.l.google.com:19302' }
 ]};
 
-// ── OPEN GO LIVE SETUP ──
+// OPEN GO LIVE SETUP
 function openGoLive() {
   if (!state.user) { showToast('Please login first'); return; }
   openModal('modal-go-live');
@@ -4708,13 +4739,13 @@ function _requestLiveCamera() {
   var errEl = document.getElementById('live-err');
   errEl.innerHTML = '';
 
-  // Guard: browser support check
+// Guard: browser support check
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     errEl.innerHTML = '❌ Your browser does not support live streaming.';
     return;
   }
 
-  // Request camera + mic
+// Request camera + mic
   navigator.mediaDevices.getUserMedia({ video: true, audio: true })
     .then(function(stream) {
       liveState.localStream = stream;
@@ -4738,7 +4769,7 @@ function _requestLiveCamera() {
 }
 
 function cancelGoLive() {
-  // Stop preview stream
+// Stop preview stream
   if (liveState.localStream) {
     liveState.localStream.getTracks().forEach(function(t) { t.stop(); });
     liveState.localStream = null;
@@ -4746,7 +4777,7 @@ function cancelGoLive() {
   closeModal('modal-go-live');
 }
 
-// ── START BROADCASTING ──
+// START BROADCASTING
 function startLiveStream() {
   var title = document.getElementById('live-title-inp').value.trim();
   var cat   = document.getElementById('live-cat-inp').value;
@@ -4775,13 +4806,13 @@ function startLiveStream() {
     liveState.currentLiveId = docRef.id;
     liveState.isHost         = true;
 
-    // Close modal, open host view
+// Close modal, open host view
     closeModal('modal-go-live');
     document.getElementById('live-host-title-lbl').textContent = title;
     document.getElementById('live-host-video').srcObject = liveState.localStream;
     document.getElementById('live-host-view').style.display = 'block';
 
-    // Post a spark announcing the live
+// Post a spark announcing the live
     db.collection('sparks').add({
       text: '🔴 ' + esc((state.profile && state.profile.name) || 'Mindvora user') + ' just went LIVE: "' + esc(title) + '" — join now!',
       authorId: state.user.uid,
@@ -4797,7 +4828,7 @@ function startLiveStream() {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).catch(function() {});
 
-    // Listen for viewer join signals (WebRTC offers)
+// Listen for viewer join signals (WebRTC offers)
     db.collection('live_streams').doc(docRef.id)
       .collection('signals').where('type','==','offer')
       .onSnapshot(function(snap) {
@@ -4808,10 +4839,10 @@ function startLiveStream() {
         });
       });
 
-    // Listen for live chat
+// Listen for live chat
     subscribeHostChat(docRef.id);
 
-    // Update viewer count every 10s
+// Update viewer count every 10s
     liveState.viewerCountInterval = setInterval(function() {
       db.collection('live_streams').doc(liveState.currentLiveId).get()
         .then(function(d) {
@@ -4828,18 +4859,18 @@ function startLiveStream() {
   });
 }
 
-// ── HOST: handle incoming viewer WebRTC offer ──
+// HOST: handle incoming viewer WebRTC offer
 function handleViewerOffer(viewerId, data) {
   if (liveState.peerConnections[viewerId]) return;
   var pc = new RTCPeerConnection(ICE_SERVERS);
   liveState.peerConnections[viewerId] = pc;
 
-  // Add local tracks
+// Add local tracks
   liveState.localStream.getTracks().forEach(function(track) {
     pc.addTrack(track, liveState.localStream);
   });
 
-  // ICE candidates from host to viewer
+// ICE candidates from host to viewer
   pc.onicecandidate = function(e) {
     if (e.candidate) {
       db.collection('live_streams').doc(liveState.currentLiveId)
@@ -4858,7 +4889,7 @@ function handleViewerOffer(viewerId, data) {
     })
     .catch(function(e) { console.warn('WebRTC offer handling error:', e); });
 
-  // Listen for viewer ICE candidates
+// Listen for viewer ICE candidates
   db.collection('live_streams').doc(liveState.currentLiveId)
     .collection('signals').doc(viewerId).collection('viewer_ice')
     .onSnapshot(function(snap) {
@@ -4870,7 +4901,7 @@ function handleViewerOffer(viewerId, data) {
     });
 }
 
-// ── END STREAM (host) ──
+// END STREAM (host)
 function endLiveStream() {
   if (!confirm('End your live stream?')) return;
   clearInterval(liveState.viewerCountInterval);
@@ -4901,7 +4932,7 @@ function toggleHostCam() {
     .then(function(stream) {
       liveState.localStream = stream;
       document.getElementById('live-host-video').srcObject = stream;
-      // Re-add tracks to all peer connections
+// Re-add tracks to all peer connections
       Object.values(liveState.peerConnections).forEach(function(pc) {
         var senders = pc.getSenders();
         stream.getTracks().forEach(function(track) {
@@ -4912,7 +4943,7 @@ function toggleHostCam() {
     }).catch(function() { showToast('Could not switch camera'); });
 }
 
-// ── WATCH LIVE (viewer joins) ──
+// WATCH LIVE (viewer joins)
 function openLivesList() {
   if (!state.user) { showToast('Please login first'); return; }
   openModal('modal-lives-list');
@@ -4929,7 +4960,7 @@ function openLivesList() {
       container.innerHTML = sorted.map(function(d) {
         var s = d.data();
         var initial = (s.hostName || 'Z').charAt(0).toUpperCase();
-        return '<div class="live-card" onclick="joinStream(\'' + d.id + '\',\'' + esc(s.hostName||'Mindvora user') + '\',\'' + esc(s.hostHandle||'user') + '\',\'' + esc(s.hostColor||COLORS[0]) + '\')">' +
+        return '<div class="live-card" onclick="joinStream(\'' + d.id + '\',\'' + escJs(s.hostName||'Mindvora user') + '\',\'' + escJs(s.hostHandle||'user') + '\',\'' + escJs(s.hostColor||COLORS[0]) + '\')">' +
           '<div class="live-thumb">' +
             '<div class="live-host-av" style="background:' + esc(s.hostColor||COLORS[0]) + '">' + initial + '</div>' +
             '<span class="live-badge" style="position:absolute;top:8px;left:8px">LIVE</span>' +
@@ -4950,17 +4981,17 @@ function joinStream(liveId, hostName, hostHandle, hostColor) {
   liveState.currentLiveId = liveId;
   liveState.isHost = false;
 
-  // Update viewer count
+// Update viewer count
   db.collection('live_streams').doc(liveId).update({ viewers: firebase.firestore.FieldValue.increment(1) }).catch(function() {});
 
-  // Set up watch view UI
+// Set up watch view UI
   document.getElementById('watch-host-name').textContent = hostName;
   document.getElementById('watch-host-av').textContent = (hostName||'Z').charAt(0).toUpperCase();
   document.getElementById('watch-host-av').style.background = hostColor||COLORS[0];
   document.getElementById('live-watch-chat').innerHTML = '';
   document.getElementById('live-watch-view').style.display = 'block';
 
-  // WebRTC: create offer and send to host via Firestore signaling
+// WebRTC: create offer and send to host via Firestore signaling
   var viewerId = state.user.uid + '_' + Date.now();
   var pc = new RTCPeerConnection(ICE_SERVERS);
   liveState.peerConnections[viewerId] = pc;
@@ -4978,7 +5009,7 @@ function joinStream(liveId, hostName, hostHandle, hostColor) {
     }
   };
 
-  // Create offer
+// Create offer
   pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true })
     .then(function(offer) { return pc.setLocalDescription(offer).then(function() { return offer; }); })
     .then(function(offer) {
@@ -4987,7 +5018,7 @@ function joinStream(liveId, hostName, hostHandle, hostColor) {
     })
     .catch(function(e) { console.warn('WebRTC offer error:', e); showToast('Connection error. Try again.'); });
 
-  // Listen for host's answer
+// Listen for host's answer
   db.collection('live_streams').doc(liveId)
     .collection('signals').doc(viewerId)
     .onSnapshot(function(snap) {
@@ -4998,7 +5029,7 @@ function joinStream(liveId, hostName, hostHandle, hostColor) {
       }
     });
 
-  // Listen for host ICE candidates
+// Listen for host ICE candidates
   db.collection('live_streams').doc(liveId)
     .collection('signals').doc(viewerId).collection('host_ice')
     .onSnapshot(function(snap) {
@@ -5009,7 +5040,7 @@ function joinStream(liveId, hostName, hostHandle, hostColor) {
       });
     });
 
-  // Check if stream ended
+// Check if stream ended
   liveState.viewerUnsub = db.collection('live_streams').doc(liveId).onSnapshot(function(d) {
     if (d.exists && d.data().live === false) {
       showToast('Stream has ended');
@@ -5019,7 +5050,7 @@ function joinStream(liveId, hostName, hostHandle, hostColor) {
     document.getElementById('watch-viewer-lbl').textContent = viewers;
   });
 
-  // Subscribe chat
+// Subscribe chat
   subscribeViewerChat(liveId);
 }
 
@@ -5035,7 +5066,7 @@ function leaveStream() {
   document.getElementById('live-watch-view').style.display = 'none';
 }
 
-// ── LIVE CHAT ──
+// LIVE CHAT
 function subscribeHostChat(liveId) {
   liveState.chatUnsub = db.collection('live_streams').doc(liveId).collection('chat')
     .orderBy('createdAt','asc').limitToLast(100)
@@ -5100,9 +5131,7 @@ function sendLiveTip() {
 }
 
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 1: PUSH NOTIFICATIONS (FCM + Native Notification API)
-// ══════════════════════════════════════════════════════════════
 var messaging = null;
 var VAPID_KEY = 'BE41egfg4EvNNlM_ZepYdR1TQ460QNYCkQmgEGJ8SvsUHtDNw4pOpGW7bo0wSu9w9YWM_GxrW71lpAi5IZf5QKA';
 
@@ -5142,11 +5171,11 @@ function subscribePush() {
   });
 }
 
-// ── NATIVE NOTIFICATION API — show OS-level notifications ─────────────────
+// NATIVE NOTIFICATION API — show OS-level notifications
 function showNativeNotification(title, body, icon) {
   if (!('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
-  // Only show native notification when page is not focused (simulates background)
+// Only show native notification when page is not focused (simulates background)
   if (document.hasFocus && document.hasFocus()) return;
   try {
     var n = new Notification(title || 'Mindvora', {
@@ -5162,12 +5191,12 @@ function showNativeNotification(title, body, icon) {
       window.focus();
       n.close();
     };
-    // Auto-close after 6 seconds
+// Auto-close after 6 seconds
     setTimeout(function(){ try { n.close(); } catch(e){} }, 6000);
   } catch(e) { /* SW-only environment */ }
 }
 
-// ── REALTIME FIRESTORE NOTIFICATION LISTENER ─────────────────────────────
+// REALTIME FIRESTORE NOTIFICATION LISTENER
 // Listens for new notifications in real-time and triggers native OS popups
 var _notifListenerActive = false;
 function startRealtimeNotifListener() {
@@ -5184,7 +5213,7 @@ function startRealtimeNotifListener() {
         if (change.type === 'added') {
           var notif = change.doc.data();
           var createdAt = notif.createdAt ? notif.createdAt.seconds * 1000 : 0;
-          // Only trigger native notification for notifications created in last 30 seconds
+// Only trigger native notification for notifications created in last 30 seconds
           if (Date.now() - createdAt < 30000) {
             var title = 'Mindvora';
             var body = notif.text || 'You have a new notification';
@@ -5198,7 +5227,7 @@ function startRealtimeNotifListener() {
           }
         }
       });
-      // Update notification bell
+// Update notification bell
       if (typeof updateNotifBell === 'function') updateNotifBell();
       if (typeof loadNotifications === 'function') loadNotifications();
     }, function(err) {
@@ -5207,7 +5236,7 @@ function startRealtimeNotifListener() {
     });
 }
 
-// ── BACKGROUND NOTIFICATION CHECK (polls every 60 seconds) ───────────────
+// BACKGROUND NOTIFICATION CHECK (polls every 60 seconds)
 // Ensures notifications surface even if real-time listener drops
 var _lastNotifCheck = 0;
 setInterval(function() {
@@ -5237,17 +5266,17 @@ setInterval(function() {
 
 // Register service worker
 if ('serviceWorker' in navigator) {
-  // Register main service worker (handles offline, caching, push, background sync)
+// Register main service worker (handles offline, caching, push, background sync)
   navigator.serviceWorker.register('/sw.js', { scope: '/' })
     .then(function(reg) {
       console.log('[Mindvora] SW registered:', reg.scope);
-      // Request periodic background sync if supported
+// Request periodic background sync if supported
       if ('periodicSync' in reg) {
         reg.periodicSync.register('refresh-feed', { minInterval: 24 * 60 * 60 * 1000 })
           .catch(function(){});
       }
     }).catch(function(){});
-  // Also register Firebase messaging SW for push notifications
+// Also register Firebase messaging SW for push notifications
   navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(function(){});
 }
 
@@ -5259,9 +5288,7 @@ function sendPushToUser(uid, title, body, type) {
   }).catch(function(){});
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 2 & 3: VOICE & VIDEO CALLS (WebRTC)
-// ══════════════════════════════════════════════════════════════
 var callState = {
   pc: null,
   localStream: null,
@@ -5330,7 +5357,7 @@ function startCall(targetUid, targetName, targetColor, isVideo) {
         });
       }).catch(function(e) { console.warn('Offer error:', e); });
 
-      // Send notification to callee
+// Send notification to callee
       db.collection('notifications').add({
         uid: targetUid, type: 'call',
         text: '📞 ' + esc((state.profile&&state.profile.name)||'Someone') + ' is calling you! Open Mindvora to answer.',
@@ -5338,7 +5365,7 @@ function startCall(targetUid, targetName, targetColor, isVideo) {
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), read: false
       }).catch(function(){});
 
-      // Listen for answer
+// Listen for answer
       callState.callUnsub = db.collection('calls').doc(docRef.id).onSnapshot(function(d) {
         var data = d.data();
         if (!data) return;
@@ -5462,7 +5489,7 @@ function showIncomingCall(callId, callerName, callerColor, callType) {
   document.getElementById('incoming-caller-av').style.background = callerColor;
   document.getElementById('incoming-call-id').value = callId;
   document.getElementById('incoming-call-banner').style.display = 'flex';
-  // Auto-dismiss after 30s
+// Auto-dismiss after 30s
   setTimeout(function() { declineCall(callId); }, 30000);
 }
 
@@ -5478,9 +5505,7 @@ function declineCall(callId) {
   if (id) db.collection('calls').doc(id).update({ status: 'declined' }).catch(function(){});
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 4: GROUPS / COMMUNITIES
-// ══════════════════════════════════════════════════════════════
 var currentGroupId = null;
 var groupChatUnsub = null;
 
@@ -5501,7 +5526,7 @@ function loadMyGroups() {
       }
       list.innerHTML = snap.docs.map(function(d) {
         var g = d.data();
-        return '<div class="group-item" onclick="openGroupChat(\''+d.id+'\',\''+esc(g.name||'Group')+'\',\''+esc(g.emoji||'👥')+'\')">'+
+        return '<div class="group-item" onclick="openGroupChat(\''+d.id+'\',\''+escJs(g.name||'Group')+'\',\''+escJs(g.emoji||'👥')+'\')">'+
           '<div class="group-av">'+esc(g.emoji||'👥')+'</div>'+
           '<div style="flex:1">'+
             '<div style="font-size:13px;font-weight:700;color:var(--moon)">'+esc(g.name||'Group')+'</div>'+
@@ -5625,7 +5650,7 @@ function discoverGroups() {
             '<div style="font-size:11px;color:var(--muted)">'+(g.members||[]).length+' members</div>'+
           '</div>'+
           (isMember
-            ? '<button onclick="openGroupChat(\''+d.id+'\',\''+esc(g.name)+'\',\''+esc(g.emoji||'👥')+'\')" style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--green3);background:transparent;color:var(--green3);cursor:pointer">Open</button>'
+            ? '<button onclick="openGroupChat(\''+d.id+'\',\''+escJs(g.name)+'\',\''+escJs(g.emoji||'👥')+'\')" style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--green3);background:transparent;color:var(--green3);cursor:pointer">Open</button>'
             : '<button onclick="joinGroup(\''+d.id+'\')" style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid var(--green3);background:transparent;color:var(--green3);cursor:pointer">Join</button>'
           )+
         '</div>';
@@ -5638,9 +5663,7 @@ function joinGroup(groupId) {
     .then(function() { showToast('👥 Joined group!'); discoverGroups(); });
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 5: ADVANCED SEARCH
-// ══════════════════════════════════════════════════════════════
 function openAdvancedSearch() {
   if (!state.user) { showToast('Login first'); return; }
   openModal('modal-adv-search');
@@ -5710,9 +5733,7 @@ function switchSearchTab(type, btn) {
   if (document.getElementById('adv-search-inp').value.trim()) runAdvancedSearch();
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 6: BACKGROUND MUSIC ON STORIES/REELS
-// ══════════════════════════════════════════════════════════════
 var storyMusicAudio = null;
 var pendingStoryMusic = null;
 
@@ -5748,12 +5769,12 @@ function previewTrack(i) {
   storyMusicAudio.volume = 0.5;
   storyMusicAudio.play().then(function(){
     showToast('▶ Playing: ' + track.name);
-    // Update UI - show playing state
+// Update UI - show playing state
     document.querySelectorAll('.music-item').forEach(function(el){ el.style.background=''; });
     var el = document.getElementById('music-item-'+i);
     if(el) el.style.background = 'rgba(34,197,94,.1)';
   }).catch(function(e){
-    // Autoplay blocked or CORS — try without crossOrigin
+// Autoplay blocked or CORS — try without crossOrigin
     storyMusicAudio = new Audio(track.url);
     storyMusicAudio.volume = 0.5;
     storyMusicAudio.play().catch(function(){
@@ -5779,9 +5800,7 @@ function closeMusicPicker() {
   closeModal('modal-music-picker');
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 7: THREADED REPLIES
-// ══════════════════════════════════════════════════════════════
 var replyingTo = null;
 
 function replyToComment(commentId, authorName) {
@@ -5820,9 +5839,7 @@ function patchSendCommentForThreads(sparkId, text) {
   return db.collection('sparks').doc(sparkId).collection('comments').add(commentData);
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 8: COLLAB POSTS
-// ══════════════════════════════════════════════════════════════
 var collabInvite = null;
 
 function openCollabPost() {
@@ -5842,7 +5859,7 @@ function searchCollabUser() {
       if (snap.empty) { res.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px 0">No users found</div>'; return; }
       res.innerHTML = snap.docs.filter(function(d){return d.id!==state.user.uid;}).map(function(d) {
         var u = d.data();
-        return '<div class="search-result-item" onclick="selectCollabUser(\''+d.id+'\',\''+esc(u.name||'Mindvora user')+'\',\''+esc(u.color||COLORS[0])+'\')">'+
+        return '<div class="search-result-item" onclick="selectCollabUser(\''+d.id+'\',\''+escJs(u.name||'Mindvora user')+'\',\''+escJs(u.color||COLORS[0])+'\')">'+
           '<div style="width:32px;height:32px;border-radius:50%;background:'+(u.color||'var(--green)')+';display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff">'+(u.name||'Z').charAt(0)+'</div>'+
           '<div style="font-size:12px;color:var(--moon)">'+esc(u.name||'Mindvora user')+'<br><span style="font-size:10px;color:var(--muted)">@'+esc(u.handle||'user')+'</span></div>'+
         '</div>';
@@ -5887,9 +5904,7 @@ function postCollabSpark() {
   }).catch(function() { showToast('Error posting'); });
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 9: MINI GAMES
-// ══════════════════════════════════════════════════════════════
 function openGames() {
   if (!state.user) { showToast('Login first'); return; }
   openModal('modal-games');
@@ -5950,7 +5965,7 @@ function launchTypingGame(container) {
     started = true;
     timeLeft = 60;
 
-    // Render passage with span per word for highlight
+// Render passage with span per word for highlight
     var words2 = currentPassage.split(' ');
     document.getElementById('tg-passage').innerHTML = words2.map(function(w, i) {
       return '<span id="tw-' + i + '" style="padding:1px 2px;border-radius:3px">' + w + ' </span>';
@@ -5987,7 +6002,7 @@ function launchTypingGame(container) {
       var currentTyped = typedWords[typedWords.length - 1];
       var completedWords = typedWords.length - 1;
 
-      // Check if user pressed space — word submitted
+// Check if user pressed space — word submitted
       if (typed.endsWith(' ')) {
         var submittedWord = typedWords[typedWords.length - 2];
         if (submittedWord === passageWords[wordIndex]) {
@@ -5999,14 +6014,14 @@ function launchTypingGame(container) {
           document.getElementById('tg-wpm').textContent = elapsed > 0 ? Math.round(totalTyped / (elapsed / 60)) : 0;
           highlightWord(wordIndex);
           if (wordIndex >= passageWords.length) {
-            // Finished passage
+// Finished passage
             clearInterval(interval);
             started = false;
             inp.disabled = true;
             showToast('🎉 Passage complete! ' + totalTyped + ' words in ' + (60 - timeLeft) + 's');
           }
         } else {
-          // Wrong word — highlight red
+// Wrong word — highlight red
           var el = document.getElementById('tw-' + wordIndex);
           if (el) { el.style.background = 'rgba(239,68,68,0.2)'; el.style.color = '#fca5a5'; }
         }
@@ -6072,12 +6087,10 @@ function launchMemoryGame(container) {
   });
 }
 
-// ═══════════════════════════════════════════════════════
 // TRIVIA — 200 real-life questions across 6 categories
 // Fetches from Open Trivia DB API. Falls back to local bank.
-// ═══════════════════════════════════════════════════════
 var TRIVIA_LOCAL = [
-  // 🌍 GEOGRAPHY
+// 🌍 GEOGRAPHY
   {q:"What is the capital of Australia?",opts:["Sydney","Melbourne","Canberra","Brisbane"],ans:2,cat:"🌍 Geography"},
   {q:"Which is the longest river in the world?",opts:["Amazon","Nile","Yangtze","Mississippi"],ans:1,cat:"🌍 Geography"},
   {q:"What country has the most natural lakes?",opts:["Russia","USA","Brazil","Canada"],ans:3,cat:"🌍 Geography"},
@@ -6088,7 +6101,7 @@ var TRIVIA_LOCAL = [
   {q:"Which country has the most population?",opts:["USA","India","China","Indonesia"],ans:1,cat:"🌍 Geography"},
   {q:"Mount Everest is in which mountain range?",opts:["Andes","Alps","Rockies","Himalayas"],ans:3,cat:"🌍 Geography"},
   {q:"What is the capital of Brazil?",opts:["Rio de Janeiro","Sao Paulo","Brasilia","Salvador"],ans:2,cat:"🌍 Geography"},
-  // 🔬 SCIENCE
+// 🔬 SCIENCE
   {q:"What is the chemical symbol for gold?",opts:["Go","Gd","Au","Ag"],ans:2,cat:"🔬 Science"},
   {q:"How many bones are in the adult human body?",opts:["196","206","216","226"],ans:1,cat:"🔬 Science"},
   {q:"What planet is known as the Red Planet?",opts:["Venus","Jupiter","Saturn","Mars"],ans:3,cat:"🔬 Science"},
@@ -6099,7 +6112,7 @@ var TRIVIA_LOCAL = [
   {q:"What is the powerhouse of the cell?",opts:["Nucleus","Ribosome","Mitochondria","Golgi body"],ans:2,cat:"🔬 Science"},
   {q:"What element has atomic number 1?",opts:["Helium","Oxygen","Carbon","Hydrogen"],ans:3,cat:"🔬 Science"},
   {q:"What is H2O commonly known as?",opts:["Salt","Water","Oxygen","Hydrogen gas"],ans:1,cat:"🔬 Science"},
-  // 📚 HISTORY
+// 📚 HISTORY
   {q:"In what year did World War II end?",opts:["1943","1944","1945","1946"],ans:2,cat:"📚 History"},
   {q:"Who was the first man to walk on the moon?",opts:["Buzz Aldrin","Yuri Gagarin","Neil Armstrong","John Glenn"],ans:2,cat:"📚 History"},
   {q:"The Great Wall of China was built to protect against whom?",opts:["Japanese","Mongols","Romans","Persians"],ans:1,cat:"📚 History"},
@@ -6110,7 +6123,7 @@ var TRIVIA_LOCAL = [
   {q:"The Titanic sank in what year?",opts:["1910","1911","1912","1913"],ans:2,cat:"📚 History"},
   {q:"Which country was Nelson Mandela president of?",opts:["Zimbabwe","Kenya","Nigeria","South Africa"],ans:3,cat:"📚 History"},
   {q:"The French Revolution began in what year?",opts:["1776","1789","1799","1804"],ans:1,cat:"📚 History"},
-  // 🎬 ENTERTAINMENT
+// 🎬 ENTERTAINMENT
   {q:"Who played Iron Man in the MCU?",opts:["Chris Evans","Robert Downey Jr.","Chris Hemsworth","Mark Ruffalo"],ans:1,cat:"🎬 Entertainment"},
   {q:"Which band wrote Bohemian Rhapsody?",opts:["The Beatles","Rolling Stones","Queen","Led Zeppelin"],ans:2,cat:"🎬 Entertainment"},
   {q:"What is the highest-grossing film of all time?",opts:["Titanic","Avengers: Endgame","Avatar","The Lion King"],ans:2,cat:"🎬 Entertainment"},
@@ -6121,7 +6134,7 @@ var TRIVIA_LOCAL = [
   {q:"Who sang Thriller?",opts:["Prince","Michael Jackson","Whitney Houston","James Brown"],ans:1,cat:"🎬 Entertainment"},
   {q:"The Simpsons first aired in what decade?",opts:["1970s","1980s","1990s","2000s"],ans:1,cat:"🎬 Entertainment"},
   {q:"Which video game character says 'It's-a me, Mario!'?",opts:["Luigi","Wario","Bowser","Mario"],ans:3,cat:"🎬 Entertainment"},
-  // ⚽ SPORTS
+// ⚽ SPORTS
   {q:"How many players are on a soccer team?",opts:["9","10","11","12"],ans:2,cat:"⚽ Sports"},
   {q:"Which country has won the most FIFA World Cups?",opts:["Germany","Argentina","Brazil","France"],ans:2,cat:"⚽ Sports"},
   {q:"In basketball, how many points is a free throw worth?",opts:["1","2","3","4"],ans:0,cat:"⚽ Sports"},
@@ -6132,7 +6145,7 @@ var TRIVIA_LOCAL = [
   {q:"How long is a marathon in kilometers?",opts:["40km","42.195km","45km","38km"],ans:1,cat:"⚽ Sports"},
   {q:"Who is considered the greatest basketball player of all time by most fans?",opts:["LeBron James","Kobe Bryant","Shaquille O'Neal","Michael Jordan"],ans:3,cat:"⚽ Sports"},
   {q:"In cricket, how many balls are in an over?",opts:["4","5","6","8"],ans:2,cat:"⚽ Sports"},
-  // 💡 GENERAL KNOWLEDGE
+// 💡 GENERAL KNOWLEDGE
   {q:"How many sides does a hexagon have?",opts:["5","6","7","8"],ans:1,cat:"💡 General"},
   {q:"What is the largest planet in our solar system?",opts:["Saturn","Neptune","Uranus","Jupiter"],ans:3,cat:"💡 General"},
   {q:"How many colors are in a rainbow?",opts:["5","6","7","8"],ans:2,cat:"💡 General"},
@@ -6143,7 +6156,7 @@ var TRIVIA_LOCAL = [
   {q:"What is the hardest natural substance on Earth?",opts:["Gold","Iron","Quartz","Diamond"],ans:3,cat:"💡 General"},
   {q:"Which blood type is the universal donor?",opts:["A+","B-","AB+","O-"],ans:3,cat:"💡 General"},
   {q:"How many teeth does an adult human have?",opts:["28","30","32","34"],ans:2,cat:"💡 General"},
-  // 🌐 TECHNOLOGY
+// 🌐 TECHNOLOGY
   {q:"What year was the first iPhone released?",opts:["2005","2006","2007","2008"],ans:2,cat:"🌐 Tech"},
   {q:"What does HTML stand for?",opts:["HyperText Markup Language","High Text Machine Language","HyperTransfer Markup Link","Hyper Technical Meta Language"],ans:0,cat:"🌐 Tech"},
   {q:"Who founded Microsoft?",opts:["Steve Jobs","Elon Musk","Bill Gates","Mark Zuckerberg"],ans:2,cat:"🌐 Tech"},
@@ -6155,7 +6168,7 @@ var TRIVIA_LOCAL = [
   {q:"What year was Mindvora founded?",opts:["2023","2024","2025","2026"],ans:3,cat:"🌐 Tech"},
   {q:"What does URL stand for?",opts:["Universal Resource Locator","Uniform Resource Locator","Universal Record Link","Uniform Redirect Locator"],ans:1,cat:"🌐 Tech"},
 
-  // 🤣 JOKES — pick the punchline
+// 🤣 JOKES — pick the punchline
   {q:"Why don't scientists trust atoms?",opts:["They're too small","They make up everything","They split too easily","They have no feelings"],ans:1,cat:"🤣 Jokes"},
   {q:"Why did the scarecrow win an award?",opts:["He was outstanding in his field","He scared all the crows","He worked all night","He never complained"],ans:0,cat:"🤣 Jokes"},
   {q:"What do you call a fish without eyes?",opts:["Blind fish","A fsh","Sea creature","No name"],ans:1,cat:"🤣 Jokes"},
@@ -6173,7 +6186,7 @@ var TRIVIA_LOCAL = [
   {q:"Why did the tomato turn red?",opts:["It was angry","Too much sun","It saw the salad dressing","It was ripe"],ans:2,cat:"🤣 Jokes"},
   {q:"What do you call a lazy kangaroo?",opts:["A pouch potato","A slow jumper","A lazy roo","A tired marsupial"],ans:0,cat:"🤣 Jokes"},
 
-  // 🧩 RIDDLES — figure out the answer
+// 🧩 RIDDLES — figure out the answer
   {q:"I speak without a mouth and hear without ears. I have no body but I come alive with the wind. What am I?",opts:["A ghost","An echo","The wind","A shadow"],ans:1,cat:"🧩 Riddles"},
   {q:"The more you take, the more you leave behind. What am I?",opts:["Time","Money","Footsteps","Memories"],ans:2,cat:"🧩 Riddles"},
   {q:"I have cities but no houses, forests but no trees, and water but no fish. What am I?",opts:["A painting","A dream","A map","A story"],ans:2,cat:"🧩 Riddles"},
@@ -6241,7 +6254,7 @@ function startTriviaGame() {
   gc.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:28px;margin-bottom:10px">⏳</div>Loading questions...</div>';
 
   if(source==='api'){
-    // Open Trivia DB — free, no key needed
+// Open Trivia DB — free, no key needed
     var catMap = {
       '🌍 Geography':'22','🔬 Science':'17','📚 History':'23',
       '🎬 Entertainment':'11','⚽ Sports':'21','💡 General':'9','🌐 Tech':'18'
@@ -6268,7 +6281,7 @@ function startTriviaGame() {
 
 function useTriviaLocal(cat, count, gc) {
   var pool = cat==='all' ? TRIVIA_LOCAL : TRIVIA_LOCAL.filter(function(q){return q.cat===cat;});
-  // Shuffle
+// Shuffle
   var shuffled = pool.slice().sort(function(){return Math.random()-.5;});
   triviaState.current = shuffled.slice(0, Math.min(count, shuffled.length));
   runTriviaQuestion(gc);
@@ -6287,7 +6300,7 @@ function runTriviaQuestion(gc) {
       '<div style="font-size:14px;color:var(--moon);margin-bottom:20px">'+msg+'</div>'+
       '<button class="btn-pay" onclick="launchTriviaGame(document.getElementById(&quot;game-content&quot;))">🔄 Play Again</button>'+
     '</div>';
-    // Save high score
+// Save high score
     if(state.user){
       db.collection('users').doc(state.user.uid).get().then(function(d){
         var best=(d.data()&&d.data().triviaHighScore)||0;
@@ -6329,9 +6342,7 @@ function runTriviaQuestion(gc) {
   };
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 10: NEWSLETTER
-// ══════════════════════════════════════════════════════════════
 function openNewsletter() {
   if (!state.user) { showToast('Login first'); return; }
   openModal('modal-newsletter');
@@ -6359,7 +6370,7 @@ function sendNewsletter() {
   if (!body)    { err.textContent='Please enter a message'; return; }
   err.textContent='';
 
-  // Get all followers
+// Get all followers
   db.collection('follows').where('followingId','==',state.user.uid).get().then(function(snap) {
     var fans = snap.docs.map(function(d){return d.data().followerId;});
     var batch = db.batch();
@@ -6389,9 +6400,7 @@ function sendNewsletter() {
   }).catch(function() { err.textContent='Error sending newsletter'; });
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 11: GIFT SYSTEM (during live)
-// ══════════════════════════════════════════════════════════════
 var GIFTS = [
   { emoji:'🌸', name:'Rose',    price:1  },
   { emoji:'🍕', name:'Pizza',   price:2  },
@@ -6429,7 +6438,7 @@ function sendGift(idx) {
     amount: usdToNGNKobo(gift.price), currency:'NGN',
     ref:'ZGIFT-'+Date.now(),
     onSuccess:function() {
-      // Record gift
+// Record gift
       db.collection('gifts').add({
         senderId: state.user.uid,
         senderName: (state.profile&&state.profile.name)||'Mindvora user',
@@ -6437,13 +6446,13 @@ function sendGift(idx) {
         gift: gift.name, emoji: gift.emoji, amount: gift.price,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      // Notify host
+// Notify host
       db.collection('notifications').add({
         uid: hostId, type:'gift',
         text: gift.emoji+' '+esc((state.profile&&state.profile.name)||'Someone')+' sent you a '+gift.name+' ($'+gift.price+')!',
         createdAt: firebase.firestore.FieldValue.serverTimestamp(), read:false
       });
-      // Show in live chat
+// Show in live chat
       if (liveId) {
         db.collection('live_streams').doc(liveId).collection('chat').add({
           uid: state.user.uid,
@@ -6459,9 +6468,7 @@ function sendGift(idx) {
   });
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 12: ACCESSIBILITY MODE
-// ══════════════════════════════════════════════════════════════
 var accessibilityOn = localStorage.getItem('zync_accessibility') === '1';
 
 function toggleAccessibility() {
@@ -6493,9 +6500,7 @@ function applyAccessibility() {
 // Apply on load
 setTimeout(applyAccessibility, 500);
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 13: BULK MEDIA UPLOAD (CAROUSEL)
-// ══════════════════════════════════════════════════════════════
 var carouselMedia = [];
 var carouselUploading = false;
 
@@ -6556,7 +6561,7 @@ function postCarousel() {
   btn.disabled = true; btn.textContent = 'Uploading...';
   var caption = document.getElementById('carousel-caption').value.trim();
 
-  // Upload all files to Cloudinary
+// Upload all files to Cloudinary
   var uploads = carouselMedia.map(function(file) {
     var fd = new FormData();
     fd.append('file', file);
@@ -6598,9 +6603,7 @@ function postCarousel() {
   });
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 14: PAID EVENTS
-// ══════════════════════════════════════════════════════════════
 function openPaidEvents() {
   if (!state.user) { showToast('Login first'); return; }
   openModal('modal-paid-events');
@@ -6629,7 +6632,7 @@ function loadPaidEvents() {
             '</div>'+
             (attended?'<span style="font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(34,197,94,.15);color:var(--green3)">✓ Attending</span>':
               isOwn?'<span style="font-size:10px;padding:4px 10px;border-radius:20px;background:rgba(99,102,241,.15);color:#a5b4fc">Your Event</span>':
-              '<button onclick="buyEventTicket(\''+d.id+'\',\''+esc(ev.title||'Event')+'\','+ev.price+')" style="font-size:10px;padding:5px 12px;border-radius:20px;background:var(--green2);border:none;color:#fff;cursor:pointer;font-family:\'DM Sans\',sans-serif">Buy $'+ev.price+'</button>')+
+              '<button onclick="buyEventTicket(\''+d.id+'\',\''+escJs(ev.title||'Event')+'\','+ev.price+')" style="font-size:10px;padding:5px 12px;border-radius:20px;background:var(--green2);border:none;color:#fff;cursor:pointer;font-family:\'DM Sans\',sans-serif">Buy $'+ev.price+'</button>')+
           '</div>'+
         '</div>';
       }).join('');
@@ -6691,9 +6694,7 @@ function buyEventTicket(eventId, eventTitle, price) {
   });
 }
 
-// ══════════════════════════════════════════════════════════════
 // FEATURE 15: DIGITAL PRODUCTS STORE
-// ══════════════════════════════════════════════════════════════
 function openDigitalStore() {
   if (!state.user){showToast('Login first');return;}
   openModal('modal-digital-store');
@@ -6718,7 +6719,7 @@ function loadDigitalProducts() {
             '<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">'+
               '<span style="font-size:13px;font-weight:700;color:var(--green3)">$'+p.price+'</span>'+
               (isOwn?'<span style="font-size:10px;color:var(--muted)">Your product</span>':
-                '<button onclick="buyDigitalProduct(\''+d.id+'\',\''+esc(p.title)+'\','+p.price+',\''+esc(p.downloadUrl||'')+'\',\''+p.sellerId+'\')" style="font-size:10px;padding:5px 12px;border-radius:20px;background:var(--green2);border:none;color:#fff;cursor:pointer;font-family:\'DM Sans\',sans-serif">Buy Now</button>')+
+                '<button onclick="buyDigitalProduct(\''+d.id+'\',\''+escJs(p.title)+'\','+p.price+',\''+escJs(p.downloadUrl||'')+'\',\''+p.sellerId+'\')" style="font-size:10px;padding:5px 12px;border-radius:20px;background:var(--green2);border:none;color:#fff;cursor:pointer;font-family:\'DM Sans\',sans-serif">Buy Now</button>')+
             '</div>'+
           '</div>'+
         '</div>';
@@ -6797,16 +6798,14 @@ function buyDigitalProduct(productId, title, price, downloadUrl, sellerId) {
 
 
 
-// ══════════════════════════════════════════════════════════
 // VIDEO PLAYER — blurred background + custom controls
-// ══════════════════════════════════════════════════════════
 function toggleVidPlay(vidId) {
   var vid = document.getElementById(vidId);
   if (!vid) return;
   var wrap = vid.closest('.sk-media-wrap');
   var blur = wrap && wrap.querySelector('.sk-media-blur');
   if (vid.paused) {
-    // Pause all other videos first
+// Pause all other videos first
     document.querySelectorAll('.sk-media-main').forEach(function(v){
       if(v.id !== vidId && !v.paused){ v.pause(); syncVidBg(v); updateVidBtn(v); }
     });
@@ -6859,20 +6858,20 @@ function fmtVidTime(s) {
 
 // Delegated click handler for feed container
 document.addEventListener('click', function(e) {
-  // Video main click
+// Video main click
   var vidMain = e.target.closest('[data-vid][data-action="play"], .sk-media-main[data-vid]');
   if(vidMain) {
     var vid = vidMain.dataset && vidMain.dataset.vid;
     if(vid) toggleVidPlay(vid);
     return;
   }
-  // Play button
+// Play button
   var playBtn = e.target.closest('[data-action="play"]');
   if(playBtn && playBtn.dataset.vid) { toggleVidPlay(playBtn.dataset.vid); return; }
-  // Seek bar
+// Seek bar
   var seekBar = e.target.closest('[data-action="seek"]');
   if(seekBar && seekBar.dataset.vid) { seekVid(e, seekBar.dataset.vid); return; }
-  // Mute button
+// Mute button
   var muteBtn = e.target.closest('[data-action="mute"]');
   if(muteBtn && muteBtn.dataset.vid) { toggleVidMute(muteBtn.dataset.vid, muteBtn.dataset.sid); return; }
 }, false);
@@ -6888,7 +6887,7 @@ document.addEventListener('timeupdate', function(e) {
   var durEl = document.getElementById('dur-'+sid);
   if(prog && dur) prog.style.width = (cur/dur*100)+'%';
   if(durEl) durEl.textContent = fmtVidTime(cur)+' / '+fmtVidTime(dur);
-  // keep blur video in sync (within 0.5s tolerance)
+// keep blur video in sync (within 0.5s tolerance)
   var wrap = vid.closest('.sk-media-wrap');
   var blur = wrap && wrap.querySelector('.sk-media-blur');
   if(blur && Math.abs(blur.currentTime - cur) > 0.5) blur.currentTime = cur;
@@ -6915,7 +6914,7 @@ if('IntersectionObserver' in window) {
       if(!vid.dataset || !vid.dataset.vid) return;
       applySmartBlur(vid);
       if(entry.isIntersecting && entry.intersectionRatio > 0.6) {
-        // Only autoplay if no other video is playing
+// Only autoplay if no other video is playing
         var anyPlaying = Array.from(document.querySelectorAll('.sk-media-main')).some(function(v){ return !v.paused; });
         if(!anyPlaying) {
           vid.muted = true; // autoplay requires muted
@@ -6931,11 +6930,11 @@ if('IntersectionObserver' in window) {
     });
   }, { threshold: [0, 0.6] });
 
-  // Observe videos as they are added to the feed
+// Observe videos as they are added to the feed
 
-// ── SMART BLUR: only apply blurred background when the video
-//    aspect ratio actually needs it (portrait or landscape).
-//    Square-ish videos fill the container naturally → no blur.
+// SMART BLUR: only apply blurred background when the video
+// aspect ratio actually needs it (portrait or landscape).
+// Square-ish videos fill the container naturally → no blur.
 function applySmartBlur(vid) {
   function decide() {
     var wrap = vid.closest('.sk-media-wrap');
@@ -6951,23 +6950,23 @@ function applySmartBlur(vid) {
     var containerW = wrap.offsetWidth || 400;
     var containerRatio = containerW / 340; // 340 = max-height
 
-    // How much of the container does the video naturally fill?
+// How much of the container does the video naturally fill?
     var fillW, fillH;
     if (ratio > containerRatio) {
-      // video wider than container → letterbox (black top/bottom bars)
+// video wider than container → letterbox (black top/bottom bars)
       fillW = 1.0;
       fillH = (containerRatio / ratio);
     } else {
-      // video taller than container → pillarbox (black side bars)
+// video taller than container → pillarbox (black side bars)
       fillW = (ratio / containerRatio);
       fillH = 1.0;
     }
 
-    // If video fills ≥ 92% of both dimensions, it fits naturally → hide blur
+// If video fills ≥ 92% of both dimensions, it fits naturally → hide blur
     var needsBlur = fillW < 0.92 || fillH < 0.92;
 
     blur.style.display   = needsBlur ? 'block' : 'none';
-    // For near-fill videos, use cover so they look sharp edge-to-edge
+// For near-fill videos, use cover so they look sharp edge-to-edge
     vid.style.objectFit  = needsBlur ? 'contain' : 'cover';
   }
 
@@ -6993,7 +6992,7 @@ function applySmartBlur(vid) {
 }
 
 function openSupportModal(){
-  // Pre-fill name if logged in
+// Pre-fill name if logged in
   if(state.profile && state.profile.name){
     document.getElementById('sup-name').value = state.profile.name;
   }
@@ -7012,7 +7011,7 @@ function submitSupport(){
   if(!message){ err.textContent = 'Please enter your message'; return; }
   if(message.length < 10){ err.textContent = 'Message too short — please describe your issue'; return; }
   
-  // Save to Firestore support_tickets collection
+// Save to Firestore support_tickets collection
   var ticket = {
     name: name,
     subject: subject,
@@ -7024,10 +7023,10 @@ function submitSupport(){
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   
-  // Save to Firestore
+// Save to Firestore
   db.collection('support_tickets').add(ticket).catch(function(){});
   
-  // Send admin notification in Mindvora
+// Send admin notification in Mindvora
   db.collection('notifications').add({
     uid: 'ilohgreat25_admin',
     type: 'support',
@@ -7036,7 +7035,7 @@ function submitSupport(){
     read: false
   }).catch(function(){});
 
-  // Send email via EmailJS directly to zyncofficial@outlook.com
+// Send email via EmailJS directly to zyncofficial@outlook.com
   var templateParams = {
     from_name: name,
     from_email: (state.user && state.user.email) || 'Not logged in',
@@ -7051,14 +7050,14 @@ function submitSupport(){
         closeModal('modal-support');
         showToast('✅ Message sent! We will reply within 24 hours.');
       }, function(error){
-        // Fallback to mailto if EmailJS fails
+// Fallback to mailto if EmailJS fails
         var mailBody = encodeURIComponent('Name: ' + name + '\nSubject: ' + subject + '\n\n' + message);
         window.open('mailto:zyncofficial@outlook.com?subject=Mindvora Support: ' + encodeURIComponent(subject) + '&body=' + mailBody);
         closeModal('modal-support');
         showToast('✅ Message sent via email app!');
       });
   } else {
-    // Fallback to mailto
+// Fallback to mailto
     var mailBody = encodeURIComponent('Name: ' + name + '\nSubject: ' + subject + '\n\n' + message);
     window.open('mailto:zyncofficial@outlook.com?subject=Mindvora Support: ' + encodeURIComponent(subject) + '&body=' + mailBody);
     closeModal('modal-support');
@@ -7102,19 +7101,19 @@ function checkPendingAds(){
 // Hook into free ad submission to set status as pending
 var origFreeSubmit = document.getElementById('btn-submit-free').onclick;
 document.getElementById('btn-submit-free').addEventListener('click', function(){
-  // Free ads also go to pending for admin review
+// Free ads also go to pending for admin review
 }, true);
 
 // Override free ad firestore write to use pending status
 var origLoadAds2 = loadAds;
 
-// ── NAV: NEW FEATURES ──
+// NAV: NEW FEATURES
 document.getElementById('nav-reels').addEventListener('click',function(){ setNav(this); openModal('modal-reels'); loadReels(); });
 document.getElementById('nav-market').addEventListener('click',function(){ setNav(this); openModal('modal-market'); loadMarket('all'); });
 document.getElementById('nav-analytics').addEventListener('click',function(){ setNav(this); openModal('modal-analytics'); loadAnalytics(); });
 document.getElementById('nav-aria').addEventListener('click',function(){ setNav(this); openModal('modal-aria'); initAria(); });
 
-// ── ANALYTICS ──
+// ANALYTICS
 function loadAnalytics(){
   if(!state.user) return;
   var mySparks=state.sparks.filter(function(s){ return s.authorId===state.user.uid; });
@@ -7124,7 +7123,7 @@ function loadAnalytics(){
   document.getElementById('an-likes').textContent=totalLikes;
   document.getElementById('an-comments').textContent=totalComments;
   document.getElementById('an-fans').textContent=state.profile.followers||0;
-  // Generate bar chart — last 7 days
+// Generate bar chart — last 7 days
   var days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
   var today=new Date().getDay();
   var bars=document.getElementById('an-bars');
@@ -7134,12 +7133,12 @@ function loadAnalytics(){
     var h=Math.max(8,Math.round((val/maxVal)*70));
     return '<div class="bar-item"><div class="bar" style="height:'+h+'px"></div><div class="bar-lbl">'+d+'</div></div>';
   }).join('');
-  // Top spark
+// Top spark
   var top=mySparks.sort(function(a,b){ return (b.likes||[]).length-(a.likes||[]).length; })[0];
   document.getElementById('an-top').textContent=top?(top.text||'[Media post]')+' — '+(top.likes||[]).length+' likes':'No sparks yet. Start posting!';
 }
 
-// ── REELS ──
+// REELS
 var currentReel=null;
 function loadReels(){
   var grid=document.getElementById('reel-grid');
@@ -7170,7 +7169,7 @@ function openReel(id,url,author,text,likes){
 function closeReel(){ document.getElementById('reel-viewer').classList.remove('open'); document.getElementById('rv-video').pause(); document.getElementById('rv-video').src=''; currentReel=null; }
 document.getElementById('rv-like').addEventListener('click',function(){ if(!currentReel||!state.user) return; toggleLike(currentReel); showToast('❤️ Liked!'); });
 document.getElementById('btn-upload-reel').addEventListener('click',function(){
-  // Use direct file input — works without Cloudinary widget CDN
+// Use direct file input — works without Cloudinary widget CDN
   var fileInp = document.createElement('input');
   fileInp.type='file'; fileInp.accept='video/*';
   fileInp.onchange = function(){
@@ -7197,7 +7196,7 @@ document.getElementById('btn-upload-reel').addEventListener('click',function(){
   fileInp.click();
 });
 
-// ── MARKETPLACE ──
+// MARKETPLACE
 var mktFilter='all';
 function loadMarket(filter){
   mktFilter=filter;
@@ -7268,7 +7267,7 @@ function buyItem(id,name,price,sellerEmail){
   },onClose:function(){ showToast('Purchase cancelled'); }});
 }
 
-// ── ARIA AI ──
+// ARIA AI
 var ariaHistory=[];
 var ariaReady=false;
 function initAria(){
@@ -7508,7 +7507,7 @@ async function ariaSend(){
     userContent = (text ? text + '\n\n' : '') + 'I am sharing an image with you. Please look at it carefully and respond. The image is: [user uploaded image — describe what you see and help them with their question about it]';
   }
   ariaHistory.push({role:'user',content:userContent});
-  // Clear image after sending
+// Clear image after sending
   if(ariaPendingImage){
     ariaPendingImage = null;
     document.getElementById('aria-img-preview').style.display = 'none';
@@ -7533,7 +7532,7 @@ async function ariaSend(){
 }
 document.getElementById('aria-send').addEventListener('click',ariaSend);
 
-// ── ARIA VOICE INPUT ──
+// ARIA VOICE INPUT
 var ariaRecognition = null;
 var ariaIsRecording = false;
 
@@ -7544,7 +7543,7 @@ document.getElementById('aria-voice-btn').addEventListener('click', function(){
     return;
   }
   if(ariaIsRecording){
-    // Stop recording
+// Stop recording
     if(ariaRecognition) ariaRecognition.stop();
     return;
   }
@@ -7575,7 +7574,7 @@ document.getElementById('aria-voice-btn').addEventListener('click', function(){
   ariaRecognition.start();
 });
 
-// ── ARIA IMAGE UPLOAD ──
+// ARIA IMAGE UPLOAD
 var ariaPendingImage = null;
 
 document.getElementById('aria-img-btn').addEventListener('click', function(){
@@ -7590,7 +7589,7 @@ document.getElementById('aria-img-btn').addEventListener('click', function(){
     document.body.removeChild(fileInput);
     if(!file) return;
     if(file.size > 10485760){ showToast('Image too large! Max 10MB'); return; }
-    // Convert to base64
+// Convert to base64
     var reader = new FileReader();
     reader.onload = function(e){
       ariaPendingImage = e.target.result;
@@ -7615,12 +7614,10 @@ document.getElementById('aria-inp').addEventListener('keydown',function(e){ if(e
 
 
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║         MINDVORA ADVANCED SECURITY SYSTEM v3.0              ║
-// ║  Smart Scam Detection · Attack Detection · Owner Immunity   ║
-// ╚══════════════════════════════════════════════════════════════╝
+// MINDVORA ADVANCED SECURITY SYSTEM v3.0
+// Smart Scam Detection · Attack Detection · Owner Immunity
 
-// ── OWNER IMMUNITY — security NEVER fires on owner account ──────────────
+// OWNER IMMUNITY — security NEVER fires on owner account
 var SEC_OWNER_EMAILS = ['ilohgreat25@gmail.com','zyncofficial@outlook.com','mindvoraofficial@outlook.com'];
 function isOwnerAccount(uid, email) {
   if (email && SEC_OWNER_EMAILS.indexOf(email) !== -1) return true;
@@ -7628,7 +7625,7 @@ function isOwnerAccount(uid, email) {
   return false;
 }
 
-// ── SAFE CONTEXT KEYWORDS — never flag these conversations ───────────────
+// SAFE CONTEXT KEYWORDS — never flag these conversations
 // If a chat contains these, it's treated as legitimate and skipped entirely
 var SAFE_CONTEXT_WORDS = [
   'wedding','marry','marriage','engagement','proposal','bride','groom',
@@ -7645,11 +7642,11 @@ function isSafeContext(text) {
   return SAFE_CONTEXT_WORDS.some(function(w){ return t.indexOf(w) !== -1; });
 }
 
-// ── SCAM SCORING SYSTEM — multiple red flags needed, not just one word ───
+// SCAM SCORING SYSTEM — multiple red flags needed, not just one word
 // Each pattern has a severity score. Total score >= 10 before reporting.
 // Single words like "send" or "transfer" alone = score of 2 — not enough.
 var SCAM_SCORED_PATTERNS = [
-  // HIGH SEVERITY (score 8-10) — almost always scams
+// HIGH SEVERITY (score 8-10) — almost always scams
   { re: /send\s*(me\s*)?bitcoin|send\s*(me\s*)?btc|send\s*(me\s*)?crypto|send\s*(me\s*)?usdt/i, score: 10 },
   { re: /gift\s*card\s*(code|number|pin|send)/i, score: 10 },
   { re: /otp\s*(code|number|give|share|send)/i, score: 10 },
@@ -7669,7 +7666,7 @@ var SCAM_SCORED_PATTERNS = [
   { re: /pay\s*(me|us)\s*(first|now|immediately)\s*(to\s*(receive|get|unlock))/i, score: 9 },
   { re: /send\s*(me|us)\s*\$\d+\s*(to\s*(receive|get|unlock|start))/i, score: 9 },
   { re: /free\s*(iphone|samsung|macbook|laptop|car)\s*(giveaway|winner|selected)/i, score: 8 },
-  // MEDIUM SEVERITY (score 4-6) — suspicious alone, need combo
+// MEDIUM SEVERITY (score 4-6) — suspicious alone, need combo
   { re: /send\s*(me\s*)?\$\d{3,}/i, score: 6 },
   { re: /transfer\s*(me\s*)?\$\d{3,}/i, score: 6 },
   { re: /invest\s*(now|today|immediately|urgently)/i, score: 5 },
@@ -7681,7 +7678,7 @@ var SCAM_SCORED_PATTERNS = [
   { re: /limited\s*time\s*(offer|deal)\s*(click|send|pay|invest)/i, score: 5 },
   { re: /act\s*(now|fast|immediately)\s*(or\s*(lose|miss)|to\s*(claim|receive))/i, score: 5 },
   { re: /i\s*can\s*(help|make)\s*you\s*(earn|make|get)\s*\$\d+/i, score: 6 },
-  // LOW SEVERITY (score 2) — context-dependent
+// LOW SEVERITY (score 2) — context-dependent
   { re: /\$\d{4,}/i, score: 2 },
   { re: /send\s*money/i, score: 2 },
   { re: /bank\s*(account|details|transfer)/i, score: 2 },
@@ -7696,31 +7693,31 @@ function scamScore(text) {
   return total;
 }
 
-// ── CONVERSATION HISTORY TRACKER ──────────────────────────────────────────
+// CONVERSATION HISTORY TRACKER
 // Track message history per DM to give context to the scorer
 var _dmHistory = {};  // dmId -> array of recent messages
 var SCAM_THRESHOLD = 10; // minimum score needed to flag
 
-// ── ATTACK SIGNATURE PATTERNS — detect hacking tool output ───────────────
+// ATTACK SIGNATURE PATTERNS — detect hacking tool output
 // These patterns appear when someone pastes injection strings, tool output,
 // or tries SQL/NoSQL injection, XSS, or probe strings into the app
 var ATTACK_SIGNATURES = [
-  // SQL/NoSQL injection attempts
+// SQL/NoSQL injection attempts
   { re: /('\s*OR\s*'1'\s*=\s*'1|'\s*OR\s*1\s*=\s*1|--\s*$|;\s*DROP\s+TABLE)/i, type: 'SQL Injection', score: 10 },
   { re: /\$where|{\s*\$gt\s*:|{\s*\$ne\s*:|{\s*\$regex\s*:/i, type: 'NoSQL Injection', score: 10 },
-  // XSS attempts
+// XSS attempts
   { re: /<script[\s>]|javascript\s*:|on(load|error|click|mouseover)\s*=/i, type: 'XSS Attack', score: 10 },
   { re: /eval\s*\(|document\.cookie|window\.location\s*=/i, type: 'XSS/Code Injection', score: 10 },
-  // Firebase/API abuse patterns
+// Firebase/API abuse patterns
   { re: /\.env\b|api[_\s]?key\s*[:=]|secret[_\s]?key\s*[:=]/i, type: 'Credential Harvesting', score: 9 },
   { re: /firebase\.auth\(\)|getIdToken|signInWith(CustomToken|Credential)/i, type: 'Auth Token Abuse', score: 8 },
-  // Path traversal
+// Path traversal
   { re: /\.\.\//g, type: 'Path Traversal', score: 8 },
-  // Common hacking tool output signatures
+// Common hacking tool output signatures
   { re: /nmap\s+scan|sqlmap|burp\s*suite|metasploit/i, type: 'Hacking Tool Output', score: 10 },
   { re: /\[PAYLOAD\]|\[INJECT\]|\[EXPLOIT\]|\[BYPASS\]/i, type: 'Exploit Attempt', score: 10 },
   { re: /admin'\s*--|1\s*=\s*1\s*--|union\s+select\s+/i, type: 'SQL Injection String', score: 10 },
-  // Unusual encoding/obfuscation
+// Unusual encoding/obfuscation
   { re: /%3Cscript|%3E|&#60;script|\\u003cscript/i, type: 'Encoded Attack String', score: 9 },
   { re: /base64_decode|atob\s*\(|fromCharCode/i, type: 'Obfuscated Payload', score: 8 },
 ];
@@ -7764,7 +7761,7 @@ function scanForAttackSignature(text, context, userId, userEmail) {
     read: false,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(function(docRef) {
-    // Force sign out and flag account after 10 seconds
+// Force sign out and flag account after 10 seconds
     setTimeout(function() {
       if (userId) {
         db.collection('users').doc(userId).update({
@@ -7781,7 +7778,7 @@ function scanForAttackSignature(text, context, userId, userEmail) {
   return true;
 }
 
-// ── MALICIOUS LINK PATTERNS ──────────────────────────────────────────────
+// MALICIOUS LINK PATTERNS
 var MALICIOUS_LINK_PATTERNS = [
   /bit\.ly\/[a-z0-9]+/i,
   /tinyurl\.com\//i,
@@ -7795,7 +7792,7 @@ var MALICIOUS_LINK_PATTERNS = [
   /bank.*login.*verify|paypal.*verify.*account/i,
 ];
 
-// ── FIREBASE READ ANOMALY DETECTION ─────────────────────────────────────
+// FIREBASE READ ANOMALY DETECTION
 var _suspiciousReads = 0;
 var _suspiciousTimer = null;
 var _hackerReported = false;
@@ -7812,7 +7809,7 @@ function trackFirebaseRead() {
   }
 }
 
-// ── BRUTE FORCE DETECTION ────────────────────────────────────────────────
+// BRUTE FORCE DETECTION
 var _loginAttempts = {};
 
 function trackAdvancedLogin(email, success) {
@@ -7836,26 +7833,26 @@ function trackAdvancedLogin(email, success) {
   }
 }
 
-// ── SCAM MESSAGE SCANNER (with safe context + scoring) ──────────────────
+// SCAM MESSAGE SCANNER (with safe context + scoring)
 var _scamReported = {};
 
 function scanMessageForScam(text, dmId, senderId, receiverId) {
   if (!text || !senderId) return;
-  // Owner immunity
+// Owner immunity
   if (isOwnerAccount(senderId, state.user && state.user.email)) return;
-  // Skip safe contexts — wedding, business, legal, family etc.
+// Skip safe contexts — wedding, business, legal, family etc.
   if (isSafeContext(text)) return;
 
-  // Build conversation history for context
+// Build conversation history for context
   if (!_dmHistory[dmId]) _dmHistory[dmId] = [];
   _dmHistory[dmId].push(text);
   if (_dmHistory[dmId].length > 20) _dmHistory[dmId].shift();
 
-  // Score the full conversation, not just one message
+// Score the full conversation, not just one message
   var fullContext = _dmHistory[dmId].join(' ');
   var totalScore = scamScore(fullContext);
 
-  // Only flag if score exceeds threshold
+// Only flag if score exceeds threshold
   if (totalScore < SCAM_THRESHOLD) return;
 
   var key = senderId + '_' + dmId;
@@ -7901,7 +7898,7 @@ function scanMessageForScam(text, dmId, senderId, receiverId) {
   }).catch(function(){});
 }
 
-// ── HACK ATTEMPT REPORTER ────────────────────────────────────────────────
+// HACK ATTEMPT REPORTER
 function reportHackAttempt(type, details) {
   notifyOwner('🛡️ Hack Attempt: ' + type,
     details + '\nTime: ' + new Date().toLocaleString() + '\n⏱ Auto-lockdown in 10 seconds.',
@@ -7929,7 +7926,7 @@ function reportHackAttempt(type, details) {
   }).catch(function(){});
 }
 
-// ── MALICIOUS LINK SCANNER ───────────────────────────────────────────────
+// MALICIOUS LINK SCANNER
 function scanForMaliciousLink(text, context, userId, userName) {
   if (!text) return false;
   if (isOwnerAccount(userId, state.user && state.user.email)) return false;
@@ -7949,7 +7946,7 @@ function scanForMaliciousLink(text, context, userId, userName) {
   return true;
 }
 
-// ── HOOK ATTACK SCANNER INTO ALL TEXT INPUTS (catches hacker tool output) ─
+// HOOK ATTACK SCANNER INTO ALL TEXT INPUTS (catches hacker tool output)
 document.addEventListener('input', function(e) {
   var el = e.target;
   if (!el || !el.value) return;
@@ -7962,7 +7959,7 @@ document.addEventListener('input', function(e) {
   scanForAttackSignature(val, ctx, uid, email);
 }, true);
 
-// ── HOOK FIREBASE READS FOR ANOMALY DETECTION ────────────────────────────
+// HOOK FIREBASE READS FOR ANOMALY DETECTION
 var _origCollection = db.collection.bind(db);
 db.collection = function(path) {
   var ref = _origCollection(path);
@@ -7974,7 +7971,7 @@ db.collection = function(path) {
   return ref;
 };
 
-// ── WATCH DM FOR SCAM (incoming messages) ────────────────────────────────
+// WATCH DM FOR SCAM (incoming messages)
 var _dmScamWatchers = {};
 function watchDMForScam(dmId, otherUid) {
   if (_dmScamWatchers[dmId]) return;
@@ -7991,13 +7988,11 @@ function watchDMForScam(dmId, otherUid) {
     }, function(){});
 }
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║              MINDVORA NEW FEATURES v1.0                     ║
-// ║  Mood Status · Language · Clipboard · Soundboard ·          ║
-// ║  Word of Day · Mindvora TV                                  ║
-// ╚══════════════════════════════════════════════════════════════╝
+// MINDVORA NEW FEATURES v1.0
+// Mood Status · Language · Clipboard · Soundboard ·
+// Word of Day · Mindvora TV
 
-// ── 1. MOOD STATUS ────────────────────────────────────────────────────────
+// 1. MOOD STATUS
 var MOODS = [
   {emoji:'😊',label:'Happy'},    {emoji:'😎',label:'Cool'},
   {emoji:'🥰',label:'In Love'},  {emoji:'😴',label:'Sleepy'},
@@ -8020,7 +8015,7 @@ function openMoodStatus() {
       '<div style="font-size:10px;color:var(--muted);margin-top:3px">'+m.label+'</div>' +
     '</div>';
   }).join('');
-  // Load current mood
+// Load current mood
   db.collection('users').doc(state.user.uid).get().then(function(d) {
     var mood = d.data() && d.data().mood;
     if (mood) {
@@ -8045,7 +8040,7 @@ function saveMoodStatus() {
   db.collection('users').doc(state.user.uid).update({ mood: moodData })
     .then(function() {
       showToast(selectedMood.emoji + ' Mood set to ' + selectedMood.label + '!');
-      // Post to feed as a mood spark
+// Post to feed as a mood spark
       db.collection('sparks').add({
         text: selectedMood.emoji + ' Feeling ' + selectedMood.label + (text ? ' — "' + text + '"' : ''),
         authorId: state.user.uid,
@@ -8061,9 +8056,9 @@ function saveMoodStatus() {
     }).catch(function(){ showToast('Error saving mood'); });
 }
 
-// ── 2. LANGUAGE SELECTOR ─────────────────────────────────────────────────
+// 2. LANGUAGE SELECTOR
 var APP_LANGUAGES = [
-  // Africa
+// Africa
   {code:'en',    name:'English',              flag:'🇬🇧', dir:'ltr'},
   {code:'yo',    name:'Yoruba',               flag:'🇳🇬', dir:'ltr'},
   {code:'ig',    name:'Igbo',                 flag:'🇳🇬', dir:'ltr'},
@@ -8079,7 +8074,7 @@ var APP_LANGUAGES = [
   {code:'sn',    name:'Shona',               flag:'🇿🇼', dir:'ltr'},
   {code:'tn',    name:'Setswana',            flag:'🇧🇼', dir:'ltr'},
   {code:'tw',    name:'Twi',                 flag:'🇬🇭', dir:'ltr'},
-  // Europe
+// Europe
   {code:'fr',    name:'Français',            flag:'🇫🇷', dir:'ltr'},
   {code:'es',    name:'Español',             flag:'🇪🇸', dir:'ltr'},
   {code:'pt',    name:'Português',           flag:'🇧🇷', dir:'ltr'},
@@ -8097,7 +8092,7 @@ var APP_LANGUAGES = [
   {code:'cs',    name:'Čeština',             flag:'🇨🇿', dir:'ltr'},
   {code:'ro',    name:'Română',              flag:'🇷🇴', dir:'ltr'},
   {code:'hu',    name:'Magyar',              flag:'🇭🇺', dir:'ltr'},
-  // Asia
+// Asia
   {code:'zh',    name:'中文 (Chinese)',       flag:'🇨🇳', dir:'ltr'},
   {code:'ja',    name:'日本語 (Japanese)',    flag:'🇯🇵', dir:'ltr'},
   {code:'ko',    name:'한국어 (Korean)',      flag:'🇰🇷', dir:'ltr'},
@@ -8115,11 +8110,11 @@ var APP_LANGUAGES = [
   {code:'my',    name:'မြန်မာ (Burmese)',    flag:'🇲🇲', dir:'ltr'},
   {code:'ne',    name:'नेपाली (Nepali)',      flag:'🇳🇵', dir:'ltr'},
   {code:'si',    name:'සිංහල (Sinhala)',     flag:'🇱🇰', dir:'ltr'},
-  // Americas
+// Americas
   {code:'es-mx', name:'Español (México)',    flag:'🇲🇽', dir:'ltr'},
   {code:'pt-br', name:'Português (Brasil)',  flag:'🇧🇷', dir:'ltr'},
   {code:'ht',    name:'Kreyòl Ayisyen',      flag:'🇭🇹', dir:'ltr'},
-  // Middle East
+// Middle East
   {code:'he',    name:'עברית (Hebrew)',      flag:'🇮🇱', dir:'rtl'},
   {code:'ku',    name:'Kurdî',               flag:'🏳️', dir:'ltr'},
 ];
@@ -8162,7 +8157,7 @@ function setLanguage(code) {
   if (langBtn) langBtn.textContent = lang.flag + ' ' + lang.name;
 }
 
-// ── UI TRANSLATIONS ───────────────────────────────────────────────────────
+// UI TRANSLATIONS
 var UI_TR = {
   'post':    {en:'Spark',   fr:'Publier',  es:'Publicar', pt:'Postar',    de:'Posten',      it:'Pubblica', ar:'نشر',       zh:'发布',  ja:'投稿',    hi:'पोस्ट',  yo:'Firanṣẹ', ig:'Zipu',    ha:'Aika',    sw:'Chapisha', ru:'Опубл.', tr:'Paylaş', ko:'게시', id:'Posting',  vi:'Đăng'},
   'ph':      {en:'What is on your mind?', fr:'Quoi de neuf?', es:'Que piensas?', pt:'O que voce pensa?', de:'Was denkst du?', it:'A cosa stai pensando?', ar:'ماذا يدور بذهنك؟', zh:'你在想什么?', ja:'何を考えていますか?', hi:'आपके मन में क्या है?', yo:'Kini o n ro?', ig:'Gini di n uche gi?', ha:'Mene yake zuciyarka?', sw:'Una nini akilini?', ru:'О чём думаете?', tr:'Aklinda ne var?', ko:'무슨 생각이에요?', id:'Apa yang kamu pikirkan?', vi:'Ban dang nghi gi?'},
@@ -8181,9 +8176,9 @@ function _tr(key, code) {
 function applyTranslations(code) {
   var base = code.split('-')[0];
 
-  // ── Full UI translation dictionary ──────────────────────────
+// Full UI translation dictionary
   var T = {
-    // Nav items
+// Nav items
     'Feed':        {fr:'Fil',es:'Inicio',pt:'Feed',de:'Feed',ar:'الرئيسية',zh:'首页',ja:'フィード',hi:'फ़ीड',yo:'Ifunni',ig:'Nri',ha:'Ciyar',sw:'Mlo',ru:'Лента',tr:'Akış',ko:'피드',id:'Beranda',vi:'Nguồn',ur:'فیڈ',fa:'فید',he:'פיד',bn:'ফিড'},
     'Discover':    {fr:'Découvrir',es:'Explorar',pt:'Descobrir',de:'Entdecken',ar:'اكتشف',zh:'发现',ja:'発見',hi:'खोजें',yo:'Ṣàwárí',ig:'Chọpụta',ha:'Gano',sw:'Gundua',ru:'Обзор',tr:'Keşfet',ko:'탐색',id:'Temukan',vi:'Khám phá',ur:'دریافت',fa:'کشف',he:'גלה',bn:'আবিষ্কার'},
     'Saved':       {fr:'Sauvegardés',es:'Guardado',pt:'Salvos',de:'Gespeichert',ar:'محفوظ',zh:'收藏',ja:'保存済み',hi:'सहेजा',yo:'Fipamọ',ig:'Chekwaa',ha:'Ajiye',sw:'Zilizohifadhiwa',ru:'Сохранённое',tr:'Kaydedilenler',ko:'저장됨',id:'Tersimpan',vi:'Đã lưu',ur:'محفوظ',fa:'ذخیره‌شده',he:'שמור',bn:'সংরক্ষিত'},
@@ -8194,15 +8189,15 @@ function applyTranslations(code) {
     'Advertise':   {fr:'Publicité',es:'Publicidad',pt:'Anunciar',de:'Werbung',ar:'أعلن',zh:'广告',ja:'広告',hi:'विज्ञापन',yo:'Ìpolówó',ig:'Mgbasa ozi',ha:'Tallace',sw:'Tangaza',ru:'Реклама',tr:'Reklam',ko:'광고',id:'Iklan',vi:'Quảng cáo',ur:'اشتہار',fa:'تبلیغ',he:'פרסם',bn:'বিজ্ঞাপন'},
     'Language':    {fr:'Langue',es:'Idioma',pt:'Idioma',de:'Sprache',ar:'اللغة',zh:'语言',ja:'言語',hi:'भाषा',yo:'Èdè',ig:'Asụsụ',ha:'Harshe',sw:'Lugha',ru:'Язык',tr:'Dil',ko:'언어',id:'Bahasa',vi:'Ngôn ngữ',ur:'زبان',fa:'زبان',he:'שפה',bn:'ভাষা'},
     'Sign Out':    {fr:'Déconnexion',es:'Cerrar sesión',pt:'Sair',de:'Abmelden',ar:'تسجيل الخروج',zh:'退出',ja:'ログアウト',hi:'साइन आउट',yo:'Jade',ig:'Pụọ',ha:'Fita',sw:'Toka',ru:'Выйти',tr:'Çıkış',ko:'로그아웃',id:'Keluar',vi:'Đăng xuất',ur:'سائن آؤٹ',fa:'خروج',he:'התנתק',bn:'সাইন আউট'},
-    // Feed filters  
+// Feed filters
     'All':         {fr:'Tout',es:'Todo',pt:'Tudo',de:'Alle',ar:'الكل',zh:'全部',ja:'すべて',hi:'सब',yo:'Gbogbo',ig:'Niile',ha:'Duka',sw:'Zote',ru:'Все',tr:'Tümü',ko:'전체',id:'Semua',vi:'Tất cả',ur:'سب',fa:'همه',he:'הכל',bn:'সব'},
     'Education':   {fr:'Éducation',es:'Educación',pt:'Educação',de:'Bildung',ar:'تعليم',zh:'教育',ja:'教育',hi:'शिक्षा',yo:'Ẹ̀kọ́',ig:'Agụmakwụkwọ',ha:'Ilimi',sw:'Elimu',ru:'Образование',tr:'Eğitim',ko:'교육',id:'Pendidikan',vi:'Giáo dục',ur:'تعلیم',fa:'آموزش',he:'חינוך',bn:'শিক্ষা'},
     'Fun':         {fr:'Amusement',es:'Diversión',pt:'Diversão',de:'Spaß',ar:'مرح',zh:'娱乐',ja:'楽しみ',hi:'मनोरंजन',yo:'Igbadun',ig:'Nkiri',ha:'Nishaɗi',sw:'Burudani',ru:'Развлечения',tr:'Eğlence',ko:'재미',id:'Hiburan',vi:'Vui vẻ',ur:'مزہ',fa:'سرگرمی',he:'כיף',bn:'মজা'},
     'Thoughts':    {fr:'Pensées',es:'Pensamientos',pt:'Pensamentos',de:'Gedanken',ar:'أفكار',zh:'想法',ja:'考え',hi:'विचार',yo:'Èrò',ig:'Echiche',ha:'Tunani',sw:'Mawazo',ru:'Мысли',tr:'Düşünceler',ko:'생각',id:'Pikiran',vi:'Suy nghĩ',ur:'خیالات',fa:'افکار',he:'מחשבות',bn:'চিন্তা'},
     'News':        {fr:'Actualités',es:'Noticias',pt:'Notícias',de:'Nachrichten',ar:'أخبار',zh:'新闻',ja:'ニュース',hi:'समाचार',yo:'Ìròyìn',ig:'Ọ,br>',ha:'Labarai',sw:'Habari',ru:'Новости',tr:'Haberler',ko:'뉴스',id:'Berita',vi:'Tin tức',ur:'خبریں',fa:'اخبار',he:'חדשות',bn:'সংবাদ'},
-    // Post button
+// Post button
     'Spark':       {fr:'Publier',es:'Publicar',pt:'Postar',de:'Posten',ar:'نشر',zh:'发布',ja:'投稿',hi:'पोस्ट',yo:'Firanṣẹ',ig:'Zipu',ha:'Aika',sw:'Chapisha',ru:'Опубликовать',tr:'Paylaş',ko:'게시',id:'Posting',vi:'Đăng',ur:'پوسٹ',fa:'ارسال',he:'פרסם',bn:'পোস্ট'},
-    // Sidebar
+// Sidebar
     'Followers':   {fr:'Abonnés',es:'Seguidores',pt:'Seguidores',de:'Follower',ar:'المتابعون',zh:'粉丝',ja:'フォロワー',hi:'अनुयायी',yo:'Awọn ọmọlé',ig:'Ndị na-eso',ha:'Mabiya',sw:'Wafuatao',ru:'Подписчики',tr:'Takipçiler',ko:'팔로워',id:'Pengikut',vi:'Người theo dõi',ur:'فالوورز',fa:'دنبال‌کنندگان',he:'עוקבים',bn:'অনুসরণকারী'},
     'Sparks':      {fr:'Publications',es:'Publicaciones',pt:'Publicações',de:'Beiträge',ar:'المنشورات',zh:'帖子',ja:'投稿数',hi:'पोस्ट',yo:'Àwọn ìgbésọ̀rọ̀',ig:'Ozi',ha:'Ayyuka',sw:'Machapisho',ru:'Публикации',tr:'Gönderiler',ko:'게시물',id:'Kiriman',vi:'Bài đăng',ur:'پوسٹس',fa:'پست‌ها',he:'פוסטים',bn:'স্পার্কস'},
     'Trending':    {fr:'Tendances',es:'Tendencias',pt:'Tendências',de:'Trends',ar:'الأكثر رواجاً',zh:'热门',ja:'トレンド',hi:'ट्रेंडिंग',yo:'Ìpínlẹ̀',ig:'Ihe na-ewu ewu',ha:'Sanannen',sw:'Inayotendwa',ru:'Тренды',tr:'Trendler',ko:'트렌딩',id:'Tren',vi:'Xu hướng',ur:'ٹرینڈنگ',fa:'ترند',he:'טרנד',bn:'ট্রেন্ডিং'},
@@ -8219,27 +8214,27 @@ function applyTranslations(code) {
     return T[key][base] || T[key][code] || key;
   }
 
-  // ── Apply all translations ───────────────────────────────────
+// Apply all translations
 
-  // Post/Spark button
+// Post/Spark button
   var postBtn = document.getElementById('btn-post');
   if (postBtn) postBtn.textContent = '✦ ' + tr('Spark');
 
-  // Compose placeholder
+// Compose placeholder
   var ta = document.getElementById('comp-ta');
   if (ta) ta.placeholder = tr('What is on your mind?');
 
-  // Search placeholder
+// Search placeholder
   var si = document.getElementById('search-inp');
   if (si) si.placeholder = tr('Search sparks…');
 
-  // Filter pills
+// Filter pills
   var filterPills = document.querySelectorAll('#filter-bar .f-pill');
   var filterKeys = ['All','Education','Fun','Thoughts','News'];
   var filterIcons = ['✦','🧠','🎉','💭','🌍'];
   filterPills.forEach(function(p,i){ if(filterKeys[i]) p.textContent = filterIcons[i]+' '+tr(filterKeys[i]); });
 
-  // Nav items (left sidebar)
+// Nav items (left sidebar)
   var navMap = {
     'nav-feed':  'Feed',
     'nav-disc':  'Discover',
@@ -8256,22 +8251,22 @@ function applyTranslations(code) {
     if (!el) return;
     var ic = el.querySelector('.nav-ic');
     var icText = ic ? ic.outerHTML : '';
-    // Keep the icon, replace the text after it
+// Keep the icon, replace the text after it
     var badge = el.querySelector('.dm-badge');
     var badgeHTML = badge ? badge.outerHTML : '';
     el.innerHTML = icText + ' ' + tr(navMap[id]) + badgeHTML;
-    // Restore badge element reference
+// Restore badge element reference
     if (badge) {
       var newBadge = el.querySelector('.dm-badge');
       if (newBadge) newBadge.style.display = badge.style.display;
     }
   });
 
-  // Sign Out button
+// Sign Out button
   var outBtn = document.getElementById('btn-out');
   if (outBtn) outBtn.textContent = '🚪 ' + tr('Sign Out');
 
-  // Trending widget title
+// Trending widget title
   var trendWidgets = document.querySelectorAll('.wt');
   trendWidgets.forEach(function(w){
     if (w.textContent.trim() === 'Trending' || w.textContent.trim().indexOf('Trend') > -1) {
@@ -8282,18 +8277,18 @@ function applyTranslations(code) {
     }
   });
 
-  // Follow buttons in suggested users
+// Follow buttons in suggested users
   document.querySelectorAll('.btn-fol').forEach(function(b){
     b.textContent = tr('Follow');
   });
 
-  // Premium widget
+// Premium widget
   var pwTitle = document.querySelector('.pw-title');
   if (pwTitle) pwTitle.textContent = tr('Go Premium');
   var upgBtn = document.querySelector('.btn-upg');
   if (upgBtn) upgBtn.textContent = tr('Upgrade Now →');
 
-  // Stats labels
+// Stats labels
   var statsMap = [
     {id:'st-sparks-lbl', key:'Sparks'},
     {id:'st-fans-lbl',   key:'Followers'}
@@ -8303,14 +8298,14 @@ function applyTranslations(code) {
     if (el) el.textContent = tr(s.key);
   });
 
-  // Auth tabs
+// Auth tabs
   var tabLogin = document.getElementById('tab-login');
   if (tabLogin) tabLogin.textContent = {en:'Sign In',fr:'Connexion',es:'Iniciar sesión',pt:'Entrar',de:'Anmelden',ar:'دخول',zh:'登录',ja:'ログイン',hi:'साइन इन',yo:'Wọle',ig:'Banye',ha:'Shiga',sw:'Ingia',ru:'Войти',tr:'Giriş',ko:'로그인',id:'Masuk',vi:'Đăng nhập',ur:'سائن ان',fa:'ورود',he:'כניסה',bn:'সাইন ইন'}[base] || 'Sign In';
 
   var tabReg = document.getElementById('tab-reg');
   if (tabReg) tabReg.textContent = {en:'Join Mindvora',fr:'Rejoindre',es:'Unirse',pt:'Entrar',de:'Beitreten',ar:'انضم',zh:'加入',ja:'参加',hi:'जॉइन',yo:'Darapọ',ig:'Sonyere',ha:'Shiga',sw:'Jiunge',ru:'Присоединиться',tr:'Katıl',ko:'가입',id:'Bergabung',vi:'Tham gia',ur:'شامل ہوں',fa:'پیوستن',he:'הצטרף',bn:'যোগ দিন'}[base] || 'Join Mindvora';
 
-  // RTL direction
+// RTL direction
   var rtl = ['ar','ur','fa','he','ku'];
   var isRTL = rtl.indexOf(base) > -1;
   document.documentElement.dir  = isRTL ? 'rtl' : 'ltr';
@@ -8318,10 +8313,10 @@ function applyTranslations(code) {
   document.body.style.fontFamily = isRTL ? "'Noto Sans Arabic','Segoe UI',system-ui,sans-serif" : '';
   document.body.style.textAlign  = isRTL ? 'right' : '';
 
-  // Save language button label in sidebar
+// Save language button label in sidebar
   var langNavBtn = document.getElementById('nav-lang');
   if (!langNavBtn) langNavBtn = document.querySelector('[onclick="openLanguage()"]');
-  // already handled in navMap above
+// already handled in navMap above
 
   console.log('[Mindvora] Language applied:', code);
 }
@@ -8336,7 +8331,7 @@ function applyTranslations(code) {
       currentLang = saved;
       document.documentElement.dir = lang.dir || 'ltr';
       document.documentElement.lang = saved;
-      // Apply full translations after DOM is ready
+// Apply full translations after DOM is ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function(){
           applyTranslations(saved);
@@ -8348,7 +8343,7 @@ function applyTranslations(code) {
   }
 })();
 
-// ── 3. CLIPBOARD HISTORY ─────────────────────────────────────────────────
+// 3. CLIPBOARD HISTORY
 var clipboardHistory = JSON.parse(localStorage.getItem('mv_clipboard') || '[]');
 
 function addToClipboard(text) {
@@ -8403,8 +8398,8 @@ document.addEventListener('copy', function() {
   }, 100);
 });
 
-// ── 4. SOUNDBOARD ─────────────────────────────────────────────────────────
-// ── SOUNDBOARD — Web Audio API (no CDN, 100% reliable) ──────────────────
+// 4. SOUNDBOARD
+// SOUNDBOARD — Web Audio API (no CDN, 100% reliable)
 var _audioCtx = null;
 function _getCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -8438,16 +8433,16 @@ function _seq(notes) { // [{f,t,type,dur,vol}]
 
 var SOUNDS = [
   {label:'😂 Laugh', play:function(){
-    // Ha-ha-ha laugh: rising then falling tones
+// Ha-ha-ha laugh: rising then falling tones
     _seq([{f:350,t:0,dur:0.12,vol:0.5},{f:420,t:130,dur:0.12,vol:0.5},{f:350,t:260,dur:0.14,vol:0.5},
           {f:440,t:420,dur:0.12,vol:0.5},{f:360,t:550,dur:0.12,vol:0.5},{f:450,t:680,dur:0.15,vol:0.4}]);
   }},
   {label:'👏 Applause', play:function(){
-    // Rapid noise bursts = clapping
+// Rapid noise bursts = clapping
     for(var i=0;i<12;i++)(function(j){ setTimeout(function(){ _noise(0.06,0.35); },j*70); })(i);
   }},
   {label:'🥁 Drum Roll', play:function(){
-    // Fast alternating kick + snare
+// Fast alternating kick + snare
     for(var i=0;i<20;i++)(function(j){
       setTimeout(function(){
         _tone(80,'sine',0.06,0.9,40);   // kick
@@ -8456,35 +8451,35 @@ var SOUNDS = [
     })(i);
   }},
   {label:'🎺 Fanfare', play:function(){
-    // Classic ta-ta-ta-TAAAA
+// Classic ta-ta-ta-TAAAA
     _seq([{f:523,t:0,type:'square',dur:0.15,vol:0.3},{f:523,t:180,type:'square',dur:0.15,vol:0.3},
           {f:523,t:360,type:'square',dur:0.15,vol:0.3},{f:659,t:540,type:'square',dur:0.2,vol:0.3},
           {f:784,t:780,type:'square',dur:0.4,vol:0.35}]);
   }},
   {label:'🔔 Bell', play:function(){
-    // High-pitched bell ring with long decay
+// High-pitched bell ring with long decay
     _tone(1047,'sine',1.8,0.5); _tone(1319,'sine',1.4,0.18); _tone(2093,'sine',1.0,0.1);
   }},
   {label:'💥 Boom', play:function(){
-    // Deep explosion: low sine + noise burst
+// Deep explosion: low sine + noise burst
     _tone(55,'sine',0.8,1.0,20); _noise(0.6,0.9);
   }},
   {label:'🎉 Party Horn', play:function(){
-    // Ascending squeal like a party blower
+// Ascending squeal like a party blower
     _tone(500,'sawtooth',0.5,0.3,1400);
     setTimeout(function(){ _tone(600,'sawtooth',0.4,0.25,1600); },100);
   }},
   {label:'😢 Sad Trombone', play:function(){
-    // Classic descending wah-wah
+// Classic descending wah-wah
     _seq([{f:392,t:0,type:'sawtooth',dur:0.35,vol:0.4},{f:349,t:320,type:'sawtooth',dur:0.35,vol:0.4},
           {f:311,t:640,type:'sawtooth',dur:0.35,vol:0.4},{f:294,t:960,type:'sawtooth',dur:0.6,vol:0.35}]);
   }},
   {label:'⚡ Zap', play:function(){
-    // Electric zap: high sawtooth sliding down fast
+// Electric zap: high sawtooth sliding down fast
     _tone(1200,'sawtooth',0.3,0.5,80); _noise(0.08,0.3);
   }},
   {label:'🐱 Cat Meow', play:function(){
-    // Meow: sine that rises then falls
+// Meow: sine that rises then falls
     var ctx=_getCtx(), o=ctx.createOscillator(), g=ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.type='sine';
@@ -8496,12 +8491,12 @@ var SOUNDS = [
     o.start(); o.stop(ctx.currentTime+0.6);
   }},
   {label:'🐶 Dog Bark', play:function(){
-    // Two short low barks
+// Two short low barks
     _tone(180,'square',0.12,0.6); _noise(0.1,0.4);
     setTimeout(function(){ _tone(170,'square',0.16,0.55); _noise(0.12,0.4); },250);
   }},
   {label:'🎸 Guitar', play:function(){
-    // Plucked string: sawtooth with fast decay
+// Plucked string: sawtooth with fast decay
     var ctx=_getCtx(), o=ctx.createOscillator(), g=ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
     o.type='sawtooth'; o.frequency.setValueAtTime(330,ctx.currentTime);
@@ -8511,7 +8506,7 @@ var SOUNDS = [
     o.start(); o.stop(ctx.currentTime+1.0);
   }},
   {label:'👻 Spooky', play:function(){
-    // Wavering eerie tone
+// Wavering eerie tone
     var ctx=_getCtx(), o=ctx.createOscillator(), lfo=ctx.createOscillator(),
         lfoG=ctx.createGain(), g=ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
@@ -8524,15 +8519,15 @@ var SOUNDS = [
     lfo.start(); o.start(); o.stop(ctx.currentTime+1.8); lfo.stop(ctx.currentTime+1.8);
   }},
   {label:'🚀 Whoosh', play:function(){
-    // Fast upward sweep with noise
+// Fast upward sweep with noise
     _tone(120,'sawtooth',0.35,0.3,3000); _noise(0.35,0.2);
   }},
   {label:'😴 Snore', play:function(){
-    // In-out snoring sound
+// In-out snoring sound
     var t=0;
     [0,900,1800].forEach(function(offset){
       setTimeout(function(){
-        // inhale
+// inhale
         var ctx=_getCtx(), o=ctx.createOscillator(), g=ctx.createGain();
         o.connect(g); g.connect(ctx.destination); o.type='sine';
         o.frequency.setValueAtTime(100,ctx.currentTime);
@@ -8546,11 +8541,11 @@ var SOUNDS = [
     });
   }},
   {label:'🎵 Ding', play:function(){
-    // Bright notification ding
+// Bright notification ding
     _tone(1568,'sine',0.6,0.4); setTimeout(function(){ _tone(2093,'sine',0.4,0.15); },80);
   }},
   {label:'😱 Scream', play:function(){
-    // Rising scream with vibrato
+// Rising scream with vibrato
     var ctx=_getCtx(), o=ctx.createOscillator(), lfo=ctx.createOscillator(),
         lfoG=ctx.createGain(), g=ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
@@ -8563,19 +8558,19 @@ var SOUNDS = [
     lfo.start(); o.start(); o.stop(ctx.currentTime+0.7); lfo.stop(ctx.currentTime+0.7);
   }},
   {label:'🤣 Ha Ha Ha', play:function(){
-    // Rapid higher laugh
+// Rapid higher laugh
     [0,180,360,540,720,900].forEach(function(t){
       setTimeout(function(){ _tone(380+(Math.random()*80),'sine',0.12,0.45); },t);
     });
   }},
   {label:'🏆 Level Up', play:function(){
-    // Mario-style ascending chime
+// Mario-style ascending chime
     _seq([{f:523,t:0,type:'square',dur:0.1,vol:0.3},{f:659,t:120,type:'square',dur:0.1,vol:0.3},
           {f:784,t:240,type:'square',dur:0.1,vol:0.3},{f:1047,t:360,type:'square',dur:0.15,vol:0.35},
           {f:1319,t:510,type:'square',dur:0.25,vol:0.3}]);
   }},
   {label:'❌ Wrong Buzz', play:function(){
-    // Low buzzer
+// Low buzzer
     _tone(160,'sawtooth',0.5,0.6); _tone(140,'sawtooth',0.5,0.4);
     setTimeout(function(){ _tone(120,'sawtooth',0.4,0.5); },180);
   }}
@@ -8598,7 +8593,7 @@ function openSoundboard() {
 function playSound(i) {
   var s = SOUNDS[i];
   if (!s) return;
-  // Reset all buttons
+// Reset all buttons
   document.querySelectorAll('[id^="snd-"]').forEach(function(b){
     var idx = parseInt(b.id.replace('snd-',''));
     if (!isNaN(idx) && SOUNDS[idx]) b.textContent = SOUNDS[idx].label;
@@ -8619,14 +8614,14 @@ function playSound(i) {
     }
   }
 
-  // Always create/resume AudioContext from within a user gesture
+// Always create/resume AudioContext from within a user gesture
   try {
     if (!_audioCtx) {
       _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (_audioCtx.state === 'suspended' || _audioCtx.state === 'interrupted') {
       _audioCtx.resume().then(doPlay).catch(function(){
-        // If resume fails, create a fresh context
+// If resume fails, create a fresh context
         _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         doPlay();
       });
@@ -8639,7 +8634,7 @@ function playSound(i) {
 }
 
 
-// ── 5. WORD OF THE DAY ────────────────────────────────────────────────────
+// 5. WORD OF THE DAY
 var WORDS_BANK = [
   {word:'Resilience',pos:'noun',def:'The ability to recover quickly from difficulties and keep moving forward.',eg:'Her resilience in the face of hardship inspired everyone around her.'},
   {word:'Ephemeral',pos:'adjective',def:'Lasting for a very short time; transitory.',eg:'Social media fame can be ephemeral if you don\'t stay consistent.'},
@@ -8670,7 +8665,7 @@ var WORDS_BANK = [
 function openWordOfDay() {
   openModal('modal-word');
   var body = document.getElementById('word-body');
-  // Use date to pick a consistent word per day
+// Use date to pick a consistent word per day
   var dayIndex = Math.floor(Date.now() / 86400000) % WORDS_BANK.length;
   var w = WORDS_BANK[dayIndex];
   body.innerHTML =
@@ -8679,7 +8674,7 @@ function openWordOfDay() {
       '<div style="font-size:11px;color:var(--muted);font-style:italic;margin-bottom:16px">'+esc(w.pos)+'</div>' +
       '<div style="font-size:13px;color:var(--moon);line-height:1.7;margin-bottom:14px;text-align:left;background:var(--deep);padding:12px;border-radius:10px;border:1px solid var(--border)">'+esc(w.def)+'</div>' +
       '<div style="font-size:12px;color:var(--muted);font-style:italic;text-align:left;padding:0 4px">📌 "'+esc(w.eg)+'"</div>' +
-      '<button class="btn-pay" style="margin-top:16px" onclick="shareWordOfDay(\''+esc(w.word)+'\',\''+esc(w.def)+'\')">Share This Word ✨</button>' +
+      '<button class="btn-pay" style="margin-top:16px" onclick="shareWordOfDay(\''+escJs(w.word)+'\',\''+escJs(w.def)+'\')">Share This Word ✨</button>' +
     '</div>';
 }
 
@@ -8697,7 +8692,7 @@ function shareWordOfDay(word, def) {
     .catch(function(){ showToast('Error sharing'); });
 }
 
-// ── 6. MINDVORA TV ────────────────────────────────────────────────────────
+// 6. MINDVORA TV
 function openMindvoraTV() {
   if (!state.user) { showToast('Login first'); return; }
   openModal('modal-tv');
@@ -8719,13 +8714,13 @@ function loadTV(filter, btn) {
       return;
     }
     var docs = snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); });
-    // Sort client-side
+// Sort client-side
     if (filter === 'trending') docs.sort(function(a,b){ return ((b.likes||[]).length+(b.commentCount||0)) - ((a.likes||[]).length+(a.commentCount||0)); });
     else if (filter === 'recent') docs.sort(function(a,b){ var ta=a.createdAt&&a.createdAt.seconds?a.createdAt.seconds:0; var tb=b.createdAt&&b.createdAt.seconds?b.createdAt.seconds:0; return tb-ta; });
     else if (filter === 'top') docs.sort(function(a,b){ return (b.likes||[]).length - (a.likes||[]).length; });
 
     grid.innerHTML = docs.map(function(s) {
-      return '<div style="display:flex;gap:12px;align-items:center;padding:10px;background:var(--deep);border-radius:12px;border:1px solid var(--border);cursor:pointer" onclick="openReel(\''+s.id+'\',\''+esc(s.mediaUrl||'')+'\',\''+esc(s.authorName||'User')+'\',\''+esc((s.text||'').slice(0,50))+'\','+(s.likes||[]).length+')">' +
+      return '<div style="display:flex;gap:12px;align-items:center;padding:10px;background:var(--deep);border-radius:12px;border:1px solid var(--border);cursor:pointer" onclick="openReel(\''+s.id+'\',\''+escJs(s.mediaUrl||'')+'\',\''+escJs(s.authorName||'User')+'\',\''+escJs((s.text||'').slice(0,50))+'\','+(s.likes||[]).length+')">' +
         '<video src="'+esc(s.mediaUrl||'')+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0" muted preload="metadata"></video>' +
         '<div style="flex:1;min-width:0">' +
           '<div style="font-size:13px;font-weight:700;color:var(--moon);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(s.authorName||'User')+'</div>' +
@@ -8743,17 +8738,15 @@ function loadTV(filter, btn) {
 
 
 
-// ══════════════════════════════════════════════════════════════
 // EDIT & DELETE — Messages and Comments
-// ══════════════════════════════════════════════════════════════
 
-// ── DELEGATED click handler for edit/delete actions ──────────────────────
+// DELEGATED click handler for edit/delete actions
 document.addEventListener('click', function(e) {
   var btn = e.target.closest('[data-action]');
   if (!btn) return;
   var action = btn.dataset.action;
 
-  // ── DM MESSAGE EDIT ──
+// DM MESSAGE EDIT
   if (action === 'edit-msg') {
     var dmId   = btn.dataset.dmid;
     var msgId  = btn.dataset.msgid;
@@ -8769,7 +8762,7 @@ document.addEventListener('click', function(e) {
       .catch(function(){ showToast('Error editing message'); });
   }
 
-  // ── DM MESSAGE DELETE ──
+// DM MESSAGE DELETE
   if (action === 'del-msg') {
     var dmId  = btn.dataset.dmid;
     var msgId = btn.dataset.msgid;
@@ -8780,7 +8773,7 @@ document.addEventListener('click', function(e) {
       .catch(function(){ showToast('Error deleting message'); });
   }
 
-  // ── COMMENT EDIT ──
+// COMMENT EDIT
   if (action === 'edit-cmt') {
     var sparkId = btn.dataset.sparkid;
     var cmtId   = btn.dataset.cmtid;
@@ -8794,14 +8787,14 @@ document.addEventListener('click', function(e) {
       .update({ text: newTxt, edited: true, editedAt: firebase.firestore.FieldValue.serverTimestamp() })
       .then(function(){
         showToast('✏️ Comment edited');
-        // Update in DOM immediately without reloading
+// Update in DOM immediately without reloading
         var el = document.getElementById('cmt-txt-' + cmtId);
         if (el) el.textContent = newTxt;
       })
       .catch(function(){ showToast('Error editing comment'); });
   }
 
-  // ── COMMENT DELETE ──
+// COMMENT DELETE
   if (action === 'del-cmt') {
     var sparkId = btn.dataset.sparkid;
     var cmtId   = btn.dataset.cmtid;
@@ -8810,11 +8803,11 @@ document.addEventListener('click', function(e) {
       .delete()
       .then(function(){
         showToast('🗑 Comment deleted');
-        // Update comment count
+// Update comment count
         db.collection('sparks').doc(sparkId).update({
           commentCount: firebase.firestore.FieldValue.increment(-1)
         }).catch(function(){});
-        // Remove from DOM immediately
+// Remove from DOM immediately
         var itemEl = btn.closest('.cmt-item');
         if (itemEl) itemEl.remove();
       })
@@ -8823,11 +8816,9 @@ document.addEventListener('click', function(e) {
 }, false);
 
 
-// ══════════════════════════════════════════════════════════════
 // EDIT POSTS + VOICEOVER REPLIES
-// ══════════════════════════════════════════════════════════════
 
-// ── EDIT SPARK (post) ────────────────────────────────────────────────────
+// EDIT SPARK (post)
 function editSpark(id, oldText) {
   var decoded = oldText.replace(/&#39;/g,"'").replace(/&quot;/g,'"');
   var newText = prompt('Edit your post:', decoded);
@@ -8844,7 +8835,7 @@ function editSpark(id, oldText) {
   }).catch(function(){ showToast('Error updating post'); });
 }
 
-// ── VOICEOVER REPLY ──────────────────────────────────────────────────────
+// VOICEOVER REPLY
 var _voiceSparkId = null;
 var _voiceAuthor  = null;
 var _mediaRecorder = null;
@@ -8895,7 +8886,7 @@ function startVoiceRecord() {
       prev.style.display = 'block';
       document.getElementById('vr-send-btn').style.display = 'block';
       document.getElementById('vr-status').textContent = 'Voice note ready — listen then send';
-      // Store blob for upload
+// Store blob for upload
       prev.dataset.blob = 'ready';
       window._voiceBlob = blob;
     };
@@ -8932,7 +8923,7 @@ function sendVoiceReply() {
   var btn = document.getElementById('vr-send-btn');
   btn.disabled = true; btn.textContent = 'Uploading…';
 
-  // Upload to Cloudinary
+// Upload to Cloudinary
   var fd = new FormData();
   fd.append('file', window._voiceBlob, 'voice-reply.webm');
   fd.append('upload_preset', 'ml_default');
@@ -8943,7 +8934,7 @@ function sendVoiceReply() {
   }).then(function(r){ return r.json(); }).then(function(res) {
     if (!res.secure_url) { showToast('Upload failed'); btn.disabled=false; btn.textContent='Send Voice Reply'; return; }
 
-    // Save as comment with voice type
+// Save as comment with voice type
     db.collection('sparks').doc(_voiceSparkId).collection('comments').add({
       authorId:    state.user.uid,
       authorName:  state.profile.name,
@@ -8958,7 +8949,7 @@ function sendVoiceReply() {
       db.collection('sparks').doc(_voiceSparkId).update({
         commentCount: firebase.firestore.FieldValue.increment(1)
       });
-      // Notify post author
+// Notify post author
       db.collection('sparks').doc(_voiceSparkId).get().then(function(d) {
         if (d.exists && d.data().authorId !== state.user.uid) {
           db.collection('notifications').add({
@@ -8975,13 +8966,13 @@ function sendVoiceReply() {
       showToast('🎙 Voice reply sent!');
       closeModal('modal-voice-reply');
       window._voiceBlob = null;
-      // Reload comments if open
+// Reload comments if open
       if (state.currentSparkId === _voiceSparkId) openComments(_voiceSparkId);
     }).catch(function(){ showToast('Error saving voice reply'); btn.disabled=false; btn.textContent='Send Voice Reply'; });
   }).catch(function(){ showToast('Upload failed'); btn.disabled=false; btn.textContent='Send Voice Reply'; });
 }
 
-// ── REAL-TIME UPDATES (already powered by Firebase onSnapshot) ───────────
+// REAL-TIME UPDATES (already powered by Firebase onSnapshot)
 // Firebase Firestore onSnapshot IS a WebSocket connection — it pushes updates
 // instantly to all users without any page refresh needed.
 // The feed, DMs, notifications and all live data already use onSnapshot.
@@ -8993,17 +8984,15 @@ function ensureRealtimeFeed() {
   }
 }
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║           NOWPAYMENTS CRYPTO INTEGRATION                     ║
-// ║   Keys stored securely in Render.com backend                 ║
-// ║   Public Key only in frontend (safe)                         ║
-// ╚══════════════════════════════════════════════════════════════╝
+// NOWPAYMENTS CRYPTO INTEGRATION
+// Keys stored securely in Render.com backend
+// Public Key only in frontend (safe)
 
 // NOWPayments keys moved to secure backend — never expose API key in frontend
 var NOWPAY_PUBLIC_KEY = '440f0f69-11dd-4248-91f3-903e123538ee'; // public key only — safe
 var BACKEND_URL       = window.BACKEND_URL || '';
 
-// ── SWITCH PAYMENT METHOD TABS ────────────────────────────────────────────
+// SWITCH PAYMENT METHOD TABS
 function switchPayMethod(method) {
   document.getElementById('pay-panel-paystack').style.display = method === 'paystack' ? 'block' : 'none';
   document.getElementById('pay-panel-crypto').style.display   = method === 'crypto'   ? 'block' : 'none';
@@ -9011,12 +9000,12 @@ function switchPayMethod(method) {
   document.getElementById('pay-method-crypto').classList.toggle('active', method === 'crypto');
 }
 
-// ── CREATE NOWPAYMENTS INVOICE & OPEN PAYMENT PAGE ────────────────────────
+// CREATE NOWPAYMENTS INVOICE & OPEN PAYMENT PAGE
 function createCryptoPayment(amountUSD, description, onSuccess) {
   if (!state.user) { showToast('Login first'); return; }
   showToast('₿ Setting up crypto payment…');
 
-  // Proceed with creating the invoice
+// Proceed with creating the invoice
   setTimeout(function() {
     createCryptoInvoice(amountUSD, description, onSuccess);
   }, 500);
@@ -9044,7 +9033,7 @@ function createCryptoInvoice(amountUSD, description, onSuccess) {
       console.error('NOWPayments error:', data);
       return;
     }
-    // Save pending crypto payment to Firestore
+// Save pending crypto payment to Firestore
     db.collection('crypto_payments').add({
       uid:         state.user.uid,
       email:       state.user.email,
@@ -9056,11 +9045,11 @@ function createCryptoInvoice(amountUSD, description, onSuccess) {
       status:      'pending',
       createdAt:   firebase.firestore.FieldValue.serverTimestamp()
     }).then(function(docRef) {
-      // Poll for payment status
+// Poll for payment status
       pollCryptoPayment(data.id, docRef.id, onSuccess);
     });
 
-    // Open payment page in new tab
+// Open payment page in new tab
     window.open(data.invoice_url, '_blank');
     showToast('₿ Crypto payment page opened! Complete payment in the new tab.');
   })
@@ -9070,7 +9059,7 @@ function createCryptoInvoice(amountUSD, description, onSuccess) {
   });
 }
 
-// ── POLL PAYMENT STATUS (check every 15s for up to 30 mins) ──────────────
+// POLL PAYMENT STATUS (check every 15s for up to 30 mins)
 function pollCryptoPayment(invoiceId, docId, onSuccess) {
   var attempts = 0;
   var maxAttempts = 120; // 30 mins at 15s intervals
@@ -9087,14 +9076,14 @@ function pollCryptoPayment(invoiceId, docId, onSuccess) {
       var status = data.status || '';
       if (status === 'finished' || status === 'confirmed' || status === 'partially_paid') {
         clearInterval(pollTimer);
-        // Update Firestore record
+// Update Firestore record
         db.collection('crypto_payments').doc(docId).update({
           status: 'completed',
           paidAt: firebase.firestore.FieldValue.serverTimestamp(),
           payCurrency: data.pay_currency,
           payAmount: data.pay_amount
         });
-        // Execute success callback
+// Execute success callback
         if (typeof onSuccess === 'function') onSuccess();
         showToast('✅ Crypto payment confirmed!');
       } else if (status === 'failed' || status === 'refunded' || status === 'expired') {
@@ -9107,14 +9096,14 @@ function pollCryptoPayment(invoiceId, docId, onSuccess) {
   }, 15000);
 }
 
-// ── PREMIUM SUBSCRIPTION VIA CRYPTO ──────────────────────────────────────
+// PREMIUM SUBSCRIPTION VIA CRYPTO
 function payCrypto() {
   if (!state.plan) { showToast('Select a plan first'); return; }
   createCryptoPayment(
     state.plan.amount,
     'Mindvora ' + state.plan.name + ' Monthly Subscription',
     function() {
-      // On payment confirmed — activate premium
+// On payment confirmed — activate premium
       db.collection('users').doc(state.user.uid).update({
         isPremium: true,
         plan: state.plan.id,
@@ -9128,7 +9117,7 @@ function payCrypto() {
   );
 }
 
-// ── VERIFIED BADGE VIA CRYPTO ─────────────────────────────────────────────
+// VERIFIED BADGE VIA CRYPTO
 function payBadgeCrypto() {
   createCryptoPayment(
     30,
@@ -9150,18 +9139,18 @@ function payBadgeCrypto() {
   );
 }
 
-// ── CREATOR TIPS VIA CRYPTO ───────────────────────────────────────────────
+// CREATOR TIPS VIA CRYPTO
 function tipCreatorCrypto(recipientId, recipientName, amount) {
   createCryptoPayment(
     amount,
     'Tip for ' + recipientName + ' on Mindvora',
     function() {
-      // Credit tip to recipient earnings
+// Credit tip to recipient earnings
       db.collection('users').doc(recipientId).update({
         tips: firebase.firestore.FieldValue.increment(amount * 0.9),
         earnings: firebase.firestore.FieldValue.increment(amount * 0.9)
       });
-      // Notify recipient
+// Notify recipient
       db.collection('notifications').add({
         toUid: recipientId,
         fromName: state.profile.name,
@@ -9175,7 +9164,7 @@ function tipCreatorCrypto(recipientId, recipientName, amount) {
   );
 }
 
-// ── GIFT SYSTEM VIA CRYPTO ────────────────────────────────────────────────
+// GIFT SYSTEM VIA CRYPTO
 function sendGiftCrypto(recipientId, recipientName, giftName, amount) {
   createCryptoPayment(
     amount,
@@ -9200,7 +9189,7 @@ function sendGiftCrypto(recipientId, recipientName, giftName, amount) {
 
 
 
-// ── SECURE API PROXY HELPER ───────────────────────────────────────────────
+// SECURE API PROXY HELPER
 // All calls needing secret keys go through Vercel serverless functions
 function callSecureAPI(endpoint, payload) {
   return fetch(BACKEND_URL + endpoint, {
@@ -9210,7 +9199,7 @@ function callSecureAPI(endpoint, payload) {
   }).then(function(r){ return r.json(); });
 }
 
-// ── CURRENCY CONVERSION FOR WITHDRAWALS ───────────────────────────────────
+// CURRENCY CONVERSION FOR WITHDRAWALS
 // Uses free exchangerate-api to get real-time rates
 var CURRENCY_CACHE = {};
 var CURRENCY_CACHE_TIME = 0;
@@ -9234,7 +9223,7 @@ var CURRENCY_SYMBOLS = {
 };
 
 function getUserCurrency() {
-  // Try to detect user's country from browser/profile
+// Try to detect user's country from browser/profile
   var lang = navigator.language || 'en-US';
   var country = lang.split('-')[1] || 'US';
   return COUNTRY_CURRENCIES[country] || 'USD';
@@ -9244,7 +9233,7 @@ function getExchangeRate(fromCurrency, toCurrency, callback) {
   if (fromCurrency === toCurrency) { callback(1); return; }
   var cacheKey = fromCurrency + '_' + toCurrency;
   var now = Date.now();
-  // Cache rates for 1 hour
+// Cache rates for 1 hour
   if (CURRENCY_CACHE[cacheKey] && (now - CURRENCY_CACHE_TIME) < 3600000) {
     callback(CURRENCY_CACHE[cacheKey]);
     return;
@@ -9275,7 +9264,7 @@ function convertAndDisplay(amountUSD, elementId) {
   });
 }
 
-// ── WITHDRAWAL WITH CURRENCY CONVERSION ──────────────────────────────────
+// WITHDRAWAL WITH CURRENCY CONVERSION
 var _origWithdraw = window.submitWithdrawal;
 
 function showWithdrawalPreview(amountUSD) {
@@ -9293,13 +9282,11 @@ function showWithdrawalPreview(amountUSD) {
 
 
 
-// ╔══════════════════════════════════════════════════════════════╗
-// ║         MINDVORA NEW FEATURES v2.0                          ║
-// ║  Follow/Unfollow · Typing · Read Receipts · Post Views      ║
-// ║  Block User · Report Post · Profile Edit · Mentions         ║
-// ╚══════════════════════════════════════════════════════════════╝
+// MINDVORA NEW FEATURES v2.0
+// Follow/Unfollow · Typing · Read Receipts · Post Views
+// Block User · Report Post · Profile Edit · Mentions
 
-// ── 1. FOLLOW / UNFOLLOW ─────────────────────────────────────────────────
+// 1. FOLLOW / UNFOLLOW
 function toggleFollow(targetUid, targetName) {
   if (!state.user) { showToast('Login first'); return; }
   if (targetUid === state.user.uid) { showToast('You cannot follow yourself'); return; }
@@ -9309,7 +9296,7 @@ function toggleFollow(targetUid, targetName) {
   var isFollowing = following.indexOf(targetUid) !== -1;
 
   if (isFollowing) {
-    // Unfollow
+// Unfollow
     db.collection('users').doc(myUid).update({
       following: firebase.firestore.FieldValue.arrayRemove(targetUid),
       followingCount: firebase.firestore.FieldValue.increment(-1)
@@ -9320,7 +9307,7 @@ function toggleFollow(targetUid, targetName) {
     state.profile.following = following.filter(function(u){ return u !== targetUid; });
     showToast('Unfollowed ' + targetName);
   } else {
-    // Follow
+// Follow
     db.collection('users').doc(myUid).update({
       following: firebase.firestore.FieldValue.arrayUnion(targetUid),
       followingCount: firebase.firestore.FieldValue.increment(1)
@@ -9328,7 +9315,7 @@ function toggleFollow(targetUid, targetName) {
     db.collection('users').doc(targetUid).update({
       followers: firebase.firestore.FieldValue.increment(1)
     }).then(function() {
-      // Notify
+// Notify
       db.collection('notifications').add({
         toUid: targetUid,
         fromName: state.profile.name,
@@ -9348,7 +9335,7 @@ function isFollowing(targetUid) {
   return state.profile && (state.profile.following || []).indexOf(targetUid) !== -1;
 }
 
-// ── 2. TYPING INDICATOR IN DMs ───────────────────────────────────────────
+// 2. TYPING INDICATOR IN DMs
 var _typingTimers = {};
 var _typingUnsubs = {};
 
@@ -9384,7 +9371,7 @@ function watchTyping(dmId, otherUid) {
   }, function(){});
 }
 
-// ── 3. POST VIEWS COUNTER ─────────────────────────────────────────────────
+// 3. POST VIEWS COUNTER
 var _viewedPosts = {};
 
 function trackPostView(sparkId, authorId) {
@@ -9397,7 +9384,7 @@ function trackPostView(sparkId, authorId) {
   }).catch(function(){});
 }
 
-// ── 4. BLOCK USER ────────────────────────────────────────────────────────
+// 4. BLOCK USER
 function blockUser(targetUid, targetName) {
   if (!state.user) return;
   if (!confirm('Block ' + targetName + '? They will not be able to see your posts or message you.')) return;
@@ -9408,7 +9395,7 @@ function blockUser(targetUid, targetName) {
     if (!state.profile.blockedUsers) state.profile.blockedUsers = [];
     state.profile.blockedUsers.push(targetUid);
     showToast('🚫 ' + targetName + ' has been blocked');
-    // Close any open DM with this user
+// Close any open DM with this user
     closeModal('modal-dm');
   }).catch(function(){ showToast('Error blocking user'); });
 }
@@ -9426,7 +9413,7 @@ function unblockUser(targetUid, targetName) {
   }).catch(function(){});
 }
 
-// ── 5. REPORT POST ───────────────────────────────────────────────────────
+// 5. REPORT POST
 var REPORT_REASONS = [
   'Spam or misleading',
   'Hate speech or discrimination',
@@ -9457,14 +9444,14 @@ function reportSpark(sparkId, authorId) {
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   }).then(function() {
     showToast('📋 Post reported. Thank you for keeping Mindvora safe.');
-    // Notify admin
+// Notify admin
     notifyOwner('📋 Post Reported',
       'Post ID: ' + sparkId + '\nReporter: ' + state.profile.name +
       '\nReason: ' + reasonText, 'medium');
   }).catch(function(){ showToast('Error submitting report'); });
 }
 
-// ── 6. PROFILE EDIT ──────────────────────────────────────────────────────
+// 6. PROFILE EDIT
 function openEditProfile() {
   if (!state.user || !state.profile) return;
   openModal('modal-edit-profile');
@@ -9497,7 +9484,7 @@ function saveProfile() {
     state.profile.handle  = handle;
     state.profile.bio     = bio;
     state.profile.website = website;
-    // Update sidebar
+// Update sidebar
     document.getElementById('sb-name').innerHTML = name;
     document.getElementById('sb-handle').textContent = '@' + handle;
     showToast('✅ Profile updated!');
@@ -9509,7 +9496,7 @@ function saveProfile() {
   });
 }
 
-// ── 7. READ RECEIPTS FOR DMs ─────────────────────────────────────────────
+// 7. READ RECEIPTS FOR DMs
 function markMessagesAsRead(dmId) {
   if (!state.user || !dmId) return;
   db.collection('dms').doc(dmId).update({
@@ -9518,7 +9505,7 @@ function markMessagesAsRead(dmId) {
   }).catch(function(){});
 }
 
-// ── 8. MENTIONS (@username) ──────────────────────────────────────────────
+// 8. MENTIONS (@username)
 function parseMentions(text) {
   if (!text) return text;
   return esc(text).replace(/@([a-zA-Z0-9_]+)/g, function(match, handle) {
@@ -9532,13 +9519,13 @@ function openUserByHandle(handle) {
       if (snap.empty) { showToast('@' + handle + ' not found'); return; }
       var u = snap.docs[0].data();
       showToast('Opening @' + handle + '\'s profile');
-      // Open their profile view
+// Open their profile view
       openUserProfile(snap.docs[0].id, u);
     }).catch(function(){});
 }
 
 function openUserProfile(uid, userData) {
-  // Show a user profile sheet
+// Show a user profile sheet
   var u = userData;
   var existing = document.getElementById('user-profile-sheet');
   if (existing) existing.remove();
@@ -9563,13 +9550,13 @@ function openUserProfile(uid, userData) {
       '</div>' +
       '<div style="display:flex;gap:8px">' +
         (state.user && uid !== state.user.uid ?
-          '<button onclick="toggleFollow(\'' + uid + '\',\'' + esc(u.name) + '\');this.textContent=isFollowing(\'' + uid + '\')?\'Following\':\'Follow\'" style="flex:1;padding:10px;border-radius:12px;background:var(--green2);border:none;color:#fff;font-weight:700;cursor:pointer">' +
+          '<button onclick="toggleFollow(\'' + uid + '\',\'' + escJs(u.name) + '\');this.textContent=isFollowing(\'' + uid + '\')?\'Following\':\'Follow\'" style="flex:1;padding:10px;border-radius:12px;background:var(--green2);border:none;color:#fff;font-weight:700;cursor:pointer">' +
             (isFollowing(uid) ? 'Following' : 'Follow') +
           '</button>' : '') +
         (state.user && uid !== state.user.uid ?
-          '<button onclick="var dmId=[\'' + uid + '\',\'' + (state.user?state.user.uid:'') + '\'].sort().join(\'_\');openChat(dmId,\'' + uid + '\',\'' + esc(u.name) + '\',\'' + esc(u.color||COLORS[0]) + '\');document.getElementById(\'user-profile-sheet\').remove();openModal(\'modal-dm\')" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--moon);font-weight:700;cursor:pointer">Message</button>' : '') +
+          '<button onclick="var dmId=[\'' + uid + '\',\'' + (state.user?state.user.uid:'') + '\'].sort().join(\'_\');openChat(dmId,\'' + uid + '\',\'' + escJs(u.name) + '\',\'' + escJs(u.color||COLORS[0]) + '\');document.getElementById(\'user-profile-sheet\').remove();openModal(\'modal-dm\')" style="flex:1;padding:10px;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--moon);font-weight:700;cursor:pointer">Message</button>' : '') +
         (state.user && uid !== state.user.uid ?
-          '<button onclick="blockUser(\'' + uid + '\',\'' + esc(u.name) + '\');document.getElementById(\'user-profile-sheet\').remove()" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#fca5a5;cursor:pointer">🚫</button>' : '') +
+          '<button onclick="blockUser(\'' + uid + '\',\'' + escJs(u.name) + '\');document.getElementById(\'user-profile-sheet\').remove()" style="padding:10px 14px;border-radius:12px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#fca5a5;cursor:pointer">🚫</button>' : '') +
       '</div>' +
     '</div>';
   document.body.appendChild(sheet);
@@ -9581,7 +9568,7 @@ function openUserProfile(uid, userData) {
 
 
 
-// ── MOBILE BOTTOM NAV ────────────────────────────────────────────────────
+// MOBILE BOTTOM NAV
 function setMobileNav(btn) {
   document.querySelectorAll('.bottom-nav .nav-item').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
@@ -9599,7 +9586,7 @@ function setMobileNav(btn) {
 })();
 
 
-// ── SMART VIDEO DISPLAY ───────────────────────────────────────────────────
+// SMART VIDEO DISPLAY
 // Adapts video display based on actual video dimensions
 function adaptVideoDisplay(video) {
   var w = video.videoWidth;
@@ -9614,8 +9601,8 @@ function adaptVideoDisplay(video) {
   var blur = wrap.querySelector('.sk-media-blur');
 
   if (ratio < 0.8) {
-    // PORTRAIT video (tall like TikTok/Reels 9:16)
-    // Blur background fills wrap, video centered
+// PORTRAIT video (tall like TikTok/Reels 9:16)
+// Blur background fills wrap, video centered
     wrap.style.maxHeight = '480px';
     wrap.style.background = '#000';
     if (blur) blur.style.display = 'block';
@@ -9623,8 +9610,8 @@ function adaptVideoDisplay(video) {
     video.style.maxHeight = '480px';
     video.style.width = '100%';
   } else if (ratio > 1.4) {
-    // LANDSCAPE video (wide like 16:9)
-    // Full width, no blur background needed
+// LANDSCAPE video (wide like 16:9)
+// Full width, no blur background needed
     wrap.style.maxHeight = '340px';
     wrap.style.background = '#000';
     if (blur) blur.style.display = 'none';
@@ -9632,8 +9619,8 @@ function adaptVideoDisplay(video) {
     video.style.maxHeight = '340px';
     video.style.width = '100%';
   } else {
-    // SQUARE or near-square video
-    // Dark sides, video centered
+// SQUARE or near-square video
+// Dark sides, video centered
     wrap.style.maxHeight = '400px';
     wrap.style.background = '#111';
     if (blur) blur.style.display = 'none';
@@ -9644,7 +9631,7 @@ function adaptVideoDisplay(video) {
 }
 
 
-// ── DRAWER FUNCTIONS ─────────────────────────────────────────────────────
+// DRAWER FUNCTIONS
 function toggleDrawer() {
   var drawer  = document.getElementById('app-drawer');
   var overlay = document.getElementById('drawer-overlay');
@@ -9656,7 +9643,7 @@ function toggleDrawer() {
     drawer.classList.add('open');
     overlay.classList.add('open');
     btn.classList.add('open');
-    // Update drawer profile info
+// Update drawer profile info
     if (state.profile) {
       var av = document.getElementById('drawer-av');
       var nm = document.getElementById('drawer-name');
@@ -9668,7 +9655,7 @@ function toggleDrawer() {
       if (nm) nm.textContent = state.profile.name || 'Mindvora user';
       if (hd) hd.textContent = '@' + (state.profile.handle||'user');
     }
-    // Show admin button for owner
+// Show admin button for owner
     var adminBtn = document.getElementById('drawer-admin-btn');
     if (adminBtn) adminBtn.style.display = isAdmin() ? 'flex' : 'none';
   }
@@ -9702,10 +9689,8 @@ window.addEventListener('popstate', function() { closeDrawer(); });
 })();
 
 
-// ═══════════════════════════════════════════════════════════════════
 // MINDVORA DEVICE INTELLIGENCE SYSTEM
 // Uses user email + device info to fit layout perfectly on any screen
-// ═══════════════════════════════════════════════════════════════════
 
 var MV_DEVICE = {
   type: 'desktop',      // phone | tablet | desktop
@@ -9732,7 +9717,7 @@ var MV_DEVICE = {
   var sh = window.screen.height;
   var vw = window.innerWidth;
 
-  // OS detection
+// OS detection
   MV_DEVICE.isIOS     = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   MV_DEVICE.isAndroid = /Android/.test(ua);
   MV_DEVICE.isSafari  = /Safari/.test(ua) && !/Chrome/.test(ua);
@@ -9749,7 +9734,7 @@ var MV_DEVICE = {
   else if (/Firefox/.test(ua)) MV_DEVICE.browser = 'firefox';
   else if (/Edge/.test(ua))   MV_DEVICE.browser = 'edge';
 
-  // Device type by screen width + touch
+// Device type by screen width + touch
   if (vw <= 767 || (MV_DEVICE.isTouch && sw <= 767)) {
     MV_DEVICE.type = 'phone';
     MV_DEVICE.isMobile = true;
@@ -9761,7 +9746,7 @@ var MV_DEVICE = {
     MV_DEVICE.isDesktop = true;
   }
 
-  // Apply device class to body for CSS targeting
+// Apply device class to body for CSS targeting
   document.body.classList.remove('device-phone','device-tablet','device-desktop','os-ios','os-android','is-twa','is-touch');
   document.body.classList.add('device-' + MV_DEVICE.type);
   document.body.classList.add('os-' + MV_DEVICE.os);
@@ -9775,25 +9760,25 @@ function applyDeviceLayout() {
   var vw = window.innerWidth;
   var vh = window.innerHeight;
 
-  // ── PHONE layout ──────────────────────────────────────────
+// PHONE layout
   if (MV_DEVICE.isMobile || vw <= 767) {
-    // Full screen feed, bottom nav, no sidebars
+// Full screen feed, bottom nav, no sidebars
     setStyle('right-sidebar', 'display', 'none');
     setStyle('feed-col', 'paddingBottom', '70px');
-    // Show bottom nav
+// Show bottom nav
     var bn = document.querySelector('.bottom-nav');
     if (bn) bn.style.display = 'flex';
-    // Full width compose box
+// Full width compose box
     setStyle('compose-box', 'borderRadius', '0');
     setStyle('compose-box', 'borderLeft', 'none');
     setStyle('compose-box', 'borderRight', 'none');
-    // iOS safe area padding
+// iOS safe area padding
     if (MV_DEVICE.isIOS) {
       document.body.style.paddingBottom = 'env(safe-area-inset-bottom, 16px)';
     }
   }
 
-  // ── TABLET layout ─────────────────────────────────────────
+// TABLET layout
   else if (MV_DEVICE.isTablet || (vw > 767 && vw <= 1024)) {
     setStyle('right-sidebar', 'display', 'block');
     setStyle('right-sidebar', 'width', '200px');
@@ -9801,7 +9786,7 @@ function applyDeviceLayout() {
     if (bn) bn.style.display = 'none';
   }
 
-  // ── DESKTOP layout ────────────────────────────────────────
+// DESKTOP layout
   else {
     setStyle('right-sidebar', 'display', 'block');
     setStyle('right-sidebar', 'width', '260px');
@@ -9809,7 +9794,7 @@ function applyDeviceLayout() {
     if (bn) bn.style.display = 'none';
   }
 
-  // Fix video display for device
+// Fix video display for device
   fixVideosForDevice();
 }
 
@@ -9819,7 +9804,7 @@ function setStyle(id, prop, val) {
 }
 
 function fixVideosForDevice() {
-  // Re-run adaptVideoDisplay on all loaded videos
+// Re-run adaptVideoDisplay on all loaded videos
   document.querySelectorAll('.sk-media-main').forEach(function(v) {
     if (v.videoWidth && v.videoHeight) {
       adaptVideoDisplay(v);
@@ -9848,14 +9833,14 @@ function saveDeviceProfile() {
       lastSeen: firebase.firestore.FieldValue.serverTimestamp()
     };
 
-    // Save to user's devices subcollection
+// Save to user's devices subcollection
     db.collection('users').doc(state.user.uid)
       .collection('devices')
       .doc(MV_DEVICE.os + '_' + MV_DEVICE.browser)
       .set(deviceData, { merge: true })
       .catch(function(){});
 
-    // Also update main user doc with last device
+// Also update main user doc with last device
     db.collection('users').doc(state.user.uid)
       .update({ lastDevice: MV_DEVICE.type, lastOS: MV_DEVICE.os })
       .catch(function(){});
@@ -9871,7 +9856,7 @@ window.addEventListener('resize', function() {
   _resizeTimer = setTimeout(function() {
     MV_DEVICE.viewW = window.innerWidth;
     MV_DEVICE.viewH = window.innerHeight;
-    // Re-detect type
+// Re-detect type
     if (window.innerWidth <= 767)       { MV_DEVICE.type = 'phone';   MV_DEVICE.isMobile=true;  MV_DEVICE.isTablet=false; MV_DEVICE.isDesktop=false; }
     else if (window.innerWidth <= 1024) { MV_DEVICE.type = 'tablet';  MV_DEVICE.isMobile=false; MV_DEVICE.isTablet=true;  MV_DEVICE.isDesktop=false; }
     else                                { MV_DEVICE.type = 'desktop'; MV_DEVICE.isMobile=false; MV_DEVICE.isTablet=false; MV_DEVICE.isDesktop=true; }
@@ -9882,7 +9867,7 @@ window.addEventListener('resize', function() {
 });
 
 
-// ── COMMENT LOCK TOGGLE ───────────────────────────────────────────────────
+// COMMENT LOCK TOGGLE
 function toggleCommentsLock() {
   commentsLocked = !commentsLocked;
   var btn = document.getElementById('btn-comments-toggle');
@@ -9902,7 +9887,7 @@ function toggleCommentsLock() {
 }
 
 
-// ── REFERRAL SYSTEM TOGGLE (OWNER ONLY) ──────────────────────────────────
+// REFERRAL SYSTEM TOGGLE (OWNER ONLY)
 var referralEnabled = true; // default on, loaded from Firestore
 
 function loadReferralStatus() {
@@ -9926,13 +9911,13 @@ function updateReferralUI() {
   if (lbl)  lbl.textContent  = statusText;
   if (dlbl) dlbl.textContent = statusText;
 
-  // Show/hide active and disabled banners in earn modal
+// Show/hide active and disabled banners in earn modal
   var activeBanner   = document.getElementById('referral-status-banner');
   var disabledBanner = document.getElementById('referral-disabled-banner');
   if (activeBanner)   activeBanner.style.display   = referralEnabled ? 'block' : 'none';
   if (disabledBanner) disabledBanner.style.display = referralEnabled ? 'none'  : 'block';
 
-  // Show/hide the toggle button for owner only
+// Show/hide the toggle button for owner only
   if (isAdmin()) {
     if (navBtn)    { navBtn.style.display    = 'flex'; }
     if (drawerBtn) { drawerBtn.style.display = 'flex'; }
@@ -9959,17 +9944,17 @@ function toggleReferralSystem() {
 }
 
 
-// ── AUTO-CATEGORISATION ENGINE ────────────────────────────────────────────
+// AUTO-CATEGORISATION ENGINE
 // Silently analyses post content and assigns the most fitting category
 // Works on text, images and videos — completely invisible to the user
 function autoDetectCategory(text, mediaType, userSelectedCat) {
-  // If user explicitly selected a specific category (not 'all'), respect it
+// If user explicitly selected a specific category (not 'all'), respect it
   if (userSelectedCat && userSelectedCat !== 'all') return userSelectedCat;
 
   var t = (text || '').toLowerCase();
   var scores = { education: 0, fun: 0, thoughts: 0, news: 0 };
 
-  // ── EDUCATION signals ───────────────────────────────────────
+// EDUCATION signals
   var eduWords = [
     'learn','study','tutorial','how to','tip','fact','science','history',
     'education','school','university','college','knowledge','teach','explain',
@@ -9982,7 +9967,7 @@ function autoDetectCategory(text, mediaType, userSelectedCat) {
   ];
   eduWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.education += (w.length>5?3:2); });
 
-  // ── FUN signals ─────────────────────────────────────────────
+// FUN signals
   var funWords = [
     'funny','lol','lmao','haha','joke','meme','comedy','hilarious',
     'laugh','entertainment','viral','prank','challenge','trend','dance',
@@ -9994,7 +9979,7 @@ function autoDetectCategory(text, mediaType, userSelectedCat) {
   ];
   funWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.fun += (w.length>5?3:2); });
 
-  // ── THOUGHTS signals ─────────────────────────────────────────
+// THOUGHTS signals
   var thoughtWords = [
     'think','believe','opinion','feel like','in my view','personally',
     'i think','i feel','reflection','mindset','motivation','inspire',
@@ -10008,7 +9993,7 @@ function autoDetectCategory(text, mediaType, userSelectedCat) {
   ];
   thoughtWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.thoughts += (w.length>5?3:2); });
 
-  // ── NEWS signals ─────────────────────────────────────────────
+// NEWS signals
   var newsWords = [
     'breaking','just in','update','news','report','announced','confirmed',
     'government','president','minister','election','vote','policy','law',
@@ -10024,18 +10009,18 @@ function autoDetectCategory(text, mediaType, userSelectedCat) {
   ];
   newsWords.forEach(function(w){ if(t.indexOf(w)>-1) scores.news += (w.length>5?3:2); });
 
-  // ── MEDIA type bonuses ───────────────────────────────────────
-  // Videos are often fun/entertainment content
+// MEDIA type bonuses
+// Videos are often fun/entertainment content
   if (mediaType === 'video') {
     scores.fun += 2;
   }
-  // Images lean slightly towards thoughts/fun
+// Images lean slightly towards thoughts/fun
   if (mediaType === 'image') {
     scores.thoughts += 1;
     scores.fun += 1;
   }
 
-  // ── Hashtag bonuses (strong signal) ─────────────────────────
+// Hashtag bonuses (strong signal)
   var hashtags = t.match(/#[a-z]+/g) || [];
   hashtags.forEach(function(tag) {
     if (['#education','#learn','#study','#tutorial','#science','#history','#knowledge','#tips','#howto','#tech'].indexOf(tag)>-1) scores.education += 8;
@@ -10044,7 +10029,7 @@ function autoDetectCategory(text, mediaType, userSelectedCat) {
     if (['#news','#breaking','#update','#worldnews','#politics','#economy','#sports','#naijagist'].indexOf(tag)>-1) scores.news += 8;
   });
 
-  // ── Pick highest scoring category ───────────────────────────
+// Pick highest scoring category
   var best = 'all';
   var bestScore = 4; // minimum threshold — below this stays as 'all'
   Object.keys(scores).forEach(function(cat) {
@@ -10058,7 +10043,7 @@ function autoDetectCategory(text, mediaType, userSelectedCat) {
 }
 
 
-// ── AUTH SHOWCASE SLIDER ─────────────────────────────────────────────────
+// AUTH SHOWCASE SLIDER
 var currentSlide = 0;
 var totalSlides = 3;
 var slideTimer;
@@ -10088,7 +10073,7 @@ function startSlider() {
 })();
 
 
-// ── HUSMODATA VTU INTEGRATION ─────────────────────────────────────────────
+// HUSMODATA VTU INTEGRATION
 // API key is stored SECURELY on the Render backend (server.js)
 // Frontend never sees the raw API key — it only calls our own backend
 // Backend URL: https://zync-backend-ickl.onrender.com
@@ -10150,7 +10135,7 @@ function deliverDataHusmo(phone, network, bundle, amount, ref, docRef) {
 }
 
 
-// ── RIGHT SHOWCASE SLIDER ─────────────────────────────────────────────────
+// RIGHT SHOWCASE SLIDER
 var currentSlideRight = 0;
 var slideTimerRight;
 
@@ -10176,12 +10161,12 @@ setTimeout(function(){
   startRightSlider();
 }, 2500);
 
-// ── MINDVORA COLOUR ANIMATION (auth + topbar) ─────────────────────────────
+// MINDVORA COLOUR ANIMATION (auth + topbar)
 // CSS handles the animation via keyframes 'mindvora-colors'
 // Make sure it runs as soon as auth screen loads
 
 
-// ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────
+// GOOGLE SIGN-IN
 function signInWithGoogle() {
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.addScope('email');
@@ -10194,7 +10179,7 @@ function signInWithGoogle() {
       var isNew = result.additionalUserInfo && result.additionalUserInfo.isNewUser;
 
       if (isNew) {
-        // New user via Google — create profile in Firestore
+// New user via Google — create profile in Firestore
         var handle = (user.displayName || user.email.split('@')[0])
           .toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '').slice(0, 20);
         return db.collection('users').doc(user.uid).set({
@@ -10228,13 +10213,13 @@ function signInWithGoogle() {
     });
 }
 
-// ── DELETE ACCOUNT ────────────────────────────────────────────────────────
+// DELETE ACCOUNT
 function confirmDeleteAccount() {
   if (!state || !state.user) {
     showToast('Please log in first.');
     return;
   }
-  // Don't allow admin to delete their own account
+// Don't allow admin to delete their own account
   if (isAdmin()) {
     showToast('⛔ Admin account cannot be deleted from here.');
     return;
@@ -10247,13 +10232,13 @@ function confirmDeleteAccount() {
   var uid = state.user.uid;
   var userEmail = state.user.email;
 
-  // Delete user data from Firestore
+// Delete user data from Firestore
   showToast('🗑️ Deleting your account...');
   
-  // Delete user document
+// Delete user document
   db.collection('users').doc(uid).delete()
     .then(function() {
-      // Delete user's sparks
+// Delete user's sparks
       return db.collection('sparks').where('uid', '==', uid).get();
     })
     .then(function(sparksSnap) {
@@ -10262,7 +10247,7 @@ function confirmDeleteAccount() {
       return batch.commit();
     })
     .then(function() {
-      // Delete Firebase Auth account
+// Delete Firebase Auth account
       return state.user.delete();
     })
     .then(function() {
@@ -10278,7 +10263,7 @@ function confirmDeleteAccount() {
     });
 }
 
-// ── EMAIL VERIFICATION ON SIGNUP ─────────────────────────────────────────
+// EMAIL VERIFICATION ON SIGNUP
 function sendVerificationEmail(user) {
   if (!user || user.emailVerified) return;
   user.sendEmailVerification({
@@ -10291,7 +10276,7 @@ function sendVerificationEmail(user) {
 }
 
 
-// ── REAL-TIME LIVE COUNTS (WebSocket-equivalent via Firebase) ─────────────
+// REAL-TIME LIVE COUNTS (WebSocket-equivalent via Firebase)
 // Firebase onSnapshot IS a persistent WebSocket connection.
 // This ensures counts update instantly without any page refresh.
 
@@ -10304,19 +10289,19 @@ function watchSparkLive(sparkId) {
     .onSnapshot(function(doc) {
       if (!doc.exists) return;
       var data = doc.data();
-      // Update like count on screen instantly
+// Update like count on screen instantly
       var likeEl = document.getElementById('likes-' + sparkId);
       if (likeEl) likeEl.textContent = (data.likes || []).length;
-      // Update comment count
+// Update comment count
       var cntEl = document.getElementById('cmt-cnt-' + sparkId);
       if (cntEl) cntEl.textContent = data.commentCount || 0;
-      // Update repost count
+// Update repost count
       var rpEl = document.getElementById('rp-cnt-' + sparkId);
       if (rpEl) rpEl.textContent = data.reposts || 0;
-      // Update view count
+// Update view count
       var vwEl = document.getElementById('vw-cnt-' + sparkId);
       if (vwEl) vwEl.textContent = data.viewCount || 0;
-      // Animate the count change
+// Animate the count change
       [likeEl, cntEl, rpEl].forEach(function(el) {
         if (!el) return;
         el.style.transform = 'scale(1.3)';
@@ -10347,7 +10332,7 @@ function watchFollowerCount(uid) {
 // Start watching sparks as they render
 var _watchObserver;
 function startLiveWatching() {
-  // Watch all visible spark cards
+// Watch all visible spark cards
   _watchObserver = new MutationObserver(function(mutations) {
     mutations.forEach(function(m) {
       m.addedNodes.forEach(function(node) {
@@ -10366,7 +10351,7 @@ function startLiveWatching() {
   if (feedCont) _watchObserver.observe(feedCont, { childList: true, subtree: true });
 }
 
-// ── REAL-TIME PRESENCE (online/offline indicator) ─────────────────────────
+// REAL-TIME PRESENCE (online/offline indicator)
 function initPresence() {
   if (!state.user) return;
   var presenceRef = db.collection('presence').doc(state.user.uid);
@@ -10389,11 +10374,9 @@ function initPresence() {
 }
 
 
-// ══════════════════════════════════════════════════════════════
 // NEW MINDBLOWING FEATURES
-// ══════════════════════════════════════════════════════════════
 
-// ── 1. TYPING INDICATOR IN DMs ────────────────────────────────────────────
+// 1. TYPING INDICATOR IN DMs
 var _typingTimer;
 function sendTypingIndicator(dmId) {
   if (!state.user || !dmId) return;
@@ -10423,7 +10406,7 @@ function listenTypingIndicator(dmId, otherId) {
   });
 }
 
-// ── 2. PROFILE HOVER CARD ─────────────────────────────────────────────────
+// 2. PROFILE HOVER CARD
 function showProfileHoverCard(uid, name, handle, color, e) {
   var existing = document.getElementById('hover-card');
   if (existing) existing.remove();
@@ -10444,7 +10427,7 @@ function showProfileHoverCard(uid, name, handle, color, e) {
   card.style.cssText = 'position:fixed;top:' + (e.clientY + 10) + 'px;left:' + e.clientX + 'px;z-index:500;';
   document.body.appendChild(card);
 
-  // Remove on click outside
+// Remove on click outside
   setTimeout(function() {
     document.addEventListener('click', function remove() {
       var c = document.getElementById('hover-card');
@@ -10454,9 +10437,9 @@ function showProfileHoverCard(uid, name, handle, color, e) {
   }, 100);
 }
 
-// ── 3. SHARE POST TO DM ────────────────────────────────────────────────────
+// 3. SHARE POST TO DM
 function sharePostToDM(sparkId, text) {
-  // Show quick DM picker
+// Show quick DM picker
   var recent = state.conversations.slice(0, 5);
   if (!recent.length) { showToast('No recent conversations. Start a DM first!'); return; }
 
@@ -10494,7 +10477,7 @@ function sendShareToDM(dmId, sparkId, previewText) {
   }).catch(function() { showToast('Failed to share'); });
 }
 
-// ── 4. STREAK SYSTEM ──────────────────────────────────────────────────────
+// 4. STREAK SYSTEM
 function updateStreak() {
   if (!state.user) return;
   var today = new Date().toDateString();
@@ -10513,25 +10496,25 @@ function updateStreak() {
   localStorage.setItem('mv_streak_' + state.user.uid, streak);
   localStorage.setItem('mv_last_post_date_' + state.user.uid, today);
 
-  // Save to Firestore
+// Save to Firestore
   db.collection('users').doc(state.user.uid).update({ streak: streak }).catch(function(){});
 
-  // Show milestone toasts
+// Show milestone toasts
   if (streak === 3)  showToast('🔥 3-day posting streak! Keep it up!');
   if (streak === 7)  showToast('🔥🔥 7-day streak! You are on fire!');
   if (streak === 30) showToast('🏆 30-day streak! Legendary creator!');
 }
 
-// ── 5. NIGHT MODE AUTO-SWITCH ─────────────────────────────────────────────
+// 5. NIGHT MODE AUTO-SWITCH
 function autoNightMode() {
   var hour = new Date().getHours();
   var shouldBeDark = hour < 6 || hour >= 20; // Dark between 8pm - 6am
   var savedPref = localStorage.getItem('mv_dark_pref');
   if (savedPref !== null) return; // user set manually, don't override
-  // Already dark by default since bg is black
+// Already dark by default since bg is black
 }
 
-// ── 6. QUICK REACTIONS ON LONG PRESS ──────────────────────────────────────
+// 6. QUICK REACTIONS ON LONG PRESS
 var _longPressTimer;
 function startLongPress(sparkId, e) {
   _longPressTimer = setTimeout(function() {
@@ -10579,7 +10562,7 @@ document.addEventListener('click', function(e) {
   }
 });
 
-// ── FORGOT PASSWORD — sends reset link to user's email ───────────────────
+// FORGOT PASSWORD — sends reset link to user's email
 function doForgotPassword() {
   var emailEl = document.getElementById('li-email');
   var errEl   = document.getElementById('li-err');
@@ -10591,7 +10574,7 @@ function doForgotPassword() {
     return;
   }
 
-  // Basic email format check
+// Basic email format check
   if (!/^[^@]+@[^@]+\.[^@]+$/.test(email)) {
     if (errEl) errEl.textContent = '❌ Please enter a valid email address.';
     return;
@@ -10632,7 +10615,7 @@ function doForgotPassword() {
 }
 
 
-// ── BUTTON FALLBACK WIRING — ensures login/register always work ──────────
+// BUTTON FALLBACK WIRING — ensures login/register always work
 document.addEventListener('DOMContentLoaded', function() {
   var loginBtn = document.getElementById('btn-login');
   if (loginBtn && !loginBtn._wired) {
@@ -10660,9 +10643,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Favicon — static, set in HTML head
 
-// ═══════════════════════════════════════════════════════════════
 // TASK 1: VIDEO THUMBNAIL PICKER — YouTube-style
-// ═══════════════════════════════════════════════════════════════
 var _thumbPickerState = { videoFile:null, videoUrl:null, thumbnails:[], selectedThumb:null, resolve:null, isShort:false };
 
 function generateVideoThumbnails(file, count){
@@ -10767,7 +10748,7 @@ function uploadCustomThumbnail(){
   inp.click();
 }
 
-// ── Patch the media upload to show thumbnail picker for videos ──
+// Patch the media upload to show thumbnail picker for videos
 (function(){
   var origMediaBtn = document.getElementById('btn-media');
   if(!origMediaBtn) return;
@@ -10785,13 +10766,13 @@ function uploadCustomThumbnail(){
       var file = fileInput.files[0];
       document.body.removeChild(fileInput);
       if(!file) return;
-      // Task 3: Anti-malware scan
+// Task 3: Anti-malware scan
       var scanResult = scanFileForMalware(file);
       if(!scanResult.safe){ showToast('🛡️ ' + scanResult.reason); return; }
       if(file.size > 209715200){ showToast('File too large! Max 200MB'); return; }
       var isVideo = file.type.startsWith('video');
       var thumbDataUrl = null;
-      // Task 1: Show thumbnail picker for videos
+// Task 1: Show thumbnail picker for videos
       if(isVideo){
         thumbDataUrl = await openThumbPicker(file, false);
       }
@@ -10830,9 +10811,7 @@ function uploadCustomThumbnail(){
   });
 })();
 
-// ═══════════════════════════════════════════════════════════════
 // TASK 2: SHORTS (3-MIN, 9:16 RATIO) — TikTok/Instagram style
-// ═══════════════════════════════════════════════════════════════
 var MAX_SHORT_DURATION = 180; // 3 minutes in seconds
 var shortsList = [];
 var currentShortIdx = -1;
@@ -10845,17 +10824,17 @@ function openShortsUpload(){
     var file = fileInp.files[0];
     if(!file) return;
     if(!file.type.startsWith('video/')){ showToast('Please select a video file'); return; }
-    // Task 3: Anti-malware scan
+// Task 3: Anti-malware scan
     var scanResult = scanFileForMalware(file);
     if(!scanResult.safe){ showToast('🛡️ ' + scanResult.reason); return; }
     if(file.size > 200*1024*1024){ showToast('File too large (max 200MB)'); return; }
-    // Check video duration (max 3 minutes)
+// Check video duration (max 3 minutes)
     var duration = await getVideoDuration(file);
     if(duration > MAX_SHORT_DURATION){
       showToast('⏱️ Shorts must be 3 minutes or less! Your video is ' + formatDuration(duration));
       return;
     }
-    // Show thumbnail picker
+// Show thumbnail picker
     var thumbDataUrl = await openThumbPicker(file, true);
     showToast('⏫ Uploading short…');
     var fd = new FormData();
@@ -10936,11 +10915,9 @@ document.addEventListener('DOMContentLoaded', function(){
   newReelBtn.addEventListener('click', function(){ openShortsUpload(); });
 })();
 
-// ═══════════════════════════════════════════════════════════════
 // TASK 3: ANTI-MALWARE FILE SCANNER + SECURITY HARDENING
-// ═══════════════════════════════════════════════════════════════
 
-// ── MAGIC BYTES — detect real file type regardless of extension ──
+// MAGIC BYTES — detect real file type regardless of extension
 var MAGIC_BYTES = {
   'image/jpeg':  [[0xFF, 0xD8, 0xFF]],
   'image/png':   [[0x89, 0x50, 0x4E, 0x47]],
@@ -10969,22 +10946,22 @@ var ALLOWED_MEDIA_TYPES = [
 
 function scanFileForMalware(file){
   if(!file) return { safe:false, reason:'No file provided' };
-  // 1. Check file extension
+// 1. Check file extension
   var name = (file.name || '').toLowerCase();
   var ext = name.substring(name.lastIndexOf('.'));
   if(DANGEROUS_EXTENSIONS.indexOf(ext) !== -1){
     logSecurityEvent('malware_blocked', 'Dangerous file extension blocked: ' + ext);
     return { safe:false, reason:'File type "' + ext + '" is not allowed for security reasons.' };
   }
-  // 2. Check MIME type
+// 2. Check MIME type
   if(file.type && ALLOWED_MEDIA_TYPES.indexOf(file.type) === -1){
-    // Allow empty MIME (some mobile browsers)
+// Allow empty MIME (some mobile browsers)
     if(file.type !== ''){
       logSecurityEvent('malware_blocked', 'Disallowed MIME type: ' + file.type);
       return { safe:false, reason:'File type "' + file.type + '" is not supported.' };
     }
   }
-  // 3. Check for double extensions (e.g., photo.jpg.exe)
+// 3. Check for double extensions (e.g., photo.jpg.exe)
   var parts = name.split('.');
   if(parts.length > 2){
     for(var i = 0; i < parts.length - 1; i++){
@@ -10995,14 +10972,14 @@ function scanFileForMalware(file){
       }
     }
   }
-  // 4. File size sanity check
+// 4. File size sanity check
   if(file.size > 250 * 1024 * 1024){
     return { safe:false, reason:'File exceeds maximum size (250MB).' };
   }
   if(file.size === 0){
     return { safe:false, reason:'Empty file detected.' };
   }
-  // 5. Filename sanitization — block special chars
+// 5. Filename sanitization — block special chars
   if(/[<>:"/\\|?*\x00-\x1F]/.test(file.name)){
     logSecurityEvent('malware_blocked', 'Malicious filename characters: ' + name);
     return { safe:false, reason:'File name contains invalid characters.' };
@@ -11010,22 +10987,22 @@ function scanFileForMalware(file){
   return { safe:true, reason:'File passed security scan.' };
 }
 
-// ── Async deep scan — checks magic bytes ──
+// Async deep scan — checks magic bytes
 async function deepScanFile(file){
   try {
     var buffer = await file.slice(0, 16).arrayBuffer();
     var bytes = new Uint8Array(buffer);
-    // Check for executable magic bytes (MZ = EXE/DLL)
+// Check for executable magic bytes (MZ = EXE/DLL)
     if(bytes[0] === 0x4D && bytes[1] === 0x5A){
       logSecurityEvent('malware_blocked', 'Executable file disguised as media: ' + file.name);
       return { safe:false, reason:'🛡️ Malware detected! Executable file blocked.' };
     }
-    // Check for ZIP (could contain malware)
+// Check for ZIP (could contain malware)
     if(bytes[0] === 0x50 && bytes[1] === 0x4B && !file.type.includes('zip')){
       logSecurityEvent('malware_blocked', 'Archive disguised as media: ' + file.name);
       return { safe:false, reason:'🛡️ Suspicious archive file blocked.' };
     }
-    // Check for embedded scripts in SVG/HTML
+// Check for embedded scripts in SVG/HTML
     if(file.type === 'image/svg+xml' || file.name.endsWith('.svg')){
       var text = await file.text();
       if(/<script/i.test(text) || /javascript:/i.test(text) || /on\w+\s*=/i.test(text)){
@@ -11054,7 +11031,7 @@ function logSecurityEvent(type, details){
   } catch(e){}
 }
 
-// ── Enhanced CSP via meta tag ──
+// Enhanced CSP via meta tag
 (function(){
   var existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
   if(!existingCSP){
@@ -11065,7 +11042,7 @@ function logSecurityEvent(type, details){
   }
 })();
 
-// ── Prevent clickjacking ──
+// Prevent clickjacking
 (function(){
   if(window.self !== window.top){
     try { window.top.location = window.self.location; } catch(e){
@@ -11074,7 +11051,7 @@ function logSecurityEvent(type, details){
   }
 })();
 
-// ── Sanitize all clipboard paste events ──
+// Sanitize all clipboard paste events
 document.addEventListener('paste', function(e){
   var items = e.clipboardData && e.clipboardData.items;
   if(!items) return;
@@ -11092,7 +11069,7 @@ document.addEventListener('paste', function(e){
   }
 });
 
-// ── Block drag-and-drop of dangerous files ──
+// Block drag-and-drop of dangerous files
 document.addEventListener('dragover', function(e){ e.preventDefault(); });
 document.addEventListener('drop', function(e){
   e.preventDefault();
@@ -11107,9 +11084,9 @@ document.addEventListener('drop', function(e){
 
 
 
-// ── Periodic security health check ──
+// Periodic security health check
 setInterval(function(){
-  // Check for DOM manipulation attacks
+// Check for DOM manipulation attacks
   var scripts = document.querySelectorAll('script:not([src])');
   scripts.forEach(function(s){
     if(s.textContent && /eval|Function\(|document\.write/i.test(s.textContent)){
@@ -11119,7 +11096,7 @@ setInterval(function(){
       }
     }
   });
-  // Check for injected iframes
+// Check for injected iframes
   var iframes = document.querySelectorAll('iframe');
   iframes.forEach(function(f){
     var src = f.src || '';
@@ -11130,9 +11107,7 @@ setInterval(function(){
   });
 }, 30000);
 
-// ═══════════════════════════════════════════════════════════════
 // STORAGE OPTIMIZATION — Keep device storage lean
-// ═══════════════════════════════════════════════════════════════
 var STORAGE_MAX_KB = 2048; // Max 2MB localStorage budget
 
 function getLocalStorageSize(){
@@ -11149,9 +11124,9 @@ function getLocalStorageSize(){
 function cleanupLocalStorage(){
   var sizeKB = getLocalStorageSize();
   if(sizeKB <= STORAGE_MAX_KB) return;
-  // Remove clipboard history first (least critical)
+// Remove clipboard history first (least critical)
   try { localStorage.removeItem('mv_clipboard'); clipboardHistory = []; } catch(e){}
-  // Remove old streak data for users no longer logged in
+// Remove old streak data for users no longer logged in
   try {
     for(var i = localStorage.length - 1; i >= 0; i--){
       var key = localStorage.key(i);
@@ -11170,7 +11145,7 @@ function cleanupCaches(){
   try {
     caches.open('mindvora-v4').then(function(cache){
       cache.keys().then(function(keys){
-        // Keep only essential cached items (max 20 entries)
+// Keep only essential cached items (max 20 entries)
         if(keys.length > 20){
           var toDelete = keys.slice(20);
           toDelete.forEach(function(req){ cache.delete(req); });
@@ -11186,7 +11161,7 @@ var _origCreateObjectURL = URL.createObjectURL;
 URL.createObjectURL = function(obj){
   var url = _origCreateObjectURL.call(URL, obj);
   _blobUrls.push(url);
-  // Auto-revoke after 5 minutes to prevent memory leaks
+// Auto-revoke after 5 minutes to prevent memory leaks
   setTimeout(function(){
     try { URL.revokeObjectURL(url); } catch(e){}
     _blobUrls = _blobUrls.filter(function(u){ return u !== url; });
@@ -11201,15 +11176,13 @@ setInterval(function(){
   cleanupLocalStorage();
 }, 600000);
 
-// ═══════════════════════════════════════════════════════════
 // PWA INSTALL PROMPT
-// ═══════════════════════════════════════════════════════════
 var deferredPrompt = null;
 var installPromptShown = false;
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault();
   deferredPrompt = e;
-  // Show an install banner after the app has mounted
+// Show an install banner after the app has mounted
   setTimeout(function(){
     if (installPromptShown) return;
     installPromptShown = true;

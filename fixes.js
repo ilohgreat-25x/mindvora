@@ -1,9 +1,7 @@
 
-// ═══════════════════════════════════════════════════════════════
 // MINDVORA FIXES v2.0 — May 2026
-// ═══════════════════════════════════════════════════════════════
 
-// ── TASK 1: FORGOT PASSWORD — handle domain not allowlisted ──
+// TASK 1: FORGOT PASSWORD — handle domain not allowlisted
 (function(){
   window.doForgotPassword = function() {
     var emailEl = document.getElementById('li-email');
@@ -51,7 +49,7 @@
   };
 })();
 
-// ── TASK 4: SIGN-OUT ICON — clear exit icon ──────────────────
+// TASK 4: SIGN-OUT ICON — clear exit icon
 (function(){
   var outBtn = document.getElementById('btn-out');
   if (outBtn) {
@@ -60,7 +58,7 @@
   }
 })();
 
-// ── TASK 3: SOCIAL FEATURES — Reactions, Save, Share, Comment Toggle ─────
+// TASK 3: SOCIAL FEATURES — Reactions, Save, Share, Comment Toggle
 
 // Inject CSS for reaction buttons
 (function(){
@@ -174,14 +172,14 @@ function injectSocialFeatures() {
     var actRow = card.querySelector('.s-act');
     if (!actRow) return;
 
-    // Insert reaction bar
+// Insert reaction bar
     var rxBar = document.createElement('div');
     rxBar.id = 'rx-' + sparkId;
     rxBar.className = 'rx-bar';
     actRow.parentNode.insertBefore(rxBar, actRow);
     refreshRxUI(sparkId);
 
-    // Insert save/share/DM-share buttons
+// Insert save/share/DM-share buttons
     var safeText = (card.querySelector('.s-text') ? card.querySelector('.s-text').textContent : '').replace(/'/g, '').substring(0,50);
     var extra = document.createElement('div');
     extra.className = 'social-extra';
@@ -190,7 +188,7 @@ function injectSocialFeatures() {
       '<button class="rx-btn" onclick="shareSparkLink(\'' + sparkId + '\',\'' + safeText + '\')" title="Copy link">🔗 Share</button>' +
       '<button class="rx-btn" onclick="shareSparkToDMFromProfile(\'' + sparkId + '\',\'' + safeText + '\')" title="Send to DM">📨 DM</button>';
 
-    // Comment lock toggle for post author
+// Comment lock toggle for post author
     if (state.user) {
       var authorEl = card.querySelector('[data-author-id]');
       var authorId = authorEl ? authorEl.dataset.authorId : (card.dataset.authorId || '');
@@ -217,7 +215,7 @@ function injectSocialFeatures() {
   }, 3000);
 })();
 
-// ── TASK 3b: Enhanced user profile with all social actions ───
+// TASK 3b: Enhanced user profile with all social actions
 (function(){
   window.openUserProfile = function(uid, userData) {
     var u = userData;
@@ -251,16 +249,16 @@ function injectSocialFeatures() {
   };
 })();
 
-// ── TASK 5: CRYPTO PAYMENT — Retry + Keep-alive ──────────────
+// TASK 5: CRYPTO PAYMENT — Retry + Keep-alive
 (function(){
-  // Keep backend warm
+// Keep backend warm
   function pingBackend() {
     fetch('/api/crypto/status/ping', { method: 'GET' }).catch(function(){});
   }
   setInterval(pingBackend, 240000);
   setTimeout(pingBackend, 5000);
 
-  // Override with retry logic
+// Override with retry logic
   window.createCryptoPayment = function(amountUSD, description, onSuccess) {
     if (!state.user) { showToast('Login first'); return; }
     showToast('₿ Connecting to payment server…');

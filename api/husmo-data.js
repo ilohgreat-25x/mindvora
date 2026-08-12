@@ -1,29 +1,80 @@
+const {
+  rateLimit,
+  normalizePhoneNG,
+  validHusmoNetwork,
+  verifyPaystackRef,
+} = require('./_lib/security');
+
+const HUSMO_BASE = 'https://husmodata.com/api';
+const MIN_AMOUNT = 50;
+const MAX_AMOUNT = 200000;
+
+const deliveredRefs = new Set();
+
+const NETWORK_MAP = { mtn: 1, airtel: 2, glo: 3, '9mobile': 4, etisalat: 4 };
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ status: false, message: 'Method not allowed' });
   }
-  const { phone, network, bundle, amount } = req.body || {};
-  if (!phone || !network || !bundle) {
-    return res.status(400).json({ error: 'Missing required fields' });
+  if (rateLimit(req, 'husmo:data', 20, 600000)) {
+    return res.status(429).json({ status: false, message: 'Too many requests. Try again later.' });
   }
-  const networkMap = { 'mtn':'1', 'glo':'2', 'airtel':'4', '9mobile':'3' };
+  const { phone, network, bundle, amount, ref } = req.body || {};
+
+  const normalized = normalizePhoneNG(phone);
+  if (!normalized) {
+    return res.status(400).json({ status: false, message: 'Enter a valid Nigerian phone number.' });
+  }
+  if (!validHusmoNetwork(network)) {
+    return res.status(400).json({ status: false, message: 'Unsupported network.' });
+  }
+  if (!bundle || typeof bundle !== 'string' || !/^[A-Za-z0-9]{3,12}$/.test(bundle)) {
+    return res.status(400).json({ status: false, message: 'Invalid data bundle.' });
+  }
+  if (!amount || !Number.isInteger(Number(amount)) || Number(amount) < MIN_AMOUNT || Number(amount) > MAX_AMOUNT) {
+    return res.status(400).json({ status: false, message: 'Amount must be between ' + MIN_AMOUNT + ' and ' + MAX_AMOUNT + ' NGN.' });
+  }
+
+  if (deliveredRefs.size > 5000) deliveredRefs.clear();
+  if (ref && deliveredRefs.has(ref)) {
+    return res.status(409).json({ status: false, message: 'This payment reference was already used.' });
+  }
+
+  const check = await verifyPaystackRef(ref, Number(amount) * 100);
+  if (!check.configured) {
+    return res.status(500).json({ status: false, message: 'Paystack is not configured yet (PAYSTACK_SECRET_KEY missing).' });
+  }
+  if (!check.ok) {
+    const msg = check.error === 'not_paid' ? 'Payment not completed. Nothing was sent.'
+      : check.error === 'amount_mismatch' ? 'Payment amount does not match. Nothing was sent.'
+      : 'Could not confirm your payment. Try again.';
+    return res.status(402).json({ status: false, message: msg });
+  }
+
+  const networkId = NETWORK_MAP[String(network).toLowerCase()] || 1;
   try {
-    const response = await fetch('https://husmodata.com/api/data/', {
+    const response = await fetch(HUSMO_BASE + '/data/', {
       method: 'POST',
       headers: {
+        'Authorization': 'Token ' + process.env.HUSMODATA_API_KEY,
         'Content-Type': 'application/json',
-        'Authorization': `Token ${process.env.HUSMODATA_API_KEY}`
       },
       body: JSON.stringify({
-        network: networkMap[String(network).toLowerCase()] || '1',
-        mobile_number: phone,
+        network: networkId,
+        mobile_number: normalized,
         plan: bundle,
-        Ported_number: true
-      })
+        Ported_number: true,
+      }),
     });
     const data = await response.json();
-    return res.status(200).json(data);
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+    if (!response.ok) {
+      console.error('[HUSMO] data failed:', JSON.stringify(data));
+      return res.status(response.status).json({ status: false, message: 'VTU provider error.' });
+    }
+    if (ref) deliveredRefs.add(ref);
+    res.json({ status: 'success', reference: (data && data.ref) || ref, ...data });
+  } catch (_) {
+    res.status(500).json({ status: false, message: 'Unable to process data bundle. Please try again.' });
   }
 };
