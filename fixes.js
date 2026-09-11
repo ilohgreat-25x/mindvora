@@ -273,11 +273,10 @@ function injectSocialFeatures() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        price_amount: amountUSD, price_currency: 'usd', pay_currency: 'usdtbsc',
-        order_id: 'MV-' + state.user.uid + '-' + Date.now(),
-        order_description: description,
-        ipn_callback_url: BACKEND_URL + '/api/crypto/webhook',
-        success_url: window.location.href, cancel_url: window.location.href,
+        amountUSD: amountUSD,
+        description: description,
+        orderId: 'MV-' + state.user.uid + '-' + Date.now(),
+        userEmail: state.user.email,
       })
     })
     .then(function(r) { return r.json(); })
