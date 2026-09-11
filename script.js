@@ -2217,6 +2217,7 @@ auth.onAuthStateChanged(function(user){
   } else {
     console.log('[Mindvora] User logged out');
     state.user=null; state.profile=null;
+    closeDrawer(); // drawer lives outside #app-screen, so it won't auto-hide with it
     var appSc  = document.getElementById('app-screen');
     var authSc = document.getElementById('auth-screen');
     if(appSc)  { 
