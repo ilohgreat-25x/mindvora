@@ -218,7 +218,7 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
     match /referrals/{docId} {
-      allow read: if isSignedIn() && resource.data.newUserId == request.auth.uid;
+      allow read: if isSignedIn() && (resource.data.newUserId == request.auth.uid || resource.data.referrerId == request.auth.uid);
       allow create: if isSignedIn();
       allow update, delete: if false;
     }

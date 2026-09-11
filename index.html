@@ -387,23 +387,6 @@
     <p id="otp-timer" style="color:#4a6370;font-size:12px;margin-top:12px;">Code expires in 10 minutes</p>
     
   </div>
-
-  <div id="otp-phone-card" style="display:none;background:#0d2118;border:1px solid #166534;border-radius:24px;padding:40px;max-width:400px;width:100%;text-align:center;margin-top:20px;">
-    <div style="font-size:48px;margin-bottom:16px;">📱</div>
-    <h2 style="color:#fff;font-size:22px;margin-bottom:8px;">Verify Your Phone</h2>
-    <p style="color:#6a95b0;font-size:14px;margin-bottom:20px;">We'll text a 6-digit code to your phone. Enter it below to finish setup.</p>
-    <input id="phone-otp-input" type="tel" placeholder="+234 800 000 0000" style="width:100%;padding:16px;background:#0a1a0f;border:1.5px solid #166534;border-radius:12px;color:#fff;font-size:18px;text-align:center;margin-bottom:12px;outline:none;"/>
-    <button id="phone-send-btn" onclick="sendPhoneOTPFromScreen()" style="width:100%;padding:14px;background:linear-gradient(135deg,#166534,#22c55e);color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:12px;">
-      Send SMS Code
-    </button>
-    <input id="phone-otp-code" type="number" maxlength="6" placeholder="Enter 6-digit SMS code" style="width:100%;padding:16px;background:#0a1a0f;border:1.5px solid #166534;border-radius:12px;color:#fff;font-size:24px;text-align:center;letter-spacing:8px;margin-bottom:16px;outline:none;"/>
-    <button onclick="verifyPhoneOTPFromScreen()" style="width:100%;padding:14px;background:#00C896;color:#0a1a0f;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;">
-      Verify Phone & Enter
-    </button>
-    <p style="color:#6a95b0;font-size:12px;margin-top:14px;">
-      <span onclick="skipPhoneOTP()" style="color:#00C896;cursor:pointer;font-weight:600;">Skip for now</span>
-    </p>
-  </div>
 </div>
 <div id="app-screen">
   <div class="topbar">
@@ -4101,6 +4084,19 @@
     <button class="drawer-item" onclick="document.getElementById('btn-out').click();closeDrawer()" style="color:#fca5a5">🚪 Sign Out</button>
   </div>
 </div>
+<script>
+  // ── Mindvora runtime config ────────────────────────────────────────────
+  // BACKEND_URL: your live Node/Express backend (Render/Railway).
+  //   This MUST match whatever URL Render/Railway actually gives your
+  //   deployed service — check your Render dashboard to confirm.
+  window.BACKEND_URL = 'https://zync-backend-ickl.onrender.com';
+
+  // RECAPTCHA_SITE_KEY: the PUBLIC site key from
+  //   https://www.google.com/recaptcha/admin (reCAPTCHA v3).
+  //   Safe to expose in client code — it's not a secret.
+  //   Paste your real site key below (leave blank to disable captcha).
+  window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
+</script>
 <script src="script.js"></script>
 <script src="fixes.js"></script>
 

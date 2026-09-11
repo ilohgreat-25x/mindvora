@@ -253,7 +253,7 @@ function injectSocialFeatures() {
 (function(){
 // Keep backend warm
   function pingBackend() {
-    fetch('/api/crypto/status/ping', { method: 'GET' }).catch(function(){});
+    fetch(BACKEND_URL + '/api/crypto/status/ping', { method: 'GET' }).catch(function(){});
   }
   setInterval(pingBackend, 240000);
   setTimeout(pingBackend, 5000);
@@ -262,7 +262,7 @@ function injectSocialFeatures() {
   window.createCryptoPayment = function(amountUSD, description, onSuccess) {
     if (!state.user) { showToast('Login first'); return; }
     showToast('₿ Connecting to payment server…');
-    fetch('/api/crypto/status/warmup').catch(function(){});
+    fetch(BACKEND_URL + '/api/crypto/status/warmup').catch(function(){});
     setTimeout(function() {
       _cryptoRetry(amountUSD, description, onSuccess, 0);
     }, 1000);
