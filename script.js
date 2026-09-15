@@ -1893,7 +1893,6 @@ function sendOTPCode(email, userId) {
       otpState.email = email;
       otpState.userId = userId;
       otpState.attempts = 0;
-      otpState.resendCooldown = Date.now() + (60 * 1000);
 
       getCaptchaToken('send_email_otp').then(function(token) {
         return fetch(BACKEND_URL + '/api/otp/send-email', {
@@ -1906,6 +1905,8 @@ function sendOTPCode(email, userId) {
       .then(function(data) {
         if (data && data.status) {
           otpState.expiresAt = Date.now() + (10 * 60 * 1000);
+          otpState.resendCooldown = Date.now() + (60 * 1000); // only cooldown on real success
+          startOTPTimer(); // only start counting down once expiresAt is real
           console.log('OTP email sent to', email);
           resolve();
         } else {
@@ -1989,8 +1990,8 @@ function showOTPScreen(email) {
     otpInput.focus();
   }
   
-// Start expiration timer
-  startOTPTimer();
+// Timer now starts from sendOTPCode() itself, once a real expiry exists —
+// starting it here caused a false "expired" message before the send even finished.
 }
 
 // Verify OTP code
