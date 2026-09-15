@@ -1679,8 +1679,15 @@ function loadRecaptcha() {
 }
 function getCaptchaToken(action) {
   return loadRecaptcha().then(function() {
-    if (typeof grecaptcha === 'undefined' || !RECAPTCHA_SITE_KEY) return '';
-    return grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: action }).then(function(t){ return t; }, function(){ return ''; });
+    return new Promise(function(resolve) {
+      if (typeof grecaptcha === 'undefined' || !RECAPTCHA_SITE_KEY) { resolve(''); return; }
+      // grecaptcha becomes "defined" before it's actually ready to execute —
+      // .ready() waits for genuine initialization, fixing tokens silently failing.
+      grecaptcha.ready(function() {
+        grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: action })
+          .then(function(t){ resolve(t); }, function(){ resolve(''); });
+      });
+    });
   });
 }
 function timeAgo(ts){ if(!ts) return ''; var d=ts.toDate?ts.toDate():new Date(ts),s=Math.floor((Date.now()-d)/1000); if(s<60) return s+'s'; if(s<3600) return Math.floor(s/60)+'m'; if(s<86400) return Math.floor(s/3600)+'h'; return Math.floor(s/86400)+'d'; }
