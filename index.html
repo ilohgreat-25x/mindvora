@@ -4089,6 +4089,13 @@
   // BACKEND_URL: your live Node/Express backend (Render/Railway).
   //   This MUST match whatever URL Render/Railway actually gives your
   //   deployed service — check your Render dashboard to confirm.
+  //
+  //   CONFIRMED via Render dashboard (Sept 2026): the "mindvora-backend"
+  //   service's live URL really is zync-backend-ickl.onrender.com — Render
+  //   keeps a service's original .onrender.com hostname even after you
+  //   rename the service, so this was NOT stale/wrong as previously
+  //   suspected. If you ever recreate the Render service from scratch,
+  //   its URL will change and this line must be updated to match.
   window.BACKEND_URL = 'https://zync-backend-ickl.onrender.com';
 
   // RECAPTCHA_SITE_KEY: the PUBLIC site key from
@@ -4097,8 +4104,8 @@
   //   Paste your real site key below (leave blank to disable captcha).
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
-<script src="script.js?v=2"></script>
-<script src="fixes.js?v=2"></script>
+<script src="script.js?v=3"></script>
+<script src="fixes.js?v=3"></script>
 
 <!-- THUMBNAIL PICKER OVERLAY — Task 1 -->
 <div class="thumb-picker-overlay" id="thumb-picker-overlay">

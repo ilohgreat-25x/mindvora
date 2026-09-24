@@ -226,7 +226,11 @@ var MindvoraRT = (function() {
   'use strict';
 
 // Config
-  var WS_URL = 'wss://mindvora-backend-production.up.railway.app/ws';
+// Derived from window.BACKEND_URL (set in index.html) so the WebSocket
+// always points at the SAME backend as every other API call — this used
+// to be a separate hardcoded URL (a leftover Railway domain) that had
+// drifted out of sync with BACKEND_URL and pointed at a different service.
+  var WS_URL = (window.BACKEND_URL || '').replace(/^http/, 'ws') + '/ws';
   var RECONNECT_DELAY = 3000;
   var MAX_RECONNECT = 10;
 
@@ -1660,7 +1664,11 @@ function loadRecaptcha() {
   if (typeof grecaptcha !== 'undefined') return Promise.resolve();
   if (_grecaptchaPromise) return _grecaptchaPromise;
   _grecaptchaPromise = new Promise(function(resolve) {
-    if (!RECAPTCHA_SITE_KEY) { resolve(); return; }
+    if (!RECAPTCHA_SITE_KEY) {
+      console.error('[reCAPTCHA] window.RECAPTCHA_SITE_KEY is empty — check the config block in index.html.');
+      resolve();
+      return;
+    }
     var s = document.createElement('script');
     s.src = 'https://www.google.com/recaptcha/api.js?render=' + RECAPTCHA_SITE_KEY;
     s.async = true;
@@ -1669,10 +1677,18 @@ function loadRecaptcha() {
       var iv = setInterval(function() {
         tries++;
         if (typeof grecaptcha !== 'undefined') { clearInterval(iv); resolve(); }
-        else if (tries > 20) { clearInterval(iv); resolve(); }
+        else if (tries > 20) {
+          clearInterval(iv);
+          console.error('[reCAPTCHA] api.js loaded but window.grecaptcha never became available after 5s. This usually means the site key is not a v3 key, or Google blocked init for this domain.');
+          resolve();
+        }
       }, 250);
     };
-    s.onerror = function() { _grecaptchaPromise = null; resolve(); };
+    s.onerror = function() {
+      _grecaptchaPromise = null;
+      console.error('[reCAPTCHA] Failed to load https://www.google.com/recaptcha/api.js — check the Network tab for the actual status (blocked by CSP, ad-blocker, or network error).');
+      resolve();
+    };
     document.head.appendChild(s);
   });
   return _grecaptchaPromise;
@@ -1685,7 +1701,10 @@ function getCaptchaToken(action) {
       // .ready() waits for genuine initialization, fixing tokens silently failing.
       grecaptcha.ready(function() {
         grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: action })
-          .then(function(t){ resolve(t); }, function(){ resolve(''); });
+          .then(function(t){ resolve(t); }, function(err){
+            console.error('[reCAPTCHA] grecaptcha.execute() rejected for action "' + action + '":', err, '— this typically means the site key is registered as v2 (not v3), or this domain (' + window.location.hostname + ') is not on the key\'s allowed-domains list in the reCAPTCHA admin console.');
+            resolve('');
+          });
       });
     });
   });
@@ -9961,7 +9980,7 @@ function startSlider() {
 // HUSMODATA VTU INTEGRATION
 // API key is stored SECURELY on the Render backend (server.js)
 // Frontend never sees the raw API key — it only calls our own backend
-// Backend URL: https://zync-backend-ickl.onrender.com
+// Backend URL: set via window.BACKEND_URL in index.html
 
 var HUSMO_NETWORKS = {
   'MTN Nigeria':    'mtn',

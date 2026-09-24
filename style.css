@@ -996,13 +996,13 @@ img, video { max-width: 100%; height: auto; }
   background: var(--card);
   border-right: 1px solid var(--border);
   z-index: 301;
-  transform: translateX(-100%);
+  transform: translateX(-100%) translateZ(0);
   transition: transform .3s cubic-bezier(.4,0,.2,1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-.drawer.open { transform: translateX(0); }
+.drawer.open { transform: translateX(0) translateZ(0); }
 
 .drawer-header {
   display: flex;
@@ -2533,10 +2533,15 @@ html {
   }
 
   /* iOS: fix position fixed on scroll */
-  .topbar, .bottom-nav, .drawer-overlay, .drawer {
+  .topbar, .bottom-nav, .drawer-overlay {
     -webkit-transform: translateZ(0) !important;
     transform: translateZ(0) !important;
   }
+  /* .drawer is intentionally excluded here — its correct transform
+     (translateX offset + translateZ hint, for every platform, not just
+     iOS) is defined once in the base .drawer / .drawer.open rule above.
+     Overriding it again here with !important was the bug that pinned
+     the drawer permanently open on top of the login screen. */
 
   /* iOS: green glow animations */
   .auth-showcase::after,
