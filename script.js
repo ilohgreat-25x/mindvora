@@ -9684,14 +9684,21 @@ function applyDeviceLayout() {
   var vw = window.innerWidth;
   var vh = window.innerHeight;
 
+// .bottom-nav lives OUTSIDE #app-screen in the DOM (sibling, not child), so
+// hiding #app-screen when logged out never hides it on its own. Use
+// #app-screen's own visibility as the single source of truth for "is the
+// user actually logged in and looking at the app" before ever showing it.
+  var appScreenEl = document.getElementById('app-screen');
+  var isLoggedIn = !!appScreenEl && appScreenEl.style.display !== 'none';
+
 // PHONE layout
   if (MV_DEVICE.isMobile || vw <= 767) {
 // Full screen feed, bottom nav, no sidebars
     setStyle('right-sidebar', 'display', 'none');
     setStyle('feed-col', 'paddingBottom', '70px');
-// Show bottom nav
+// Show bottom nav — ONLY when actually logged in
     var bn = document.querySelector('.bottom-nav');
-    if (bn) bn.style.display = 'flex';
+    if (bn) bn.style.display = isLoggedIn ? 'flex' : 'none';
 // Full width compose box
     setStyle('compose-box', 'borderRadius', '0');
     setStyle('compose-box', 'borderLeft', 'none');
