@@ -389,6 +389,25 @@
   </div>
 </div>
 <div id="app-screen">
+<script>
+  // Force-hide #app-screen (and its bottom nav) the instant this element
+  // exists — before Firebase loads or script.js runs. Without this, a CSS
+  // rule elsewhere unconditionally sets #app-screen to display:flex
+  // regardless of login state (CSS can't know login state), and nothing
+  // overrides it until the onAuthStateChanged callback fires later in
+  // script.js — leaving the logged-out feed UI, bottom nav included,
+  // visible behind the login card for a noticeable window on every load.
+  (function () {
+    var el = document.getElementById('app-screen');
+    if (el) {
+      el.style.setProperty('display', 'none', 'important');
+      el.style.visibility = 'hidden';
+      el.style.pointerEvents = 'none';
+      el.style.zIndex = '-1';
+      el.style.opacity = '0';
+    }
+  })();
+</script>
   <div class="topbar">
     <button class="hamburger-btn" id="hamburger-btn" onclick="toggleDrawer()" aria-label="Menu">
       <span></span><span></span><span></span>

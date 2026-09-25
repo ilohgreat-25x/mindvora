@@ -1598,6 +1598,26 @@ var COLORS = ['#166534','#16a34a','#0f766e','#854d0e','#1d4ed8','#7e22ce','#be12
 var PAYSTACK_KEY = 'pk_live_1a3a25c1a562f8a054e34167dded3e1268f6c28c';
 // NOTE: Paystack secret key handled server-side only for security
 var CLOUD_NAME   = 'dk4svvssf';
+
+// ── Automatic video quality optimization ──────────────────────────────
+// Every video already goes through Cloudinary on upload. Rather than
+// transcoding server-side (Render's free tier has no persistent disk and
+// not enough CPU/RAM to run ffmpeg reliably), we ask Cloudinary to pick
+// the best delivery version at the moment each video is actually shown:
+//   q_auto   — content-aware quality: analyzes THIS video's own footage
+//              (motion, detail, noise) to pick the smallest file that
+//              still looks right, rather than one fixed quality for all.
+//   f_auto   — serves whichever format/codec the viewer's browser
+//              supports best (smaller file, same visual quality).
+//   w_<px>,c_limit — caps resolution to the actual on-screen size the
+//              video is being displayed at, so a 72px thumbnail never
+//              downloads a full-resolution file, and c_limit guarantees
+//              we never blow a small source video up past its own size.
+function optimizeVideoUrl(url, targetWidthPx) {
+  if (!url || url.indexOf('/video/upload/') === -1) return url; // not a Cloudinary video URL — leave untouched
+  var w = Math.max(1, Math.round(targetWidthPx || 720));
+  return url.replace('/video/upload/', '/video/upload/q_auto,f_auto,w_' + w + ',c_limit/');
+}
 var state = { user:null,profile:null,sparks:[],filter:'all',plan:{id:'basic',amount:2000,name:'Mindvora Basic'},tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:150},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
 
 // PAYSTACK: reliable script loader + NGN amounts
@@ -2640,8 +2660,8 @@ function buildSparkHTML(s){
 // Smart display — determined after video metadata loads
 // Default: blur bg for unknown aspect ratio
     media = '<div class="sk-media-wrap" id="'+wrap_id+'" data-display="auto">' +
-      '<video class="sk-media-blur" id="blur-'+esc(s.id)+'" src="'+esc(s.mediaUrl)+'" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>' +
-      '<video class="sk-media-main" id="'+vid_id+'" src="'+esc(s.mediaUrl)+'" playsinline preload="metadata" data-vid="'+vid_id+'" data-wrapid="'+wrap_id+'" style="cursor:pointer" onloadedmetadata="adaptVideoDisplay(this)"></video>' +
+      '<video class="sk-media-blur" id="blur-'+esc(s.id)+'" src="'+esc(optimizeVideoUrl(s.mediaUrl, Math.min(window.innerWidth, 720)))+'" muted playsinline preload="metadata" tabindex="-1" aria-hidden="true"></video>' +
+      '<video class="sk-media-main" id="'+vid_id+'" src="'+esc(optimizeVideoUrl(s.mediaUrl, Math.min(window.innerWidth, 720)))+'" playsinline preload="metadata" data-vid="'+vid_id+'" data-wrapid="'+wrap_id+'" style="cursor:pointer" onloadedmetadata="adaptVideoDisplay(this)"></video>' +
       '<div class="sk-vid-controls">' +
         '<button class="sk-vid-play" id="pbtn-'+esc(s.id)+'" data-vid="'+vid_id+'" data-action="play">&#9654;</button>' +
         '<div class="sk-vid-prog" data-vid="'+vid_id+'" data-action="seek"><div class="sk-vid-prog-fill" id="prog-'+esc(s.id)+'"></div></div>' +
@@ -7055,7 +7075,7 @@ function loadReels(){
       return tb-ta;
     });
     grid.innerHTML=reelDocs.map(function(s,i){
-      return '<div class="reel-card" data-reel-idx="'+i+'"><video src="'+esc(s.mediaUrl||'')+'" muted playsinline preload="metadata"></video><div class="reel-play">▶</div><div class="reel-overlay"><div class="reel-author">'+esc(s.authorName||'Mindvora user')+'</div><div class="reel-likes">❤️ '+(s.likes||[]).length+'</div></div></div>';
+      return '<div class="reel-card" data-reel-idx="'+i+'"><video src="'+esc(optimizeVideoUrl(s.mediaUrl||'', 360))+'" muted playsinline preload="metadata"></video><div class="reel-play">▶</div><div class="reel-overlay"><div class="reel-author">'+esc(s.authorName||'Mindvora user')+'</div><div class="reel-likes">❤️ '+(s.likes||[]).length+'</div></div></div>';
     }).join('');
     grid.querySelectorAll('.reel-card').forEach(function(card,i){
       card.addEventListener('click',function(){ var s=reelDocs[i]; openReel(s.id,s.mediaUrl||'',s.authorName||'Mindvora user',s.text||'',(s.likes||[]).length); });
@@ -7064,7 +7084,7 @@ function loadReels(){
 }
 function openReel(id,url,author,text,likes){
   currentReel=id;
-  document.getElementById('rv-video').src=url;
+  document.getElementById('rv-video').src=optimizeVideoUrl(url, Math.min(window.innerWidth, 1080));
   document.getElementById('rv-author').textContent=author;
   document.getElementById('rv-text').textContent=text;
   document.getElementById('rv-likes').textContent='❤️ '+likes;
@@ -8625,7 +8645,7 @@ function loadTV(filter, btn) {
 
     grid.innerHTML = docs.map(function(s) {
       return '<div style="display:flex;gap:12px;align-items:center;padding:10px;background:var(--deep);border-radius:12px;border:1px solid var(--border);cursor:pointer" onclick="openReel(\''+s.id+'\',\''+escJs(s.mediaUrl||'')+'\',\''+escJs(s.authorName||'User')+'\',\''+escJs((s.text||'').slice(0,50))+'\','+(s.likes||[]).length+')">' +
-        '<video src="'+esc(s.mediaUrl||'')+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0" muted preload="metadata"></video>' +
+        '<video src="'+esc(optimizeVideoUrl(s.mediaUrl||'', 150))+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0" muted preload="metadata"></video>' +
         '<div style="flex:1;min-width:0">' +
           '<div style="font-size:13px;font-weight:700;color:var(--moon);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(s.authorName||'User')+'</div>' +
           '<div style="font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc((s.text||'No caption').slice(0,60))+'</div>' +
@@ -10781,7 +10801,7 @@ function openShortViewer(idx){
   currentShortIdx = idx;
   var s = shortsList[idx];
   var vid = document.getElementById('short-viewer-video');
-  vid.src = s.mediaUrl || '';
+  vid.src = optimizeVideoUrl(s.mediaUrl || '', Math.min(window.innerWidth, 1080));
   vid.play().catch(function(){});
   document.getElementById('short-viewer-author').textContent = s.authorName || 'Mindvora user';
   document.getElementById('short-viewer-text').textContent = s.text || '';
