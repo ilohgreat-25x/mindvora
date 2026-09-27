@@ -2221,12 +2221,18 @@ auth.onAuthStateChanged(function(user){
         }
 // Check if email is verified (for new users)
         if(snap.data().emailVerified === false){
-          console.log('[Mindvora] Email not verified, showing OTP screen');
-// Show OTP screen if email not yet verified, and send a fresh code
-          showOTPScreen(snap.data().email);
+          console.log('[Mindvora] Email not verified, sending code before showing OTP screen');
+// Send the code FIRST — only show the OTP entry screen if it actually
+// succeeds. Previously showOTPScreen() ran unconditionally beforehand and
+// failures were swallowed by an empty .catch(){}, so the screen appeared
+// regardless of whether the email ever went out, with no visible error.
           sendOTPCode(snap.data().email, user.uid).then(function(){
+            showOTPScreen(snap.data().email);
             showToast('📧 A verification code was sent to ' + snap.data().email);
-          }).catch(function(){});
+          }).catch(function(err){
+            console.error('[Mindvora] Failed to send OTP on login:', err);
+            showToast('❌ ' + ((err && err.message) || 'Could not send verification code. Please try again.'));
+          });
           return;
         }
         console.log('[Mindvora] Email verified, proceeding to mount app');
