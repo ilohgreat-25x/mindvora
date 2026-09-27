@@ -2236,6 +2236,7 @@ auth.onAuthStateChanged(function(user){
           return;
         }
         console.log('[Mindvora] Email verified, proceeding to mount app');
+        mountApp();
         checkAdminAccess();
         checkPendingAds();
         setTimeout(checkBirthday,2000);
