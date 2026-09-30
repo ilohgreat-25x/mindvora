@@ -1,84 +1,85 @@
 // Mindvora Service Worker — sw.js
-const CACHE = 'mindvora-v5';
+// One worker does everything: small offline cache + push notifications.
+// (Two workers on the same scope used to replace each other, so push stopped
+//  working whenever the other one registered.)
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+
+firebase.initializeApp({
+  apiKey:            "AIzaSyDdTgIqJuOYJhRAhEF9vMuMA8oZViRPlts",
+  authDomain:        "zync-social.firebaseapp.com",
+  projectId:         "zync-social",
+  storageBucket:     "zync-social.appspot.com",
+  messagingSenderId: "720726547858",
+  appId:             "1:720726547858:web:3175ba8d0b7c987e31754b"
+});
+
+const CACHE = 'mindvora-v7';
 const OFFLINE_URL = '/';
+const MAX_ENTRIES = 40;              // keeps the cache to a few MB instead of growing forever
+const SHELL = ['/', '/index.html', '/manifest.json', '/style.css', '/auth.css', '/responsive.css',
+               '/script.js', '/fixes.js', '/calls.js', '/app-update.js', '/icons/icon-192.png'];
 
-// INSTALL
 self.addEventListener('install', function(e) {
-  e.waitUntil(
-    caches.open(CACHE).then(function(cache) {
-      return cache.addAll([
-        '/',
-        '/index.html',
-        '/manifest.json'
-      ]).catch(function(){});
-    }).then(function() {
-      return self.skipWaiting();
-    })
-  );
+  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL).catch(function(){}); })
+    .then(function(){ return self.skipWaiting(); }));
 });
 
-// ACTIVATE
 self.addEventListener('activate', function(e) {
-  e.waitUntil(
-    caches.keys().then(function(keys) {
-      return Promise.all(
-        keys.filter(function(k){ return k !== CACHE; })
-            .map(function(k){ return caches.delete(k); })
-      );
-    }).then(function() {
-      return self.clients.claim();
-    })
-  );
+  e.waitUntil(caches.keys().then(function(keys) {
+    return Promise.all(keys.filter(function(k){ return k !== CACHE; }).map(function(k){ return caches.delete(k); }));
+  }).then(function(){ return self.clients.claim(); }));
 });
 
-// FETCH: Network first, cache fallback
+function trim(cache) {
+  cache.keys().then(function(keys) {
+    if (keys.length > MAX_ENTRIES) keys.slice(0, keys.length - MAX_ENTRIES).forEach(function(k){ cache.delete(k); });
+  });
+}
+
+// FETCH: network first, cache fallback — ONLY for this site's own small files.
+// Images/videos from Cloudinary, Firebase, APIs etc. are no longer stored on the phone.
 self.addEventListener('fetch', function(e) {
-  if (e.request.method !== 'GET') return;
-  var url = e.request.url;
-  if (url.indexOf('firestore.googleapis.com') > -1) return;
-  if (url.indexOf('firebase') > -1) return;
-  if (url.indexOf('googleapis.com') > -1) return;
-  if (url.indexOf('cloudinary.com') > -1) return;
-  if (url.indexOf('paystack') > -1) return;
-  if (url.indexOf('mixpanel') > -1) return;
-
+  var req = e.request;
+  if (req.method !== 'GET') return;
+  var url = new URL(req.url);
+  if (url.origin !== self.location.origin) return;
+  if (req.headers.get('range')) return;
+  if (/\.(mp4|webm|mov|m4a|mp3|wav|jpg|jpeg|png|gif|webp)$/i.test(url.pathname) && url.pathname.indexOf('/icons/') !== 0) return;
   e.respondWith(
-    fetch(e.request)
-      .then(function(res) {
-        if (res && res.status === 200) {
-          var clone = res.clone();
-          caches.open(CACHE).then(function(c){ c.put(e.request, clone); });
-        }
-        return res;
-      })
-      .catch(function() {
-        return caches.match(e.request)
-          .then(function(cached){ return cached || caches.match(OFFLINE_URL); });
-      })
+    fetch(req).then(function(res) {
+      if (res && res.status === 200 && res.type === 'basic') {
+        var clone = res.clone();
+        caches.open(CACHE).then(function(c){ c.put(req, clone).then(function(){ trim(c); }); });
+      }
+      return res;
+    }).catch(function() {
+      return caches.match(req).then(function(hit){ return hit || (req.mode === 'navigate' ? caches.match(OFFLINE_URL) : undefined); });
+    })
   );
 });
 
-// PUSH NOTIFICATIONS
-self.addEventListener('push', function(e) {
-  var data = {};
-  try { data = e.data ? e.data.json() : {}; } catch(err) {}
-  var title   = data.title   || 'Mindvora';
-  var body    = data.body    || 'You have a new notification';
-  var icon    = data.icon    || '/icons/icon-192.png';
-  var url     = data.url     || '/';
-  e.waitUntil(
-    self.registration.showNotification(title, {
-      body:    body,
-      icon:    icon,
-      badge:   '/icons/icon-96.png',
-      vibrate: [200, 100, 200],
-      data:    { url: url },
-      actions: [
-        { action: 'open',    title: '🌿 Open Mindvora' },
-        { action: 'dismiss', title: 'Dismiss' }
-      ]
-    })
-  );
+// PUSH — the backend sends data-only messages; we decide how they look.
+function showPush(d) {
+  d = d || {};
+  var isCall = d.type === 'call';
+  return self.registration.showNotification(d.title || 'Mindvora', {
+    body: d.body || 'You have a new notification',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-96.png',
+    tag: d.tag || d.type || 'mindvora',
+    renotify: true,
+    requireInteraction: isCall,
+    vibrate: isCall ? [500, 250, 500, 250, 500] : [200, 100, 200],
+    data: { url: d.url || '/', type: d.type, callId: d.callId },
+    actions: isCall ? [{ action: 'open', title: 'Answer' }, { action: 'dismiss', title: 'Ignore' }]
+                    : [{ action: 'open', title: 'Open' }]
+  });
+}
+const messaging = firebase.messaging();
+messaging.onBackgroundMessage(function(payload) {
+  if (payload.notification) return; // the browser already shows notification-type messages itself
+  return showPush(payload.data);
 });
 
 // NOTIFICATION CLICK
@@ -129,4 +130,4 @@ self.addEventListener('message', function(e) {
   }
 });
 
-console.log('[Mindvora SW] v4 active');
+

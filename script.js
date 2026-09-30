@@ -3130,6 +3130,14 @@ function toggleNewMessage() {
   if (panel) {
     panel.style.display = dmNewMsgOpen ? 'block' : 'none';
     if (dmNewMsgOpen) {
+      // Starting a NEW message: close the chat that was open before, so the
+      // previous person no longer shows up next to the search results.
+      var right = document.getElementById('dm-right');
+      var wrap = right && right.closest('.dm-wrap');
+      if (wrap) wrap.classList.remove('chat-open');
+      if (right) right.innerHTML = '<div class="dm-es"><div style="font-size:36px">💬</div><div style="font-family:\'DM Serif Display\',serif;font-size:15px;color:var(--moon)">Select a conversation</div></div>';
+      var cs = document.getElementById('dm-search');
+      if (cs && cs.value) { cs.value = ''; if (typeof loadConversations === 'function') loadConversations(); }
       setTimeout(function(){ 
         var inp = document.getElementById('dm-user-search');
         if (inp) { inp.value = ''; inp.focus(); }

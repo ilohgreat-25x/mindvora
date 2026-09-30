@@ -258,54 +258,44 @@ function injectSocialFeatures() {
   setInterval(pingBackend, 240000);
   setTimeout(pingBackend, 5000);
 
-// Override with retry logic
-  window.createCryptoPayment = function(amountUSD, description, onSuccess) {
-    if (!state.user) { showToast('Login first'); return; }
-    showToast('₿ Connecting to payment server…');
-    fetch(BACKEND_URL + '/api/crypto/status/warmup').catch(function(){});
-    setTimeout(function() {
-      _cryptoRetry(amountUSD, description, onSuccess, 0);
-    }, 1000);
-  };
+// Crypto invoice creation + retry now lives in script.js createCryptoPayment()
+// (server-priced, server-fulfilled). The old override here sent the price from
+// the browser and wrote payment records client-side.
+})();
 
-  function _cryptoRetry(amountUSD, description, onSuccess, attempt) {
-    fetch(BACKEND_URL + '/api/crypto/create-invoice', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amountUSD: amountUSD,
-        description: description,
-        orderId: 'MV-' + state.user.uid + '-' + Date.now(),
-        userEmail: state.user.email,
-      })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data.invoice_url) {
-        if (attempt < 3) {
-          showToast('⏳ Retrying... (' + (attempt+1) + '/3)');
-          setTimeout(function(){ _cryptoRetry(amountUSD, description, onSuccess, attempt+1); }, 3000);
-        } else {
-          showToast('❌ Payment server unavailable. Try card payment.');
-        }
-        return;
-      }
-      db.collection('crypto_payments').add({
-        uid: state.user.uid, email: state.user.email, name: state.profile.name,
-        amountUSD: amountUSD, description: description,
-        invoiceId: data.id, invoiceUrl: data.invoice_url,
-        status: 'pending', createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(function(docRef) { pollCryptoPayment(data.id, docRef.id, onSuccess); });
-      window.open(data.invoice_url, '_blank');
-      showToast('₿ Payment page opened! Complete in new tab.');
-    })
-    .catch(function() {
-      if (attempt < 3) {
-        showToast('⏳ Server waking up... (' + (attempt+1) + '/3)');
-        setTimeout(function(){ _cryptoRetry(amountUSD, description, onSuccess, attempt+1); }, 4000);
-      } else {
-        showToast('❌ Could not connect. Try Card/Bank payment.');
-      }
-    });
+
+// PAYSTACK REDIRECT RETURN — when the popup could not load we used hosted
+// checkout; Paystack sends the user back with ?reference=… — confirm it.
+(function(){
+  var q = new URLSearchParams(location.search);
+  var ref = q.get('reference') || q.get('trxref');
+  if (!ref || typeof auth === 'undefined') return;
+  var done = false;
+  auth.onAuthStateChanged(function(u){
+    if (!u || done) return; done = true;
+    history.replaceState(null, '', location.pathname);
+    confirmPaystackPayment(ref).then(function(){ showToast('✅ Payment confirmed!'); })
+      .catch(function(e){ showToast('⚠️ ' + e.message); });
+  });
+})();
+
+// ── v5: show the bottom menu only when the user is logged in and the main app is visible ──
+(function () {
+  function appVisible() {
+    var app = document.getElementById('app-screen');
+    if (!app) return false;
+    var cs = getComputedStyle(app);
+    var loggedIn = !!(window.state && window.state.user);
+    return loggedIn && cs.display !== 'none' && cs.visibility !== 'hidden';
   }
+  function sync() { if (document.body) document.body.classList.toggle('mv-authed', appVisible()); }
+  function start() {
+    sync();
+    ['app-screen', 'auth-screen', 'otp-screen'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) new MutationObserver(sync).observe(el, { attributes: true, attributeFilter: ['style', 'class'] });
+    });
+    setInterval(sync, 1000); // safety net for login/logout paths that don't touch those screens
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

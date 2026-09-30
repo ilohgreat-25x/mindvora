@@ -19,18 +19,31 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/users/$(userId));
     }
 
+    // A brand-new profile may not start out premium, verified, rich or admin.
+    function safeNewUser(d) {
+      return !d.keys().hasAny(['role', 'isAdmin', 'admin', 'wallet', 'balance', 'banned', 'disabled',
+                               'isVerified', 'premiumRef', 'premiumSince', 'verifiedSince', 'referralCount'])
+        && (!('isPremium' in d) || d.isPremium == false)
+        && (!('plan' in d) || d.plan == 'free')
+        && (!('earnings' in d) || d.earnings == 0)
+        && (!('tips' in d) || d.tips == 0);
+    }
+
     // ── users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSelf(userId);
+      allow create: if isSelf(userId) && safeNewUser(request.resource.data);
+      // FIX: `'x' in request.resource.data` checks the WHOLE resulting doc, so
+      // once the server wrote e.g. `earnings`, every later self-update (name,
+      // avatar, bio…) was denied. Only block changes to protected fields.
       allow update: if isSelf(userId)
-        && !('role' in request.resource.data)
-        && !('isAdmin' in request.resource.data)
-        && !('admin' in request.resource.data)
-        && !('wallet' in request.resource.data)
-        && !('balance' in request.resource.data)
-        && !('earnings' in request.resource.data)
-        && !('banned' in request.resource.data);
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'role', 'isAdmin', 'admin', 'wallet', 'balance', 'earnings', 'banned',
+          'disabled', 'disabledAt', 'disabledReason', 'referralCount',
+          // Paid features — only the backend (Firebase Admin) may grant these now.
+          'isPremium', 'plan', 'premiumRef', 'premiumProvider', 'premiumSince', 'premiumActivatedCrypto',
+          'isVerified', 'verifiedSince', 'verifiedRef', 'tips'
+        ]);
       allow delete: if false;
     }
 
@@ -139,7 +152,7 @@ service cloud.firestore {
     match /app_settings/{docId} { allow read: if isSignedIn(); allow write: if false; }
     match /gifts/{docId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+      allow create: if false; // gifts are recorded by the backend after payment
       allow update, delete: if false;
     }
     match /withdrawals/{docId} {
@@ -155,7 +168,7 @@ service cloud.firestore {
 
     // ── transactional docs: writers are server-only, owners may read ──────
     match /topups/{docId} {
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if false; // top-ups are recorded by the backend after payment
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow update, delete: if false;
     }
@@ -169,7 +182,8 @@ service cloud.firestore {
     match /crypto_payments/{docId} {
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow update, delete: if false;
+      allow update: if false; // crypto orders now live in crypto_orders (server-only)
+      allow delete: if false;
     }
     match /marketplace/{docId} {
       allow read: if isSignedIn();

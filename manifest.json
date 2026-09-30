@@ -1,7 +1,7 @@
 {
   "name": "Mindvora",
   "short_name": "Mindvora",
-  "description": "Where Minds Connect — A next-generation social platform for creators, communities and connections worldwide.",
+  "description": "Share posts, chat, call and go live with the people you care about.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
