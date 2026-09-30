@@ -231,8 +231,10 @@ var MindvoraRT = (function() {
 // to be a separate hardcoded URL (a leftover Railway domain) that had
 // drifted out of sync with BACKEND_URL and pointed at a different service.
   var WS_URL = (window.BACKEND_URL || '').replace(/^http/, 'ws') + '/ws';
-  var RECONNECT_DELAY = 3000;
-  var MAX_RECONNECT = 10;
+  var RECONNECT_DELAY = 1000;
+  var MAX_RECONNECT = Infinity; // keep trying (backoff capped at 15s) — calls need the socket
+  var listeners = [];           // extra message handlers (calls.js)
+  var openHooks = [];
 
 // State
   var ws = null;
@@ -278,11 +280,16 @@ var MindvoraRT = (function() {
       isConnected = true;
       reconnectAttempts = 0;
       startPing();
+      openHooks.forEach(function(fn){ try { fn(); } catch(e){} });
     };
 
     ws.onmessage = function(event) {
       var msg = safeParseMsg(event.data);
       if (!msg || !msg.type) return;
+      if (/^(AUTH_OK|CALL_)/.test(msg.type)) {
+        listeners.forEach(function(fn){ try { fn(msg); } catch(e){ console.error(e); } });
+        return;
+      }
       handleMessage(msg);
     };
 
@@ -301,7 +308,7 @@ var MindvoraRT = (function() {
   function scheduleReconnect() {
     if (reconnectAttempts >= MAX_RECONNECT) return;
     reconnectAttempts++;
-    var delay = Math.min(RECONNECT_DELAY * reconnectAttempts, 30000);
+    var delay = Math.min(RECONNECT_DELAY * Math.pow(1.6, reconnectAttempts), 15000);
     setTimeout(connect, delay);
   }
 
@@ -701,10 +708,16 @@ var MindvoraRT = (function() {
     joinLiveStream:joinLiveStream,
     openLiveView:  openLiveView,
     send:          send,
-    isConnected:   function() { return isConnected; }
+    isConnected:   function() { return isConnected; },
+    onMessage:     function(fn) { listeners.push(fn); },
+    onOpen:        function(fn) { openHooks.push(fn); if (isConnected) { try { fn(); } catch(e){} } },
+    connect:       function() { if (!ws || ws.readyState > 1) { reconnectAttempts = 0; connect(); } }
   };
 
 })();
+
+window.addEventListener('online', function(){ MindvoraRT.connect(); });
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) MindvoraRT.connect(); });
 
 // Global shortcuts for HTML onclick handlers
 function openGoLive()    { MindvoraRT.openGoLive(); }
@@ -1618,7 +1631,7 @@ function optimizeVideoUrl(url, targetWidthPx) {
   var w = Math.max(1, Math.round(targetWidthPx || 720));
   return url.replace('/video/upload/', '/video/upload/q_auto,f_auto,w_' + w + ',c_limit/');
 }
-var state = { user:null,profile:null,sparks:[],filter:'all',plan:{id:'basic',amount:2000,name:'Mindvora Basic'},tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:150},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
+var state = { user:null,profile:null,sparks:[],filter:'all',plan:{id:'basic',amount:5,name:'Mindvora Basic'},tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:0.10},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
 
 // PAYSTACK: reliable script loader + NGN amounts
 // Paystack only accepts NGN for Nigerian accounts. We convert the app's
@@ -1651,6 +1664,90 @@ function usdToNGNKobo(usd) {
   return Math.round((Number(usd) || 0) * 1600 * 100);
 }
 
+// ── SERVER API HELPER ────────────────────────────────────────────────────
+// Sends the Firebase ID token so the backend knows who is calling, times out
+// after 70s (Render free cold starts take ~50s), and never throws on a
+// non-JSON reply (e.g. Render's HTML "waking up" page).
+function mvApi(path, body, method) {
+  var u = (typeof auth !== 'undefined' && auth.currentUser) ? auth.currentUser : null;
+  var tokenP = u ? u.getIdToken() : Promise.resolve(null);
+  return tokenP.then(function(tok) {
+    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var t = ctrl ? setTimeout(function(){ ctrl.abort(); }, 70000) : null;
+    var headers = { 'Content-Type': 'application/json' };
+    if (tok) headers.Authorization = 'Bearer ' + tok;
+    return fetch((window.BACKEND_URL || '') + path, {
+      method: method || (body ? 'POST' : 'GET'), headers: headers,
+      body: body ? JSON.stringify(body) : undefined, signal: ctrl ? ctrl.signal : undefined
+    }).then(function(r) {
+      return r.text().then(function(txt) {
+        if (t) clearTimeout(t);
+        var d; try { d = JSON.parse(txt); } catch (e) {
+          d = { status: false, message: r.status >= 500 ? 'Server is waking up — please try again in a moment.' : 'Unexpected server response.' };
+        }
+        d._http = r.status; return d;
+      });
+    }, function(e) { if (t) clearTimeout(t); throw e; });
+  });
+}
+
+function refreshMyProfile() {
+  var u = (typeof auth !== 'undefined') ? auth.currentUser : null;
+  if (!u) return Promise.resolve();
+  return db.collection('users').doc(u.uid).get().then(function(snap) {
+    if (snap.exists) state.profile = Object.assign(state.profile || {}, snap.data());
+  }).catch(function(){});
+}
+
+// FIX: payments are now CONFIRMED BY THE SERVER, which also grants the
+// feature (premium, badge, tip, gift, airtime, data). The browser no longer
+// writes isPremium / isVerified / earnings itself.
+function confirmPaystackPayment(reference) {
+  showToast('⏳ Confirming your payment…');
+  var tries = 0;
+  function wait(){ return new Promise(function(res){ setTimeout(res, 4000); }); }
+  function attempt() {
+    tries++;
+    return mvApi('/api/pay/paystack/verify', { reference: reference }).then(function(d) {
+      if (d && d.status) return refreshMyProfile().then(function(){ return d; });
+      if (tries < 4 && (!d || d._http >= 500)) return wait().then(attempt);
+      throw new Error((d && d.message) || 'Could not confirm the payment.');
+    }, function() {
+      if (tries < 4) return wait().then(attempt);
+      throw new Error('Could not reach the server. If you were charged, it will be applied automatically.');
+    });
+  }
+  return attempt();
+}
+
+// Pay with Paystack for a server-priced purpose and let the server fulfil it.
+function payForPurpose(opts) {
+  payWithPaystack({
+    amount: opts.amountKobo, currency: 'NGN', ref: (opts.refPrefix || 'MV') + '-' + Date.now(),
+    purpose: opts.purpose, params: opts.params || {},
+    onSuccess: function(r) {
+      confirmPaystackPayment(r.reference).then(function(d){ if (opts.success) opts.success(d); })
+        .catch(function(e){ showToast('⚠️ ' + e.message); });
+    },
+    onClose: function(){ showToast(opts.closeMsg || 'Payment cancelled'); }
+  });
+}
+
+function topupResultToast(d, what) {
+  var st = d && d.result && d.result.delivery;
+  if (st === 'completed') showToast('✅ ' + what + ' sent successfully!');
+  else if (st === 'failed') showToast('⚠️ Payment received but ' + what.toLowerCase() + ' delivery failed. Support will resolve it.');
+  else showToast('⏳ Payment received. ' + what + ' delivery in progress.');
+}
+
+// Airtime/data can only be delivered to Nigerian numbers — check BEFORE charging.
+function validNgTopup(network, phone) {
+  if (!/Nigeria$/.test(String(network || ''))) return 'Airtime/data delivery is currently available for Nigerian networks only.';
+  var d = String(phone || '').replace(/\D/g, '');
+  if (!/^(0\d{10}|234\d{10}|[789]\d{9})$/.test(d)) return 'Enter a valid Nigerian phone number (e.g. 08031234567).';
+  return '';
+}
+
 // Pay with Paystack — loads the script, opens the popup, and if that fails
 // falls back to the hosted redirect checkout via the backend.
 function payWithPaystack(opts) {
@@ -1659,12 +1756,14 @@ function payWithPaystack(opts) {
   var currency = opts.currency || 'NGN';
   loadPaystack().then(function() {
     PaystackPop.setup({
-      key: PAYSTACK_KEY,
+      key: window.MV_PAYSTACK_PK || PAYSTACK_KEY,
       email: state.user.email,
       amount: amount,
       currency: currency,
       ref: opts.ref || ('ZP-' + Date.now()),
-      metadata: opts.metadata || {},
+      metadata: opts.purpose
+        ? Object.assign({}, opts.metadata || {}, { uid: state.user.uid, purpose: opts.purpose, params: opts.params || {} })
+        : (opts.metadata || {}),
       callback: function(r) { if (opts.onSuccess) opts.onSuccess(r); },
       onClose: function() { if (opts.onClose) opts.onClose(); },
       onError: function() { if (opts.onError) opts.onError(); }
@@ -1672,6 +1771,15 @@ function payWithPaystack(opts) {
   }).catch(function() {
 // Fallback: hosted redirect checkout
     if (opts.onRedirectFallback) { opts.onRedirectFallback(); return; }
+    if (opts.purpose) {
+      showToast('Opening secure checkout…');
+      mvApi('/api/paystack/initialize', { purpose: opts.purpose, params: opts.params || {},
+        callbackUrl: location.origin + location.pathname }).then(function(d) {
+        if (d && d.status && d.authorization_url) location.href = d.authorization_url;
+        else showToast('❌ ' + ((d && d.message) || 'Payment gateway is unavailable right now.'));
+      }).catch(function(){ showToast('Payment gateway is unavailable right now. Please try again.'); });
+      return;
+    }
     showToast('Payment gateway is unavailable right now. Please try again.');
   });
 }
@@ -1719,12 +1827,20 @@ function getCaptchaToken(action) {
       if (typeof grecaptcha === 'undefined' || !RECAPTCHA_SITE_KEY) { resolve(''); return; }
       // grecaptcha becomes "defined" before it's actually ready to execute —
       // .ready() waits for genuine initialization, fixing tokens silently failing.
+      // FIX: with a wrong key / blocked domain grecaptcha.ready() can never fire
+      // and execute() can throw synchronously — both used to hang signup forever.
+      var settled = false;
+      var guard = setTimeout(function(){ if (!settled) { settled = true; console.error('[reCAPTCHA] Timed out after 10s — is ' + window.location.hostname + ' in the key\'s domain list?'); resolve(''); } }, 10000);
+      var _resolve = resolve;
+      resolve = function(t){ if (settled) return; settled = true; clearTimeout(guard); _resolve(t); };
       grecaptcha.ready(function() {
+        try {
         grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: action })
           .then(function(t){ resolve(t); }, function(err){
             console.error('[reCAPTCHA] grecaptcha.execute() rejected for action "' + action + '":', err, '— this typically means the site key is registered as v2 (not v3), or this domain (' + window.location.hostname + ') is not on the key\'s allowed-domains list in the reCAPTCHA admin console.');
             resolve('');
           });
+        } catch (e) { console.error('[reCAPTCHA] execute() threw:', e && e.message); resolve(''); }
       });
     });
   });
@@ -1860,13 +1976,17 @@ function doRegister(){
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
       return db.collection('users').doc(newUid).set(userProfile).then(function(){
-// Send OTP for email verification
-        return sendOTPCode(email, newUid);
+// Send OTP for email verification. FIX: if sending fails the account already
+// exists, so we still show the code screen (with Resend) instead of dropping
+// the user back to the form, where retrying said "email already in use".
+        otpState.email = email; otpState.userId = newUid;
+        return sendOTPCode(email, newUid).catch(function(e){ return { otpError: e }; });
       });
     })
-    .then(function(){
+    .then(function(res){
 // Show OTP screen after profile creation
       showOTPScreen(email);
+      if (res && res.otpError) showToast('⚠️ Code not sent yet: ' + (res.otpError.message || 'try Resend Code') + '');
 // Check referral code in URL
       var urlParams = new URLSearchParams(window.location.search);
       var refCode = urlParams.get('ref');
@@ -1891,7 +2011,7 @@ function doRegister(){
 // Writing to another user's `earnings` from the client is blocked by
 // firestore.rules on purpose, so we only record the pending relationship.
               db.collection('notifications').add({
-                uid: refCode,
+                toUid: refCode,
                 type: 'referral',
                 text: '👋 Someone signed up with your referral link! You\'ll earn $1.00 once they get active.',
                 read: false,
@@ -1913,7 +2033,7 @@ function doRegister(){
       return auth.currentUser.updateProfile({displayName:name});
     })
     .catch(function(e){ 
-      err.textContent=authErr(e.code); 
+      err.textContent = (e && e.code) ? authErr(e.code) : ((e && e.message) || 'Something went wrong. Please try again.');
       btn.disabled=false; 
       btn.textContent='Create Account →'; 
     });
@@ -1941,14 +2061,18 @@ function sendOTPCode(email, userId) {
       otpState.attempts = 0;
 
       getCaptchaToken('send_email_otp').then(function(token) {
-        return fetch(BACKEND_URL + '/api/otp/send-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email, recaptcha: token })
-        });
+        if (!token) console.warn('[OTP] No reCAPTCHA token — server will reject unless RECAPTCHA_ENFORCE=false.');
+        return mvApi('/api/otp/send-email', { email: email, recaptcha: token });
       })
-      .then(function(r){ return r.json(); })
       .then(function(data) {
+        if (data && data.code === 'COOLDOWN') {
+          // A code was already sent recently — let the user enter it.
+          otpState.expiresAt = otpState.expiresAt || (Date.now() + 10 * 60 * 1000);
+          otpState.resendCooldown = Date.now() + ((data.retryAfter || 60) * 1000);
+          showToast('📧 ' + data.message);
+          resolve();
+          return;
+        }
         if (data && data.status) {
           otpState.expiresAt = Date.now() + (10 * 60 * 1000);
           otpState.resendCooldown = Date.now() + (60 * 1000); // only cooldown on real success
@@ -1976,12 +2100,7 @@ function sendOTPCode(email, userId) {
 // Verify the email OTP with the backend (code is checked server-side)
 function verifyEmailOTP(email, code) {
   return new Promise(function(resolve, reject) {
-    fetch(BACKEND_URL + '/api/otp/verify-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, code: String(code) })
-    })
-    .then(function(r){ return r.json(); })
+    mvApi('/api/otp/verify-email', { email: email, code: String(code).trim() })
     .then(function(data) {
       if (data && data.status) {
         resolve();
@@ -2059,6 +2178,10 @@ function verifyOTP() {
   }
   
 // Check expiration
+  if (!otpState.expiresAt) {
+    showToast('📧 No code has been sent yet. Tap "Resend Code".');
+    return;
+  }
   if (Date.now() > otpState.expiresAt) {
     showToast('⏰ OTP code has expired. Click "Resend Code" to get a new one.');
     return;
@@ -2220,7 +2343,11 @@ auth.onAuthStateChanged(function(user){
           return;
         }
 // Check if email is verified (for new users)
-        if(snap.data().emailVerified === false){
+        if(snap.data().emailVerified === false && mvIsGoogleUser(user)){
+          db.collection('users').doc(user.uid).update({emailVerified:true}).catch(function(){});
+          state.profile.emailVerified = true;
+        }
+        if(snap.data().emailVerified === false && !mvIsGoogleUser(user)){
           console.log('[Mindvora] Email not verified, sending code before showing OTP screen');
 // Send the code FIRST — only show the OTP entry screen if it actually
 // succeeds. Previously showOTPScreen() ran unconditionally beforehand and
@@ -2244,9 +2371,17 @@ auth.onAuthStateChanged(function(user){
       } else {
         console.log('[Mindvora] New user profile created in Firestore');
         var color=COLORS[Math.floor(Math.random()*COLORS.length)];
-        state.profile={id:user.uid,name:user.displayName||user.email.split('@')[0],handle:(user.displayName||'user').toLowerCase().replace(/\s+/g,'_'),email:user.email,color:color,plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0,emailVerified:false};
+        var _isG = mvIsGoogleUser(user);
+        var _em = user.email || '';
+        state.profile={id:user.uid,name:user.displayName||_em.split('@')[0]||'Mindvora User',handle:(user.displayName||_em.split('@')[0]||'user').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20),email:_em,avatar:user.photoURL||'',provider:_isG?'google':'email',color:color,plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0,emailVerified:_isG};
       checkAdminAccess();
       checkPendingAds();
+        if (_isG) {
+          // Google verified the email already: save profile (no overwrite) and open the app.
+          mvEnsureGoogleProfile(user).catch(function(e){ console.error('[Mindvora] profile save', e); });
+          mountApp();
+          return;
+        }
         db.collection('users').doc(user.uid).set(state.profile);
         showOTPScreen(user.email);
         return;
@@ -2532,6 +2667,30 @@ function loadNewsTab() {
     return cat === 'news' || text.indexOf('#news') > -1 || text.indexOf('#breaking') > -1 || text.indexOf('#update') > -1;
   });
 
+  var NEWS_CATS = [['world','🌍 World'],['nigeria','🇳🇬 Nigeria'],['africa','🌍 Africa'],['business','💼 Business'],['tech','💻 Tech'],['sport','⚽ Sport']];
+  var curCat = window._mvNewsCat || 'world';
+  function catBar(){
+    return '<div class="mv-news-cats" style="display:flex;gap:6px;overflow-x:auto;padding:10px 12px 4px;-webkit-overflow-scrolling:touch">' +
+      NEWS_CATS.map(function(c){
+        var on = c[0]===curCat;
+        return '<button onclick="window._mvNewsCat=\''+c[0]+'\';loadNewsTab()" style="flex:0 0 auto;padding:6px 12px;border-radius:16px;border:1px solid var(--border);font-size:12px;font-weight:600;cursor:pointer;background:'+(on?'var(--green)':'transparent')+';color:'+(on?'#fff':'var(--moon)')+'">'+c[1]+'</button>';
+      }).join('') + '</div>';
+  }
+  window._mvNewsCatBar = catBar;
+  if (window.BACKEND_URL && !window._mvNewsServerDown) {
+    var nctl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+    var ntmo = nctl ? setTimeout(function(){ nctl.abort(); }, 15000) : null;
+    fetch(window.BACKEND_URL + '/api/news?cat=' + curCat, { signal: nctl ? nctl.signal : undefined })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (ntmo) clearTimeout(ntmo);
+        if (!d || !d.items || !d.items.length) throw new Error('empty');
+        renderNewsItems(d.items, userNewsPosts);
+      })
+      .catch(function(){ if (ntmo) clearTimeout(ntmo); window._mvNewsServerDown = true; loadNewsTab(); setTimeout(function(){ window._mvNewsServerDown = false; }, 120000); });
+    return;
+  }
+
   var feeds = [
     {name:'BBC World',   url:'https://feeds.bbci.co.uk/news/world/rss.xml'},
     {name:'Reuters',     url:'https://feeds.reuters.com/reuters/worldNews'},
@@ -2602,6 +2761,7 @@ function renderNewsItems(items, userPosts) {
   var fc = document.getElementById('feed-cont');
   userPosts = userPosts || [];
   var html = '';
+  if (window._mvNewsCatBar) html += window._mvNewsCatBar();
 
 // Show user-posted news at the top
   if (userPosts.length) {
@@ -2631,7 +2791,8 @@ function renderNewsItems(items, userPosts) {
   html += items.slice(0,40).map(function(n){
     return buildNewsCard(n.title, n.desc, n.source, n.pub, n.link, n.img||'');
   }).join('');
-  html += '<div style="text-align:center;padding:14px;font-size:11px;color:var(--muted)">📰 Sources: BBC · Reuters · Al Jazeera · CNN · AP · Guardian · DW · VOA</div>';
+  var srcs = []; items.forEach(function(n){ if (n.source && srcs.indexOf(n.source)<0) srcs.push(n.source); });
+  html += '<div style="text-align:center;padding:14px;font-size:11px;color:var(--muted)">📰 Live from: '+esc(srcs.slice(0,6).join(' · '))+'</div>';
   fc.innerHTML = html;
 }
 
@@ -3073,7 +3234,7 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
         });
         if(!snap.empty) batch.commit().catch(function(){});
       }).catch(function(){});
-  } var right=document.getElementById('dm-right'); right.innerHTML='<div class="chat-hd"><div class="dm-av" style="background:'+(otherColor||COLORS[0])+';width:32px;height:32px">'+esc((otherName||'U').charAt(0))+'</div><div style="font-size:13px;font-weight:700;color:var(--white)">'+esc(otherName)+'</div></div><div class="chat-msgs" id="cm-'+dmId+'"></div><div class="chat-bar"><textarea class="chat-inp" id="ci-'+dmId+'" placeholder="Message…" rows="1"></textarea><button class="chat-send" onclick="sendMsg(\''+dmId+'\',\''+otherId+'\',\''+escJs(otherName)+'\',\''+escJs(otherColor||COLORS[0])+'\')">➤</button></div>'; db.collection('dms').doc(dmId).collection('messages').orderBy('createdAt','asc').limit(50).onSnapshot(function(snap){ var box=document.getElementById('cm-'+dmId); if(!box) return; box.innerHTML=snap.docs.map(function(d){
+  } var right=document.getElementById('dm-right'); var _wrap=right.closest('.dm-wrap'); if(_wrap) _wrap.classList.add('chat-open'); right.innerHTML='<div class="chat-hd"><button class="back-to-list" aria-label="Back" onclick="var w=this.closest(\'.dm-wrap\'); if(w) w.classList.remove(\'chat-open\')">←</button><div class="dm-av" style="background:'+(otherColor||COLORS[0])+';width:32px;height:32px">'+esc((otherName||'U').charAt(0))+'</div><div style="font-size:13px;font-weight:700;color:var(--white)">'+esc(otherName)+'</div><div class="chat-call-btns"><button class="chat-call-btn" title="Voice call" aria-label="Voice call" onclick="MVCall.start(\''+otherId+'\',\''+escJs(otherName)+'\',\'audio\')">📞</button><button class="chat-call-btn" title="Video call" aria-label="Video call" onclick="MVCall.start(\''+otherId+'\',\''+escJs(otherName)+'\',\'video\')">🎥</button></div></div><div class="chat-msgs" id="cm-'+dmId+'"></div><div class="chat-bar"><textarea class="chat-inp" id="ci-'+dmId+'" placeholder="Message…" rows="1"></textarea><button class="chat-send" onclick="sendMsg(\''+dmId+'\',\''+otherId+'\',\''+escJs(otherName)+'\',\''+escJs(otherColor||COLORS[0])+'\')">➤</button></div>'; db.collection('dms').doc(dmId).collection('messages').orderBy('createdAt','asc').limit(50).onSnapshot(function(snap){ var box=document.getElementById('cm-'+dmId); if(!box) return; box.innerHTML=snap.docs.map(function(d){
     var m=d.data(), mine=m.fromId===state.user.uid;
     var col=mine?(state.profile.color||COLORS[0]):(otherColor||COLORS[0]);
     var editedTag = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
@@ -3116,54 +3277,46 @@ function selPlan(id,amount,name){ state.plan={id:id,amount:amount,name:name}; do
 document.getElementById('btn-pay').addEventListener('click',function(){
   if(!state.user){ showToast('Login first'); return; }
   if(!state.plan){ showToast('Select a plan first'); return; }
-  payWithPaystack({
-    amount: usdToNGNKobo(state.plan.amount),
-    currency: 'NGN',
-    ref: 'ZP-' + Date.now(),
-    metadata: { plan: state.plan.id, planName: state.plan.name, amountUSD: state.plan.amount },
-    onSuccess: function(r){
-      db.collection('users').doc(state.user.uid).update({isPremium:true,plan:state.plan.id,premiumRef:r.reference}).then(function(){
-        state.profile.isPremium=true;
-        closeModal('modal-prem');
-        var pw=document.getElementById('prem-widget'); if(pw) pw.style.display='none';
-        showToast('Welcome to '+state.plan.name+'! 💎');
-      }).catch(function(){ showToast('Payment received but activation failed. Contact support.'); });
-    },
-    onClose: function(){ showToast('Payment cancelled'); }
+  var plan = state.plan;
+  payForPurpose({
+    amountKobo: usdToNGNKobo(plan.amount), refPrefix: 'ZP', purpose: 'premium', params: { plan: plan.id },
+    success: function(){
+      state.profile.isPremium = true;
+      closeModal('modal-prem');
+      var pw=document.getElementById('prem-widget'); if(pw) pw.style.display='none';
+      showToast('Welcome to '+plan.name+'! 💎');
+    }
   });
 });
 
 function buyVerifiedBadge(){
   if(!state.user){ showToast('Please login first'); return; }
-  if(state.profile && state.profile.isVerified){
-    showToast('✅ You already have a Verified Badge!'); return;
-  }
-  payWithPaystack({
-    amount: usdToNGNKobo(25),
-    currency: 'NGN',
-    ref: 'ZVB-' + Date.now(),
-    onSuccess: function(){
-      db.collection('users').doc(state.user.uid).update({ isVerified: true }).then(function(){
-        state.profile.isVerified = true;
-        closeModal('modal-prem');
-        showToast('🎉 Congratulations! You are now Verified on Mindvora! ✅');
-// Send notification to user
-        db.collection('notifications').add({
-          uid: state.user.uid,
-          type: 'verified',
-          text: '✅ Your Mindvora Verified Badge has been activated! Your profile now shows the green checkmark.',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          read: false
-        }).catch(function(){});
-      });
-    },
-    onClose: function(){ showToast('Payment cancelled'); }
+  if(state.profile && state.profile.isVerified){ showToast('✅ You already have a Verified Badge!'); return; }
+  payForPurpose({
+    amountKobo: usdToNGNKobo(25), refPrefix: 'ZVB', purpose: 'badge',
+    success: function(){
+      state.profile.isVerified = true;
+      closeModal('modal-prem');
+      showToast('🎉 Congratulations! You are now Verified on Mindvora! ✅');
+    }
   });
 }
 
 function openTip(authorId,authorName){ state.tipTarget={id:authorId,name:authorName}; document.getElementById('tip-name').textContent=authorName; document.getElementById('tip-amt').value=''; document.getElementById('tip-err').textContent=''; openModal('modal-tip'); }
 function setTip(amount){ document.getElementById('tip-amt').value=amount; }
-document.getElementById('btn-tip').addEventListener('click',function(){ var amount=parseInt(document.getElementById('tip-amt').value)||0; if(amount<1){ document.getElementById('tip-err').textContent='Minimum tip is $1'; return; } if(!state.user||!state.tipTarget) return; payWithPaystack({amount:usdToNGNKobo(amount),currency:'NGN',ref:'ZT-'+Date.now(),onSuccess:function(){ db.collection('users').doc(state.tipTarget.id).update({tips:firebase.firestore.FieldValue.increment(amount)}); db.collection('notifications').add({toUid:state.tipTarget.id,fromName:state.profile.name,type:'tip',text:state.profile.name+' tipped you $'+amount.toLocaleString(),read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); closeModal('modal-tip'); showToast('Tip sent! 💝'); },onClose:function(){ showToast('Tip cancelled'); }}); });
+document.getElementById('btn-tip').addEventListener('click',function(){
+  var amount=parseInt(document.getElementById('tip-amt').value)||0;
+  if(amount<1){ document.getElementById('tip-err').textContent='Minimum tip is $1'; return; }
+  if(amount>1000){ document.getElementById('tip-err').textContent='Maximum tip is $1000'; return; }
+  if(!state.user||!state.tipTarget) return;
+  var target=state.tipTarget;
+  if(target.id===state.user.uid){ document.getElementById('tip-err').textContent='You cannot tip yourself'; return; }
+  payForPurpose({
+    amountKobo: usdToNGNKobo(amount), refPrefix: 'ZT', purpose: 'tip',
+    params: { recipientId: target.id, amountUSD: amount }, closeMsg: 'Tip cancelled',
+    success: function(){ closeModal('modal-tip'); showToast('Tip sent to '+target.name+'! 💝'); }
+  });
+});
 
 function switchTab(group,tab,btn){ document.querySelectorAll('#modal-'+group+' .tab-row .f-pill').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); document.querySelectorAll('#modal-'+group+' .e-panel').forEach(function(p){ p.classList.remove('active'); }); document.getElementById(group+'-'+tab).classList.add('active'); }
 // WITHDRAWAL SYSTEM
@@ -3292,42 +3445,43 @@ function copyRef(){ var link=document.getElementById('ref-link').value; if(navig
 
 function setNetwork(btn,network){ state.network=network; btn.closest('.ntabs').querySelectorAll('.ntab').forEach(function(b){ b.classList.remove('active'); }); btn.classList.add('active'); }
 function setAmt(id,amount){ document.getElementById(id).value=amount; }
-function selPkg(card){ document.querySelectorAll('.pkg-card').forEach(function(c){ c.classList.remove('sel'); }); card.classList.add('sel'); state.selectedPkg={size:card.dataset.size,dur:card.dataset.dur,price:parseInt(card.dataset.price)}; }
-document.getElementById('btn-airtime').addEventListener('click',function(){ state.network=document.getElementById('air-network').value; var phone=document.getElementById('air-phone').value.trim(),amt=parseInt(document.getElementById('air-amt').value)||0,err=document.getElementById('air-err'); err.textContent=''; if(!phone||!phone.trim()||phone.length<6){ err.textContent='Enter a valid 11-digit phone number'; return; } if(amt<1){ err.textContent='Minimum airtime is $1'; return; } if(!state.user) return; var ngn = amt * 1600; payWithPaystack({amount:ngn*100,currency:'NGN',ref:'ZA-'+Date.now(),metadata:{type:'airtime',network:state.network,phone:phone,amount:ngn},onSuccess:function(r){
-// Payment successful — now deliver airtime via Husmo API
-            var networkCode = {'MTN Nigeria':'MTN','Airtel Nigeria':'AIR','Glo Nigeria':'GLO','9mobile Nigeria':'ETI'}[state.network]||'MTN';
-// Save to Firestore first
-            db.collection('topups').add({
-              uid:state.user.uid,name:state.profile.name,
-              email:state.user.email,type:'airtime',
-              network:state.network,phone:phone,amount:ngn,
-              ref:r.reference,status:'processing',
-              createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            }).then(function(docRef){
-// Deliver airtime via secure backend proxy
-              deliverAirtimeHusmo(phone, state.network, ngn, r.reference, docRef);
-            });
-            closeModal('modal-topup');
-            document.getElementById('air-phone').value='';
-            document.getElementById('air-amt').value='';
-          },onClose:function(){ showToast('Airtime purchase cancelled'); }}); });
-document.getElementById('btn-data').addEventListener('click',function(){ state.network=document.getElementById('data-network').value; var phone=document.getElementById('data-phone').value.trim(),err=document.getElementById('data-err'); err.textContent=''; if(!phone||!phone.trim()||phone.length<6){ err.textContent='Enter a valid 11-digit phone number'; return; } if(!state.selectedPkg){ err.textContent='Select a data bundle'; return; } if(!state.user) return; var pkg=state.selectedPkg; payWithPaystack({amount:pkg.price*1600*100,currency:'NGN',ref:'ZD-'+Date.now(),metadata:{type:'data',network:state.network,phone:phone,bundle:pkg.size,duration:pkg.dur,price:pkg.price},onSuccess:function(r){
-            var networkCode = {'MTN Nigeria':'MTN','Airtel Nigeria':'AIR','Glo Nigeria':'GLO','9mobile Nigeria':'ETI'}[state.network]||'MTN';
-            db.collection('topups').add({
-              uid:state.user.uid,name:state.profile.name,
-              email:state.user.email,type:'data',
-              network:state.network,phone:phone,
-              bundle:pkg.size,duration:pkg.dur,
-              amount:pkg.price*1600,ref:r.reference,
-              status:'processing',
-              createdAt:firebase.firestore.FieldValue.serverTimestamp()
-            }).then(function(docRef){
-// Data delivery via secure backend proxy
-              deliverDataHusmo(phone, state.network, pkg.size, pkg.price*1600, r.reference, docRef);
-            });
-            closeModal('modal-topup');
-            document.getElementById('data-phone').value='';
-          },onClose:function(){ showToast('Data purchase cancelled'); }}); });
+function selPkg(card){ document.querySelectorAll('.pkg-card').forEach(function(c){ c.classList.remove('sel'); }); card.classList.add('sel'); state.selectedPkg={size:card.dataset.size,dur:card.dataset.dur,price:parseFloat(card.dataset.price)}; }
+document.getElementById('btn-airtime').addEventListener('click',function(){
+  state.network=document.getElementById('air-network').value;
+  var phone=document.getElementById('air-phone').value.trim(),amt=parseInt(document.getElementById('air-amt').value)||0,err=document.getElementById('air-err');
+  err.textContent='';
+  var bad=validNgTopup(state.network, phone); if(bad){ err.textContent=bad; return; }
+  if(amt<1){ err.textContent='Minimum airtime is $1'; return; }
+  if(amt>100){ err.textContent='Maximum airtime is $100'; return; }
+  if(!state.user) return;
+  payForPurpose({
+    amountKobo: usdToNGNKobo(amt), refPrefix: 'ZA', purpose: 'airtime',
+    params: { network: state.network, phone: phone, amountUSD: amt }, closeMsg: 'Airtime purchase cancelled',
+    success: function(d){
+      closeModal('modal-topup');
+      document.getElementById('air-phone').value=''; document.getElementById('air-amt').value='';
+      topupResultToast(d, 'Airtime');
+    }
+  });
+});
+document.getElementById('btn-data').addEventListener('click',function(){
+  state.network=document.getElementById('data-network').value;
+  var phone=document.getElementById('data-phone').value.trim(),err=document.getElementById('data-err');
+  err.textContent='';
+  var bad=validNgTopup(state.network, phone); if(bad){ err.textContent=bad; return; }
+  if(!state.selectedPkg){ err.textContent='Select a data bundle'; return; }
+  if(!state.user) return;
+  var pkg=state.selectedPkg;
+  payForPurpose({
+    amountKobo: usdToNGNKobo(pkg.price), refPrefix: 'ZD', purpose: 'data',
+    params: { network: state.network, phone: phone, bundle: pkg.size }, closeMsg: 'Data purchase cancelled',
+    success: function(d){
+      closeModal('modal-topup');
+      document.getElementById('data-phone').value='';
+      topupResultToast(d, 'Data');
+    }
+  });
+});
 
 document.querySelectorAll('.modal-overlay').forEach(function(o){ o.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); }); });
 
@@ -5068,37 +5222,93 @@ var VAPID_KEY = 'BE41egfg4EvNNlM_ZepYdR1TQ460QNYCkQmgEGJ8SvsUHtDNw4pOpGW7bo0wSu9
 
 function initPushNotifications() {
   if (!state.user) return;
-  if (!('Notification' in window)) return;
-  try {
-    messaging = firebase.messaging();
-    if (Notification.permission === 'granted') {
-      subscribePush();
-      startRealtimeNotifListener();
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then(function(perm) {
-        if (perm === 'granted') {
-          subscribePush();
-          startRealtimeNotifListener();
-        }
-      });
-    }
-  } catch(e) { console.warn('FCM init error:', e); }
+  // Android/iOS app (Capacitor): use the phone's native push service.
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) { initNativePush(); return; }
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  try { messaging = firebase.messaging(); } catch(e) { console.warn('FCM init error:', e); return; }
+  if (Notification.permission === 'granted') {
+    subscribePush();
+    startRealtimeNotifListener();
+  } else if (Notification.permission === 'default') {
+    // Browsers (and iPhones) only allow the permission popup after a tap,
+    // so ask with a small banner instead of calling it automatically.
+    showPushPrompt();
+  }
+}
+
+function showPushPrompt() {
+  if (document.getElementById('mv-push-prompt')) return;
+  try { if (Date.now() - Number(localStorage.getItem('mv_push_later') || 0) < 3 * 86400000) return; } catch(e){}
+  var bar = document.createElement('div');
+  bar.id = 'mv-push-prompt'; bar.className = 'mv-push-prompt';
+  bar.innerHTML = '<span>Get notified about messages and calls, even when Mindvora is closed.</span>' +
+    '<button id="mv-push-yes">Turn on</button><button id="mv-push-no" aria-label="Later">✕</button>';
+  document.body.appendChild(bar);
+  document.getElementById('mv-push-yes').onclick = function() {
+    bar.remove();
+    Notification.requestPermission().then(function(perm) {
+      if (perm === 'granted') { subscribePush(); startRealtimeNotifListener(); showToast('🔔 Notifications on'); }
+      else showToast('Notifications are blocked. You can allow them in your browser settings.');
+    });
+  };
+  document.getElementById('mv-push-no').onclick = function() {
+    bar.remove(); try { localStorage.setItem('mv_push_later', String(Date.now())); } catch(e){}
+  };
+}
+
+function saveFcmToken(field, token) {
+  if (!token || !state.user) return;
+  var upd = { pushEnabled: true };
+  upd[field] = firebase.firestore.FieldValue.arrayUnion(token);
+  if (field === 'fcmTokens') upd.fcmToken = token; // older code reads this
+  db.collection('users').doc(state.user.uid).update(upd).catch(function(e){ console.warn('Could not save push token:', e.message); });
 }
 
 function subscribePush() {
   if (!messaging) return;
-  messaging.getToken({ vapidKey: VAPID_KEY }).then(function(token) {
-    if (token && state.user) {
-      db.collection('users').doc(state.user.uid).update({ fcmToken: token, pushEnabled: true }).catch(function(){});
-    }
-  }).catch(function(e) { console.warn('FCM token error:', e); });
+  var vapid = window.MV_VAPID_KEY || VAPID_KEY;
+  navigator.serviceWorker.ready.then(function(reg) {
+    return messaging.getToken({ vapidKey: vapid, serviceWorkerRegistration: reg });
+  }).then(function(token) {
+    saveFcmToken('fcmTokens', token);
+  }).catch(function(e) { console.warn('FCM token error (check the VAPID key in Firebase → Cloud Messaging):', e && e.message); });
 
   messaging.onMessage(function(payload) {
-    var title = (payload.notification && payload.notification.title) || 'Mindvora';
-    var body  = (payload.notification && payload.notification.body)  || 'New notification';
+    var d = payload.data || {}, n = payload.notification || {};
+    if (d.type === 'call') return; // the call screen already shows it
+    var title = n.title || d.title || 'Mindvora';
+    var body  = n.body  || d.body  || 'New notification';
     showToast('🔔 ' + title + ': ' + body);
-    showNativeNotification(title, body);
-    loadNotifications();
+    if (typeof loadNotifications === 'function') loadNotifications();
+  });
+}
+
+// Native (Capacitor) push for the Android/iOS app
+function initNativePush() {
+  var P = window.Capacitor.Plugins && window.Capacitor.Plugins.PushNotifications;
+  if (!P) return;
+  P.createChannel && P.createChannel({ id: 'calls', name: 'Calls', importance: 5, sound: 'default', vibration: true }).catch(function(){});
+  P.createChannel && P.createChannel({ id: 'default', name: 'Notifications', importance: 4 }).catch(function(){});
+  P.addListener('registration', function(t) { saveFcmToken('fcmNativeTokens', t.value); });
+  P.addListener('pushNotificationActionPerformed', function(a) {
+    var url = a && a.notification && a.notification.data && a.notification.data.url;
+    if (url) handleOpenUrl(url);
+  });
+  P.requestPermissions().then(function(r) { if (r.receive === 'granted') P.register(); });
+}
+
+function handleOpenUrl(url) {
+  try {
+    var q = new URL(url, location.origin).searchParams;
+    var act = q.get('action');
+    var el = act === 'dm' ? document.getElementById('nav-dm') : act === 'notifications' ? document.getElementById('notif-btn') : null;
+    if (el) el.click();
+    // ?call=… needs nothing: the call server re-sends the ringing call once we're online.
+  } catch(e){}
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'NOTIFICATION_CLICK') handleOpenUrl(e.data.url);
   });
 }
 
@@ -5172,7 +5382,8 @@ function startRealtimeNotifListener() {
 var _lastNotifCheck = 0;
 setInterval(function() {
   if (!state.user || !db) return;
-  if (Notification.permission !== 'granted') return;
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+  if (state.profile && state.profile.fcmTokens && state.profile.fcmTokens.length) return; // server push handles it
   var now = Date.now();
   if (now - _lastNotifCheck < 55000) return; // Skip if checked recently
   _lastNotifCheck = now;
@@ -5207,8 +5418,8 @@ if ('serviceWorker' in navigator) {
           .catch(function(){});
       }
     }).catch(function(){});
-// Also register Firebase messaging SW for push notifications
-  navigator.serviceWorker.register('/firebase-messaging-sw.js').catch(function(){});
+// (firebase-messaging-sw.js is no longer registered separately: it replaced
+//  sw.js on the same scope. sw.js now handles push too.)
 }
 
 // Helper: send push to a user via Firestore trigger record
@@ -6190,9 +6401,29 @@ function startTriviaGame() {
       '🌍 Geography':'22','🔬 Science':'17','📚 History':'23',
       '🎬 Entertainment':'11','⚽ Sports':'21','💡 General':'9','🌐 Tech':'18'
     };
+    var srvCat = {'🌍 Geography':'geography','🔬 Science':'science','📚 History':'history','🎬 Entertainment':'entertainment','⚽ Sports':'sports','💡 General':'general','🌐 Tech':'tech'}[cat] || 'all';
+    // Jokes / Riddles only exist in the built-in set.
+    if (cat==='🤣 Jokes' || cat==='🧩 Riddles') { useTriviaLocal(cat, count, gc); return; }
+    if (window.BACKEND_URL) {
+      var ctl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+      var tmo = ctl ? setTimeout(function(){ ctl.abort(); }, 12000) : null;
+      fetch(window.BACKEND_URL + '/api/trivia?amount=' + count + '&category=' + srvCat, { signal: ctl ? ctl.signal : undefined })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (tmo) clearTimeout(tmo);
+          if (!d || !d.status || !d.questions || !d.questions.length) throw new Error('no live questions');
+          triviaState.current = d.questions.map(function(q){ return { q:q.q, opts:q.opts, ans:q.ans, cat:q.cat }; });
+          runTriviaQuestion(gc);
+        })
+        .catch(function(){ if (tmo) clearTimeout(tmo); triviaDirect(); });
+      return;
+    }
+    triviaDirect();
+    function triviaDirect(){
     var apiCat = cat==='all' ? '' : '&category='+catMap[cat];
     var url='https://opentdb.com/api.php?amount='+count+'&type=multiple'+apiCat+'&encode=url3986';
     fetch(url).then(function(r){return r.json();}).then(function(data){
+      if(data.response_code===5) throw new Error('Rate limited');
       if(!data.results||!data.results.length) throw new Error('No results');
       triviaState.current = data.results.map(function(q){
         var correct = decodeURIComponent(q.correct_answer);
@@ -6205,6 +6436,7 @@ function startTriviaGame() {
       showToast('Could not load live questions — using built-in');
       useTriviaLocal(cat, count, gc);
     });
+    }
   } else {
     useTriviaLocal(cat, count, gc);
   }
@@ -6364,38 +6596,13 @@ function sendGift(idx) {
   var liveId = document.getElementById('gift-panel-liveId').value;
   var hostId = document.getElementById('gift-panel-hostId').value;
   if (!hostId) { showToast('Invalid host'); return; }
+  if (hostId === state.user.uid) { showToast('You cannot send a gift to yourself'); return; }
   closeGiftPanel();
-  payWithPaystack({
-    amount: usdToNGNKobo(gift.price), currency:'NGN',
-    ref:'ZGIFT-'+Date.now(),
-    onSuccess:function() {
-// Record gift
-      db.collection('gifts').add({
-        senderId: state.user.uid,
-        senderName: (state.profile&&state.profile.name)||'Mindvora user',
-        hostId: hostId, liveId: liveId,
-        gift: gift.name, emoji: gift.emoji, amount: gift.price,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-// Notify host
-      db.collection('notifications').add({
-        uid: hostId, type:'gift',
-        text: gift.emoji+' '+esc((state.profile&&state.profile.name)||'Someone')+' sent you a '+gift.name+' ($'+gift.price+')!',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(), read:false
-      });
-// Show in live chat
-      if (liveId) {
-        db.collection('live_streams').doc(liveId).collection('chat').add({
-          uid: state.user.uid,
-          name: (state.profile&&state.profile.name)||'Mindvora user',
-          text: gift.emoji+' sent a '+gift.name+'!',
-          isGift:true,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-      showToast(gift.emoji+' Gift sent!');
-    },
-    onClose:function(){showToast('Gift cancelled');}
+  // Server records the gift, credits the host and posts it to the live chat.
+  payForPurpose({
+    amountKobo: usdToNGNKobo(gift.price), refPrefix: 'ZGIFT', purpose: 'gift',
+    params: { recipientId: hostId, gift: gift.name, liveId: liveId || '' }, closeMsg: 'Gift cancelled',
+    success: function(){ showToast(gift.emoji+' Gift sent!'); }
   });
 }
 
@@ -7430,9 +7637,7 @@ async function ariaSend(){
   if(!text && !ariaPendingImage) return;
   var displayText = text || '🖼️ [Image sent]';
   inp.value='';
-  ariaAddMsg('user', ariaPendingImage ? 
-    '<img src="'+ariaPendingImage+'" style="max-height:80px;border-radius:8px;margin-bottom:4px;display:block">'+(text||'What do you see in this image?') : 
-    text);
+  ariaAddMsg('user', ariaPendingImage ? '🖼️ ' + (text||'What do you see in this image?') : text);
   var userContent = text || 'What do you see in this image? Describe it in detail.';
   if(ariaPendingImage){
     userContent = (text ? text + '\n\n' : '') + 'I am sharing an image with you. Please look at it carefully and respond. The image is: [user uploaded image — describe what you see and help them with their question about it]';
@@ -7449,9 +7654,18 @@ async function ariaSend(){
   ariaTyping();
   document.getElementById('aria-send').disabled=true;
   try{
-    await new Promise(function(r){ setTimeout(r,600); });
+    var local = ariaGetResponse(text);
+    var isGeneric = /Could you be more specific|Try asking about Mindvora|Could you rephrase that/.test(local);
+    var reply = null;
+    if (window.BACKEND_URL && typeof mvApi === 'function') {
+      try {
+        var d = await mvApi('/api/aria/chat', { messages: ariaHistory.slice(-12), appHint: isGeneric ? '' : local });
+        if (d && d.status && d.reply) reply = d.reply;
+        else if (d && d.code === 'ARIA_LIMIT') reply = d.message;
+      } catch (e) { /* offline or server asleep: fall back to built-in answers */ }
+    }
+    if (!reply) { await new Promise(function(r){ setTimeout(r,400); }); reply = local; }
     ariaRemoveTyping();
-    var reply = ariaGetResponse(text);
     ariaAddMsg('aria',reply);
     ariaHistory.push({role:'assistant',content:reply});
     if(ariaHistory.length>20) ariaHistory=ariaHistory.slice(-20);
@@ -8932,189 +9146,99 @@ function switchPayMethod(method) {
 }
 
 // CREATE NOWPAYMENTS INVOICE & OPEN PAYMENT PAGE
-function createCryptoPayment(amountUSD, description, onSuccess) {
+// FIX: the server prices the order from { purpose, params } and grants the
+// feature itself when NOWPayments confirms (signed IPN). 'partially_paid' no
+// longer unlocks anything. The browser only opens the invoice and polls.
+function createCryptoPayment(purpose, params, description, onSuccess) {
   if (!state.user) { showToast('Login first'); return; }
   showToast('₿ Setting up crypto payment…');
-
-// Proceed with creating the invoice
-  setTimeout(function() {
-    createCryptoInvoice(amountUSD, description, onSuccess);
-  }, 500);
+  createCryptoInvoice(purpose, params, onSuccess, 0);
 }
 
-function createCryptoInvoice(amountUSD, description, onSuccess) {
-  fetch(BACKEND_URL + '/api/crypto/create-invoice', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      price_amount:    amountUSD,
-      price_currency:  'usd',
-      pay_currency:    'usdtbsc', // default USDT on BSC — user can switch
-      order_id:        'MV-' + state.user.uid + '-' + Date.now(),
-      order_description: description,
-      ipn_callback_url:  BACKEND_URL + '/api/crypto/webhook', // update when live domain set
-      success_url:       window.location.href,
-      cancel_url:        window.location.href,
-    })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(data) {
-    if (!data.invoice_url) {
-      showToast('❌ Crypto payment setup failed. Try card payment.');
-      console.error('NOWPayments error:', data);
+function createCryptoInvoice(purpose, params, onSuccess, attempt) {
+  attempt = attempt || 0;
+  function retry(msg) {
+    if (attempt < 3) {
+      showToast('⏳ ' + msg + ' (' + (attempt + 1) + '/3)');
+      setTimeout(function(){ createCryptoInvoice(purpose, params, onSuccess, attempt + 1); }, 4000);
+      return true;
+    }
+    return false;
+  }
+  mvApi('/api/crypto/create-invoice', { purpose: purpose, params: params || {} }).then(function(data) {
+    if (!data || !data.invoice_url) {
+      if ((!data || data._http >= 500) && retry('Payment server waking up…')) return;
+      showToast('❌ ' + ((data && data.message) || 'Crypto payment setup failed. Try card payment.'));
       return;
     }
-// Save pending crypto payment to Firestore
-    db.collection('crypto_payments').add({
-      uid:         state.user.uid,
-      email:       state.user.email,
-      name:        state.profile.name,
-      amountUSD:   amountUSD,
-      description: description,
-      invoiceId:   data.id,
-      invoiceUrl:  data.invoice_url,
-      status:      'pending',
-      createdAt:   firebase.firestore.FieldValue.serverTimestamp()
-    }).then(function(docRef) {
-// Poll for payment status
-      pollCryptoPayment(data.id, docRef.id, onSuccess);
-    });
-
-// Open payment page in new tab
-    window.open(data.invoice_url, '_blank');
+    var w = window.open(data.invoice_url, '_blank');
+    if (!w) { location.href = data.invoice_url; return; } // popup blocked — go there directly
     showToast('₿ Crypto payment page opened! Complete payment in the new tab.');
-  })
-  .catch(function(err) {
-    showToast('❌ Crypto payment setup failed. Please try again or use Card/Bank.');
-    console.error('Crypto error:', err);
+    pollCryptoPayment(data.id, onSuccess);
+  }).catch(function() {
+    if (!retry('Connecting to payment server…')) showToast('❌ Could not connect. Try Card/Bank payment.');
   });
 }
 
-// POLL PAYMENT STATUS (check every 15s for up to 30 mins)
-function pollCryptoPayment(invoiceId, docId, onSuccess) {
-  var attempts = 0;
-  var maxAttempts = 120; // 30 mins at 15s intervals
+// POLL PAYMENT STATUS (every 15s for up to 30 mins) — read-only
+function pollCryptoPayment(invoiceId, onSuccess) {
+  var attempts = 0, maxAttempts = 120;
   var pollTimer = setInterval(function() {
     attempts++;
     if (attempts > maxAttempts) {
       clearInterval(pollTimer);
-      showToast('⏰ Payment window expired. If you paid, contact support.');
+      showToast('⏰ Still waiting for the blockchain. Your purchase activates automatically once the payment confirms.');
       return;
     }
-    fetch(BACKEND_URL + '/api/crypto/status/' + invoiceId)
-    .then(function(r){ return r.json(); })
-    .then(function(data) {
-      var status = data.payment_status || '';
-      if (status === 'finished' || status === 'confirmed' || status === 'partially_paid') {
+    mvApi('/api/crypto/status/' + encodeURIComponent(invoiceId)).then(function(d) {
+      if (!d || !d.status) return;
+      if (d.fulfilled) {
         clearInterval(pollTimer);
-// Update Firestore record
-        db.collection('crypto_payments').doc(docId).update({
-          status: 'completed',
-          paidAt: firebase.firestore.FieldValue.serverTimestamp(),
-          payCurrency: data.pay_currency,
-          payAmount: data.pay_amount
+        refreshMyProfile().then(function(){
+          if (typeof onSuccess === 'function') onSuccess(d);
+          showToast('✅ Crypto payment confirmed!');
         });
-// Execute success callback
-        if (typeof onSuccess === 'function') onSuccess();
-        showToast('✅ Crypto payment confirmed!');
-      } else if (status === 'failed' || status === 'refunded' || status === 'expired') {
+      } else if (['failed', 'refunded', 'expired'].indexOf(d.payment_status) !== -1) {
         clearInterval(pollTimer);
-        db.collection('crypto_payments').doc(docId).update({ status: status });
-        showToast('❌ Crypto payment ' + status + '. Try again.');
+        showToast('❌ Crypto payment ' + d.payment_status + '. Try again.');
       }
-    })
-    .catch(function(){});
+    }).catch(function(){});
   }, 15000);
 }
 
 // PREMIUM SUBSCRIPTION VIA CRYPTO
 function payCrypto() {
   if (!state.plan) { showToast('Select a plan first'); return; }
-  createCryptoPayment(
-    state.plan.amount,
-    'Mindvora ' + state.plan.name + ' Monthly Subscription',
-    function() {
-// On payment confirmed — activate premium
-      db.collection('users').doc(state.user.uid).update({
-        isPremium: true,
-        plan: state.plan.id,
-        premiumActivatedCrypto: true
-      });
-      state.profile.isPremium = true;
-      closeModal('modal-prem');
-      document.getElementById('prem-widget') && (document.getElementById('prem-widget').style.display = 'none');
-      showToast('🎉 Welcome to ' + state.plan.name + '! 💎');
-    }
-  );
+  var plan = state.plan;
+  createCryptoPayment('premium', { plan: plan.id }, plan.name + ' Monthly Subscription', function() {
+    state.profile.isPremium = true;
+    closeModal('modal-prem');
+    var pw = document.getElementById('prem-widget'); if (pw) pw.style.display = 'none';
+    showToast('🎉 Welcome to ' + plan.name + '! 💎');
+  });
 }
 
-// VERIFIED BADGE VIA CRYPTO
+// VERIFIED BADGE VIA CRYPTO  (FIX: charged $30 while the button said $25 — server price is $25)
 function payBadgeCrypto() {
-  createCryptoPayment(
-    30,
-    'Mindvora Verified Badge',
-    function() {
-      db.collection('users').doc(state.user.uid).update({ isVerified: true }).then(function() {
-        state.profile.isVerified = true;
-        closeModal('modal-prem');
-        showToast('🎉 Congratulations! You are now Verified on Mindvora! ✅');
-        db.collection('notifications').add({
-          toUid: state.user.uid,
-          type: 'verified',
-          text: '✅ Your Mindvora Verified Badge has been activated via crypto payment!',
-          read: false,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }).catch(function(){});
-      });
-    }
-  );
+  createCryptoPayment('badge', {}, 'Mindvora Verified Badge', function() {
+    state.profile.isVerified = true;
+    closeModal('modal-prem');
+    showToast('🎉 Congratulations! You are now Verified on Mindvora! ✅');
+  });
 }
 
-// CREATOR TIPS VIA CRYPTO
+// CREATOR TIPS VIA CRYPTO — recipient is credited on the server
 function tipCreatorCrypto(recipientId, recipientName, amount) {
-  createCryptoPayment(
-    amount,
-    'Tip for ' + recipientName + ' on Mindvora',
-    function() {
-// Credit tip to recipient earnings
-      db.collection('users').doc(recipientId).update({
-        tips: firebase.firestore.FieldValue.increment(amount * 0.9),
-        earnings: firebase.firestore.FieldValue.increment(amount * 0.9)
-      });
-// Notify recipient
-      db.collection('notifications').add({
-        toUid: recipientId,
-        fromName: state.profile.name,
-        type: 'tip',
-        text: state.profile.name + ' sent you a $' + amount + ' crypto tip! 💰',
-        read: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function(){});
-      showToast('💰 $' + amount + ' crypto tip sent to ' + recipientName + '!');
-    }
-  );
+  createCryptoPayment('tip', { recipientId: recipientId, amountUSD: amount }, 'Tip for ' + recipientName, function() {
+    showToast('💰 $' + amount + ' crypto tip sent to ' + recipientName + '!');
+  });
 }
 
-// GIFT SYSTEM VIA CRYPTO
+// GIFT SYSTEM VIA CRYPTO — recipient is credited on the server
 function sendGiftCrypto(recipientId, recipientName, giftName, amount) {
-  createCryptoPayment(
-    amount,
-    giftName + ' gift for ' + recipientName + ' on Mindvora',
-    function() {
-      db.collection('users').doc(recipientId).update({
-        earnings: firebase.firestore.FieldValue.increment(amount * 0.9)
-      });
-      db.collection('notifications').add({
-        toUid: recipientId,
-        fromName: state.profile.name,
-        type: 'gift',
-        text: state.profile.name + ' sent you a ' + giftName + ' worth $' + amount + ' via crypto! 🎁',
-        read: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      }).catch(function(){});
-      showToast('🎁 ' + giftName + ' sent to ' + recipientName + ' via crypto!');
-    }
-  );
+  createCryptoPayment('gift', { recipientId: recipientId, gift: giftName }, giftName + ' gift for ' + recipientName, function() {
+    showToast('🎁 ' + giftName + ' sent to ' + recipientName + ' via crypto!');
+  });
 }
 
 
@@ -10105,51 +10229,135 @@ setTimeout(function(){
 
 
 // GOOGLE SIGN-IN
-function signInWithGoogle() {
+// Plain-language messages for every Firebase sign-in error code.
+var MV_AUTH_ERRORS = {
+  'auth/unauthorized-domain': 'This website address is not allowed to use Google sign-in yet. (Owner: add it in Firebase → Authentication → Settings → Authorized domains.)',
+  'auth/operation-not-allowed': 'Google sign-in is switched off. (Owner: turn it on in Firebase → Authentication → Sign-in method → Google.)',
+  'auth/popup-blocked': 'Your browser blocked the Google window. Trying another way…',
+  'auth/operation-not-supported-in-this-environment': 'Opening Google sign-in in a new way…',
+  'auth/network-request-failed': 'No internet connection, or the connection was blocked. Please check your data/Wi-Fi and try again.',
+  'auth/internal-error': 'Google sign-in could not start. Please refresh the page and try again.',
+  'auth/account-exists-with-different-credential': 'This email already has a Mindvora account with a password. Log in with email and password instead.',
+  'auth/user-disabled': 'This account has been suspended. Contact support.',
+  'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+  'auth/web-storage-unsupported': 'Your browser is blocking storage (private mode or strict cookies). Turn that off for this site and try again.',
+  'auth/invalid-api-key': 'The app is set up wrongly (invalid Firebase key). Please contact support.',
+  'auth/app-not-authorized': 'This app is not allowed to use this Firebase project. Please contact support.',
+  'auth/timeout': 'Google took too long to answer. Please try again.',
+  'auth/user-token-expired': 'Your session expired. Please sign in again.',
+  'auth/invalid-credential': 'Google sign-in failed. Please try again.',
+  'auth/credential-already-in-use': 'This Google account is already linked to another Mindvora account.',
+  'permission-denied': 'Signed in, but your profile could not be saved. Please try again.'
+};
+function mvAuthErrorText(err) {
+  var code = (err && err.code) || '';
+  return MV_AUTH_ERRORS[code] || ('Google sign-in failed' + (code ? ' (' + code + ')' : '') + '. Please try again.');
+}
+function mvShowAuthError(msg) {
+  showToast('⚠️ ' + msg);
+  var el = document.getElementById('auth-err'); if (el) el.textContent = msg;
+}
+function mvIsNativeApp() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+function mvIsInAppBrowser() {
+  // Google refuses sign-in inside Instagram/Facebook/TikTok/WhatsApp in-app browsers and plain WebViews.
+  var ua = navigator.userAgent || '';
+  return /FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|; wv\)|WhatsApp/i.test(ua) && !mvIsNativeApp();
+}
+function mvIsGoogleUser(user) {
+  return !!(user && (user.providerData || []).some(function(p){ return p && p.providerId === 'google.com'; }));
+}
+// Creates the profile once, only with fields the Firestore rules allow on create.
+function mvEnsureGoogleProfile(user) {
+  var ref = db.collection('users').doc(user.uid);
+  return ref.get().then(function(snap) {
+    if (snap.exists) {
+      // Google already verified this email — never send a Google user to the email-code screen.
+      if (snap.data().emailVerified === false) return ref.update({ emailVerified: true }).catch(function(){});
+      return;
+    }
+    var base = (user.displayName || (user.email || 'user').split('@')[0]);
+    var handle = base.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '').slice(0, 20) || ('user' + user.uid.slice(0, 6));
+    return ref.set({
+      id: user.uid,
+      name: user.displayName || 'Mindvora User',
+      handle: handle,
+      email: user.email || '',
+      avatar: user.photoURL || '',
+      provider: 'google',
+      plan: 'free', isPremium: false, earnings: 0, tips: 0,
+      sparksCount: 0, followers: 0,
+      emailVerified: true,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  });
+}
+function mvAfterGoogle(result) {
+  if (!result || !result.user) return;
+  window._mvGoogleSigningIn = true;
+  return mvEnsureGoogleProfile(result.user).then(function() {
+    showToast('✅ Signed in with Google!');
+  }).catch(function(err) {
+    console.error('[Mindvora] Google profile save failed:', err);
+    mvShowAuthError(mvAuthErrorText(err));
+  }).then(function(){ window._mvGoogleSigningIn = false; });
+}
+function mvGoogleProvider() {
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.addScope('email');
   provider.addScope('profile');
   provider.setCustomParameters({ prompt: 'select_account' });
-
-  auth.signInWithPopup(provider)
-    .then(function(result) {
-      var user = result.user;
-      var isNew = result.additionalUserInfo && result.additionalUserInfo.isNewUser;
-
-      if (isNew) {
-// New user via Google — create profile in Firestore
-        var handle = (user.displayName || user.email.split('@')[0])
-          .toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '').slice(0, 20);
-        return db.collection('users').doc(user.uid).set({
-          name:       user.displayName || 'Mindvora User',
-          handle:     handle,
-          email:      user.email,
-          avatar:     user.photoURL || '',
-          provider:   'google',
-          isPremium:  false,
-          earnings:   0,
-          color:      COLORS[Math.floor(Math.random() * COLORS.length)],
-          createdAt:  firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-      }
-    })
-    .then(function() {
-      showToast('✅ Signed in with Google!');
-    })
+  return provider;
+}
+function signInWithGoogle() {
+  // Android/iOS app: Google blocks sign-in inside app WebViews, so use the native Google sheet.
+  if (mvIsNativeApp()) {
+    var FA = window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
+    if (!FA) { mvShowAuthError('Google sign-in is not available in this version of the app yet. Please use email and password.'); return; }
+    FA.signInWithGoogle().then(function(r) {
+      var idToken = r && r.credential && r.credential.idToken;
+      if (!idToken) throw { code: 'auth/invalid-credential' };
+      return auth.signInWithCredential(firebase.auth.GoogleAuthProvider.credential(idToken));
+    }).then(mvAfterGoogle).catch(function(err) {
+      if (err && /cancel/i.test(String(err.message || err.code || ''))) return;
+      mvShowAuthError(mvAuthErrorText(err));
+    });
+    return;
+  }
+  if (mvIsInAppBrowser()) {
+    mvShowAuthError('Google sign-in does not work inside this app\'s built-in browser. Tap ⋮ / Share → "Open in Chrome" (or Safari), then try again.');
+    return;
+  }
+  window._mvGoogleSigningIn = true;
+  auth.signInWithPopup(mvGoogleProvider())
+    .then(mvAfterGoogle)
     .catch(function(err) {
-      if (err.code === 'auth/popup-closed-by-user') return;
-      if (err.code === 'auth/cancelled-popup-request') return;
-      if (err.code === 'auth/unauthorized-domain') {
-        showToast('⚠️ This domain is not authorized for Google sign-in. The admin needs to add it in Firebase Console → Authentication → Settings → Authorized domains.');
+      window._mvGoogleSigningIn = false;
+      var code = err && err.code;
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        showToast(MV_AUTH_ERRORS[code]);
+        try { sessionStorage.setItem('mv_google_redirect', '1'); } catch (e) {}
+        auth.signInWithRedirect(mvGoogleProvider()).catch(function(e2){ mvShowAuthError(mvAuthErrorText(e2)); });
         return;
       }
-      if (err.code === 'auth/popup-blocked') {
-        showToast('⚠️ Popup blocked! Please allow popups for this site and try again.');
-        return;
-      }
-      showToast('Google sign-in failed: ' + (err.message || err.code));
+      console.error('[Mindvora] Google sign-in error:', code, err && err.message);
+      mvShowAuthError(mvAuthErrorText(err));
     });
 }
+// Finish a redirect sign-in (used when the popup was blocked).
+(function(){
+  var pending = false;
+  try { pending = sessionStorage.getItem('mv_google_redirect') === '1'; sessionStorage.removeItem('mv_google_redirect'); } catch (e) {}
+  if (!pending || typeof auth === 'undefined') return;
+  window._mvGoogleSigningIn = true;
+  auth.getRedirectResult().then(mvAfterGoogle).catch(function(err){
+    window._mvGoogleSigningIn = false;
+    mvShowAuthError(mvAuthErrorText(err));
+  });
+})();
 
 // DELETE ACCOUNT
 function confirmDeleteAccount() {
@@ -11081,7 +11289,7 @@ function cleanupLocalStorage(){
 function cleanupCaches(){
   if(!('caches' in window)) return;
   try {
-    caches.open('mindvora-v4').then(function(cache){
+    caches.open('mindvora-v6').then(function(cache){
       cache.keys().then(function(keys){
 // Keep only essential cached items (max 20 entries)
         if(keys.length > 20){
