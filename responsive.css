@@ -134,3 +134,9 @@ body:not(.mv-authed) .bottom-nav { display: none !important; }
   .dm-wrap.chat-open .dm-right { display: flex !important; width: 100% !important; height: 100% !important; }
   .back-to-list { display: inline-block !important; }
 }
+
+/* reCAPTCHA checkbox must keep Google's own size (the rule above squashed it) */
+#r-captcha iframe, #mv-cap-pop iframe, iframe[src*="recaptcha"] { height: 78px !important; width: 304px !important; max-width: none !important; }
+iframe[src*="recaptcha"][src*="bframe"] { height: 580px !important; width: 400px !important; max-width: 100vw !important; }
+#r-captcha { display: flex; justify-content: center; overflow: hidden; }
+@media (max-width: 340px) { #r-captcha > div { transform: scale(.88); transform-origin: center; } }

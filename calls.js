@@ -24,7 +24,8 @@ var MVCall = (function () {
   function authSocket() {
     var u = (typeof auth !== 'undefined') ? auth.currentUser : null;
     if (!u) return;
-    u.getIdToken().then(function (t) {
+    u.getIdToken(authFail).then(function (t) {
+      authFail = false;
       send({ type: 'AUTH', token: t });
       if (call && call.state === 'active') send({ type: 'CALL_REATTACH', callId: call.id });
     }).catch(function () {});

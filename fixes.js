@@ -331,3 +331,89 @@ function injectSocialFeatures() {
     });
   };
 })();
+
+
+// ── v7: VISIBLE reCAPTCHA ("I'm not a robot" checkbox, v2) ──────────────────
+// Turns on automatically when the server has RECAPTCHA_V2_SITE_KEY set
+// (or window.RECAPTCHA_V2_SITE_KEY in index.html). Otherwise the old
+// invisible check keeps working, so nothing breaks before the keys exist.
+(function(){
+  var v3Get = window.getCaptchaToken || (typeof getCaptchaToken === 'function' ? getCaptchaToken : null);
+  var cfg = { v2: window.RECAPTCHA_V2_SITE_KEY || '' };
+  var cfgPromise = cfg.v2 ? Promise.resolve(cfg) : new Promise(function(done){
+    var tries = 0;
+    (function ask(){
+      tries++;
+      fetch((window.BACKEND_URL || '') + '/api/recaptcha-config', { cache: 'no-store' })
+        .then(function(r){ return r.json(); })
+        .then(function(d){ if (d && d.version === 'v2' && d.siteKey) cfg.v2 = d.siteKey; done(cfg); })
+        .catch(function(){ if (tries < 6) setTimeout(ask, 8000); else done(cfg); });
+    })();
+  });
+  var apiP = null;
+  function loadV2(){
+    if (window.grecaptcha && grecaptcha.render) return Promise.resolve();
+    if (apiP) return apiP;
+    apiP = new Promise(function(res){
+      window.__mvCaptchaReady = function(){ res(); };
+      var hosts = ['https://www.google.com', 'https://www.recaptcha.net'], i = 0;
+      (function add(){
+        var sc = document.createElement('script');
+        sc.async = true; sc.src = hosts[i] + '/recaptcha/api.js?onload=__mvCaptchaReady&render=explicit';
+        sc.onerror = function(){ i++; if (i < hosts.length) add(); else { apiP = null; res(); } };
+        document.head.appendChild(sc);
+      })();
+    });
+    return apiP;
+  }
+  var inlineId = null, inlineTok = '';
+  function setRegBtn(){ var b = document.getElementById('btn-reg'); if (b && inlineId !== null && !b.dataset.busy) b.disabled = !inlineTok; }
+  function renderInline(){
+    var box = document.getElementById('r-captcha');
+    if (!box || inlineId !== null || !window.grecaptcha || !grecaptcha.render) return;
+    box.style.display = 'block';
+    inlineId = grecaptcha.render(box, { sitekey: cfg.v2, theme: 'dark',
+      callback: function(t){ inlineTok = t; setRegBtn(); var e = document.getElementById('r-err'); if (e && /robot/i.test(e.textContent)) e.textContent = ''; },
+      'expired-callback': function(){ inlineTok = ''; setRegBtn(); },
+      'error-callback': function(){ inlineTok = ''; setRegBtn(); } });
+    setRegBtn();
+  }
+  function resetInline(){ inlineTok = ''; if (inlineId !== null) try { grecaptcha.reset(inlineId); } catch(e){} setRegBtn(); }
+  // Pop-up checkbox for "Resend code" and the login flow.
+  function popupToken(){
+    return new Promise(function(res){
+      var ov = document.createElement('div');
+      ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:16px';
+      ov.innerHTML = '<div style="background:#0a1a0f;border:1px solid #166534;border-radius:14px;padding:18px;text-align:center;max-width:340px;width:100%">' +
+        '<div style="color:#e2e8f0;font-weight:700;margin-bottom:10px">Quick security check</div>' +
+        '<div id="mv-cap-pop" style="display:inline-block;min-height:78px"></div>' +
+        '<div><button type="button" id="mv-cap-cancel" style="margin-top:10px;background:none;border:1px solid #334155;color:#94a3b8;border-radius:8px;padding:6px 14px;cursor:pointer">Cancel</button></div></div>';
+      document.body.appendChild(ov);
+      var finish = function(t){ if (ov.parentNode) ov.parentNode.removeChild(ov); res(t || ''); };
+      document.getElementById('mv-cap-cancel').onclick = function(){ finish(''); };
+      try { grecaptcha.render('mv-cap-pop', { sitekey: cfg.v2, theme: 'dark', callback: function(t){ setTimeout(function(){ finish(t); }, 300); } }); }
+      catch(e){ finish(''); }
+    });
+  }
+  window.getCaptchaToken = getCaptchaToken = function(action){
+    return cfgPromise.then(function(){
+      if (!cfg.v2) return v3Get ? v3Get(action) : '';
+      return loadV2().then(function(){
+        if (!window.grecaptcha || !grecaptcha.render) { showToast('❌ Security check could not load. Check your internet and refresh.'); return ''; }
+        if (inlineTok) { var t = inlineTok; inlineTok = ''; setTimeout(resetInline, 500); return t; }
+        return popupToken();
+      });
+    });
+  };
+  cfgPromise.then(function(){
+    if (!cfg.v2) return;
+    console.log('[reCAPTCHA] Visible checkbox (v2) is ON');
+    loadV2().then(renderInline);
+  });
+  // Block "Create Account" until the box is ticked (when v2 is on).
+  var origReg = window.doRegister || (typeof doRegister === 'function' ? doRegister : null);
+  if (origReg) window.doRegister = doRegister = function(){
+    if (cfg.v2 && inlineId !== null && !inlineTok) { var e = document.getElementById('r-err'); if (e) e.textContent = 'Tick "I\'m not a robot" first.'; return; }
+    return origReg.apply(this, arguments);
+  };
+})();

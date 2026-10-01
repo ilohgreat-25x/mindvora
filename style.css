@@ -3079,3 +3079,4 @@ input:-webkit-autofill:active,
 @keyframes reactPop{0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
 .tb-out svg{display:block}
 @media(max-width:480px){.sk-reactions-row{padding:4px 8px 2px;gap:1px}.sk-reactions-row .react-btn{font-size:11px;padding:4px 7px}}
+.btn-pay:disabled{opacity:.45;cursor:not-allowed}

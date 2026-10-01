@@ -40,7 +40,7 @@
 <script src="https://upload-widget.cloudinary.com/global/all.js" defer></script>
 <link rel="stylesheet" href="auth.css">
 <link rel="stylesheet" href="style.css">
-<link rel="stylesheet" href="responsive.css?v=6">
+<link rel="stylesheet" href="responsive.css?v=7">
 </head>
 <body>
 
@@ -243,6 +243,7 @@
         <div class="fg"><label>Confirm Password</label>
           <div class="pw-wrap"><input class="fi" id="r-confirm" type="password" placeholder="Re-enter password" onkeydown="if(event.key==='Enter')doRegister()"><button class="eye-btn" type="button" onclick="toggleEye('r-confirm','e2')"><span id="e2">👁</span></button></div>
         </div>
+        <div id="r-captcha" style="display:none;margin:6px 0 10px;min-height:78px"></div>
         <div class="a-err" id="r-err"></div>
         <button class="btn-auth" id="btn-reg" onclick="doRegister()" type="button">Create Account →</button>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
@@ -621,7 +622,7 @@
   <div class="modal-box">
     <div class="m-head"><div class="m-title">Mindvora Premium 💎</div><button class="m-close" onclick="closeModal('modal-prem')">✕</button></div>
     <div class="m-body">
-      <div class="plan-card sel" id="pc-basic" onclick="selPlan('basic',5,'Mindvora Basic')">
+      <div class="plan-card" id="pc-basic" onclick="selPlan('basic',5,'Mindvora Basic')">
         <div class="pl-name">Mindvora Basic</div>
         <div class="pl-price">$5<span>/month</span></div>
         <div class="pl-perks">✓ Ad-free &nbsp;✓ Verified badge &nbsp;✓ 500-char posts</div>
@@ -636,42 +637,23 @@
         <div class="pl-price">$15<span>/month</span></div>
         <div class="pl-perks">✓ All Pro &nbsp;✓ Analytics &nbsp;✓ Creator fund</div>
       </div>
-      <div style="background:linear-gradient(135deg,rgba(22,101,52,.2),rgba(34,197,94,.1));border:1px solid var(--green3);border-radius:12px;padding:14px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--moon);display:flex;align-items:center;gap:6px">
-              <span class="vbadge"></span> Verified Badge Only
-            </div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px;line-height:1.6">
-              ✓ Green ✅ badge on your profile &nbsp;✓ Builds trust<br>
-              ✓ Stand out in feed &nbsp;✓ One time payment forever
-            </div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:12px">
-            <div style="font-size:18px;font-weight:700;color:var(--green3)">$25</div>
-            <div style="font-size:10px;color:var(--muted)">one time</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:10px">
-          <button onclick="buyVerifiedBadge()" style="flex:1;padding:9px;background:linear-gradient(135deg,var(--green),var(--green2));border:none;border-radius:8px;color:var(--cream);font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💳 Card — $25</button>
-          <button onclick="payBadgeCrypto()" style="flex:1;padding:9px;background:linear-gradient(135deg,#f7931a,#e07b00);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">₿ Crypto — $25</button>
-        </div>
+      <div class="plan-card" id="pc-badge" onclick="selPlan('badge',25,'Verified Badge Only')">
+        <div class="pl-name"><span class="vbadge"></span> Verified Badge Only</div>
+        <div class="pl-price">$25<span> one time</span></div>
+        <div class="pl-perks">✓ Green ✅ badge on your profile &nbsp;✓ Builds trust &nbsp;✓ One time payment forever</div>
       </div>
-      <div style="background:var(--deep);border:1px solid var(--borderhi);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div><div id="co-name" style="font-size:13px;font-weight:700;color:var(--white)">Mindvora Basic</div><div style="font-size:11px;color:var(--muted)">Billed monthly</div></div>
-        <div id="co-price" style="font-family:'DM Serif Display',serif;font-size:24px;color:var(--green3)">$5</div>
-      </div>
+      <div id="prem-pick-hint" style="font-size:12px;color:var(--muted);text-align:center;margin:4px 0 10px">Tap a plan above to choose it.</div>
       <div class="m-err" id="pay-err"></div>
       <div style="display:flex;gap:8px;margin-bottom:10px">
         <button class="f-pill active" id="pay-method-paystack" onclick="switchPayMethod('paystack')" style="flex:1;padding:8px">💳 Card/Bank</button>
         <button class="f-pill" id="pay-method-crypto" onclick="switchPayMethod('crypto')" style="flex:1;padding:8px">₿ Crypto</button>
       </div>
       <div id="pay-panel-paystack">
-        <button class="btn-pay" id="btn-pay">🔒 Pay with Paystack →</button>
+        <button class="btn-pay" id="btn-pay" disabled>🔒 Pay with Paystack →</button>
       </div>
       <div id="pay-panel-crypto" style="display:none">
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-align:center">Pay with USDT, BTC, ETH, BNB and 300+ coins</div>
-        <button class="btn-pay" onclick="payCrypto()" style="background:linear-gradient(135deg,#f7931a,#e07b00)">₿ Pay with Crypto →</button>
+        <button class="btn-pay" id="btn-pay-crypto" disabled onclick="payCrypto()" style="background:linear-gradient(135deg,#f7931a,#e07b00)">₿ Pay with Crypto →</button>
       </div>
     </div>
   </div>
@@ -4123,10 +4105,10 @@
   //   Paste your real site key below (leave blank to disable captcha).
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
-<script src="script.js?v=6"></script>
-<script src="fixes.js?v=6"></script>
-<script src="calls.js?v=6"></script>
-<script src="app-update.js?v=6"></script>
+<script src="script.js?v=7"></script>
+<script src="fixes.js?v=7"></script>
+<script src="calls.js?v=7"></script>
+<script src="app-update.js?v=7"></script>
 
 <!-- THUMBNAIL PICKER OVERLAY — Task 1 -->
 <div class="thumb-picker-overlay" id="thumb-picker-overlay">

@@ -1631,7 +1631,7 @@ function optimizeVideoUrl(url, targetWidthPx) {
   var w = Math.max(1, Math.round(targetWidthPx || 720));
   return url.replace('/video/upload/', '/video/upload/q_auto,f_auto,w_' + w + ',c_limit/');
 }
-var state = { user:null,profile:null,sparks:[],filter:'all',plan:{id:'basic',amount:5,name:'Mindvora Basic'},tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:0.10},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
+var state = { user:null,profile:null,sparks:[],filter:'all',plan:null,tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:0.10},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
 
 // PAYSTACK: reliable script loader + NGN amounts
 // Paystack only accepts NGN for Nigerian accounts. We convert the app's
@@ -3291,11 +3291,29 @@ function sendMsg(dmId,otherId,otherName,otherColor){
   if(inp){ scanMessageForScam(inp.value, dmId, state.user.uid, otherId); }
   if(!checkRateLimit('dm',20)){ return; } var inp=document.getElementById('ci-'+dmId); if(!inp) return; var text=inp.value.trim(); if(!text||!state.user) return; inp.value=''; var batch=db.batch(),dmRef=db.collection('dms').doc(dmId),msgRef=dmRef.collection('messages').doc(),names={},colors={}; names[state.user.uid]=state.profile.name||'User'; names[otherId]=otherName; colors[state.user.uid]=state.profile.color||COLORS[0]; colors[otherId]=otherColor||COLORS[0]; batch.set(dmRef,{members:[state.user.uid,otherId],names:names,colors:colors,lastMsg:text,lastAt:firebase.firestore.FieldValue.serverTimestamp(),unread:true},{merge:true}); batch.set(msgRef,{text:text,fromId:state.user.uid,fromName:state.profile.name,createdAt:firebase.firestore.FieldValue.serverTimestamp(),read:false,readAt:null}); batch.commit().then(function(){ openChat(dmId,otherId,otherName,otherColor||COLORS[0]); db.collection('notifications').add({toUid:otherId,fromName:state.profile.name,type:'dm',text:state.profile.name+' sent you a message',read:false,createdAt:firebase.firestore.FieldValue.serverTimestamp()}); }); }
 
-function selPlan(id,amount,name){ state.plan={id:id,amount:amount,name:name}; document.querySelectorAll('.plan-card').forEach(function(c){ c.classList.remove('sel'); }); document.getElementById('pc-'+id).classList.add('sel'); document.getElementById('co-name').textContent=name; document.getElementById('co-price').textContent='$'+amount.toLocaleString(); if(document.getElementById('co-name')) document.getElementById('co-name').textContent=name; }
+function selPlan(id,amount,name){
+  state.plan={id:id,amount:amount,name:name};
+  document.querySelectorAll('#modal-prem .plan-card').forEach(function(c){ c.classList.toggle('sel', c.id==='pc-'+id); });
+  ['btn-pay','btn-pay-crypto'].forEach(function(b){ var el=document.getElementById(b); if(el) el.disabled=false; });
+  var h=document.getElementById('prem-pick-hint'); if(h) h.textContent='Selected: '+name+' — $'+amount+(id==='badge'?' one time':'/month');
+}
+// No plan is pre-selected: every time the Premium window opens, start clean.
+function resetPremPlan(){
+  state.plan=null;
+  document.querySelectorAll('#modal-prem .plan-card').forEach(function(c){ c.classList.remove('sel'); });
+  ['btn-pay','btn-pay-crypto'].forEach(function(b){ var el=document.getElementById(b); if(el) el.disabled=true; });
+  var h=document.getElementById('prem-pick-hint'); if(h) h.textContent='Tap a plan above to choose it.';
+}
+(function(){
+  var _open = window.openModal || (typeof openModal==='function' ? openModal : null);
+  if(!_open) return;
+  window.openModal = openModal = function(id){ if(id==='modal-prem') resetPremPlan(); return _open.apply(this, arguments); };
+})();
 document.getElementById('btn-pay').addEventListener('click',function(){
   if(!state.user){ showToast('Login first'); return; }
-  if(!state.plan){ showToast('Select a plan first'); return; }
+  if(!state.plan){ showToast('Tap a plan first'); return; }
   var plan = state.plan;
+  if(plan.id==='badge'){ buyVerifiedBadge(); return; }
   payForPurpose({
     amountKobo: usdToNGNKobo(plan.amount), refPrefix: 'ZP', purpose: 'premium', params: { plan: plan.id },
     success: function(){
@@ -9185,7 +9203,9 @@ function createCryptoInvoice(purpose, params, onSuccess, attempt) {
   }
   mvApi('/api/crypto/create-invoice', { purpose: purpose, params: params || {} }).then(function(data) {
     if (!data || !data.invoice_url) {
-      if ((!data || data._http >= 500) && retry('Payment server waking up…')) return;
+      var notSetUp = data && /NOT_CONFIGURED/.test(String(data.code || ''));
+      if (!notSetUp && (!data || data._http >= 500) && retry('Payment server waking up…')) return;
+      if (notSetUp) { showToast('⚠️ Payments are being set up. Please try again later.'); console.warn('[pay]', data.message); return; }
       showToast('❌ ' + ((data && data.message) || 'Crypto payment setup failed. Try card payment.'));
       return;
     }
@@ -9226,8 +9246,9 @@ function pollCryptoPayment(invoiceId, onSuccess) {
 
 // PREMIUM SUBSCRIPTION VIA CRYPTO
 function payCrypto() {
-  if (!state.plan) { showToast('Select a plan first'); return; }
+  if (!state.plan) { showToast('Tap a plan first'); return; }
   var plan = state.plan;
+  if (plan.id === 'badge') { payBadgeCrypto(); return; }
   createCryptoPayment('premium', { plan: plan.id }, plan.name + ' Monthly Subscription', function() {
     state.profile.isPremium = true;
     closeModal('modal-prem');
