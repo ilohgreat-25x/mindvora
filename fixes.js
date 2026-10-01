@@ -23,7 +23,7 @@
     var btn = document.getElementById('btn-login');
     if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
     auth.sendPasswordResetEmail(email, {
-      url: 'https://mindvora-vf8e.vercel.app',
+      url: window.location.origin,
       handleCodeInApp: false
     })
     .then(function() {
@@ -298,4 +298,36 @@ function injectSocialFeatures() {
     setInterval(sync, 1000); // safety net for login/logout paths that don't touch those screens
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+
+// ── v6: FORGOT PASSWORD — send through our server (Brevo) first, Firebase as backup ──
+(function(){
+  var firebaseReset = window.doForgotPassword;   // the Firebase version above
+  window.doForgotPassword = function() {
+    var emailEl = document.getElementById('li-email');
+    var errEl = document.getElementById('li-err');
+    var email = emailEl ? emailEl.value.trim().toLowerCase() : '';
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { return firebaseReset && firebaseReset(); }
+    if (typeof mvApi !== 'function') { return firebaseReset && firebaseReset(); }
+    var btn = document.getElementById('btn-login');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    mvApi('/api/auth/password-reset', { email: email, continueUrl: window.location.origin }).then(function(d) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Enter Mindvora →'; }
+      if (d && d.status) {
+        if (errEl) { errEl.style.color = '#86efac'; errEl.textContent = '✅ If an account exists for ' + email + ', a reset link is on its way. Check inbox and spam.'; }
+        showToast('📧 Reset link sent');
+        return;
+      }
+      if (d && (d.code === 'RATE_LIMIT' || d.code === 'BAD_EMAIL')) {
+        if (errEl) { errEl.style.color = '#fca5a5'; errEl.textContent = '❌ ' + d.message; }
+        return;
+      }
+      console.warn('[reset] server route unavailable (' + ((d && d.code) || 'no response') + ') — using Firebase email');
+      firebaseReset && firebaseReset();
+    }).catch(function() {
+      if (btn) { btn.disabled = false; btn.textContent = 'Enter Mindvora →'; }
+      firebaseReset && firebaseReset();
+    });
+  };
 })();

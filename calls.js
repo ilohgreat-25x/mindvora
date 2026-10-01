@@ -6,7 +6,7 @@ var MVCall = (function () {
   'use strict';
 
   var call = null;           // { id, peer, peerName, media, role, pc, local, remote, state, startedAt }
-  var iceCache = null, iceAt = 0;
+  var iceCache = null, iceAt = 0, authFail = false;
   var authed = false;
   var ringCtx = null, ringTimer = null;
   var pendingIce = [];
@@ -223,7 +223,22 @@ var MVCall = (function () {
         // Build the connection while it rings, so it starts instantly on answer.
         buildPc(call.ice);
       };
-      if (authed) go(); else { call.onAuth = go; authSocket(); setTimeout(function () { if (call && call.onAuth) { status('Could not reach the call server.'); } }, 12000); }
+      if (authed) go(); else {
+        call.onAuth = go; authSocket();
+        // The free server sleeps; wake it and keep retrying sign-in for up to ~45s.
+        try { fetch((window.BACKEND_URL || '') + '/api/health', { cache: 'no-store' }).catch(function(){}); } catch (e) {}
+        var tries = 0;
+        var retry = setInterval(function () {
+          if (!call || !call.onAuth) { clearInterval(retry); return; }
+          tries++;
+          if (!MindvoraRT.isConnected()) MindvoraRT.connect(); else authSocket();
+          if (tries === 2) status('Waking up the call server…');
+          if (tries >= 9) {
+            clearInterval(retry);
+            status(authFail ? 'Call server could not confirm your login. Log out, log in again, then retry.' : 'Could not reach the call server. Check your internet and try again.');
+          }
+        }, 5000);
+      }
     }).catch(function (e) { toast(mediaError(e)); cleanup(); });
   }
 
@@ -351,7 +366,7 @@ var MVCall = (function () {
         if (call && call.id === m.callId && call.role === 'callee' && call.state === 'ringing') cleanup();
         break;
       case 'CALL_ERROR':
-        if (m.code === 'AUTH_FAILED') { authed = false; return; }
+        if (m.code === 'AUTH_FAILED') { authed = false; authFail = true; return; }
         toast(m.message || 'Call failed.');
         if (call && (!m.callId || m.callId === call.id)) cleanup();
         break;

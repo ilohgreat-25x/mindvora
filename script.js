@@ -1813,6 +1813,16 @@ function loadRecaptcha() {
       }, 250);
     };
     s.onerror = function() {
+      // Retry once from Google's mirror (works where www.google.com is filtered).
+      if (!s._mirror) {
+        var m = document.createElement('script');
+        m._mirror = true; m.async = true;
+        m.src = 'https://www.recaptcha.net/recaptcha/api.js?render=' + RECAPTCHA_SITE_KEY;
+        m.onload = s.onload;
+        m.onerror = function(){ _grecaptchaPromise = null; console.error('[reCAPTCHA] Both www.google.com and www.recaptcha.net failed to load.'); resolve(); };
+        document.head.appendChild(m);
+        return;
+      }
       _grecaptchaPromise = null;
       console.error('[reCAPTCHA] Failed to load https://www.google.com/recaptcha/api.js — check the Network tab for the actual status (blocked by CSP, ad-blocker, or network error).');
       resolve();
@@ -1860,7 +1870,7 @@ function authErr(code){ var m={
   'auth/weak-password':        'Password must be at least 6 characters.',
   'auth/too-many-requests':    'Account temporarily locked. Wait 5 minutes or reset your password.',
   'auth/network-request-failed':'Network error. Check your internet connection and try again.',
-  'auth/unauthorized-domain':  'Login blocked: your domain is not authorised in Firebase. Go to Firebase Console → Authentication → Settings → Authorised Domains → Add: mindvora-vf8e.vercel.app',
+  'auth/unauthorized-domain':  'Login blocked: your domain is not authorised in Firebase. Go to Firebase Console → Authentication → Settings → Authorised Domains → Add: ' + window.location.hostname,
   'auth/operation-not-allowed':'This sign-in method is not enabled. Go to Firebase Console → Authentication → Sign-in methods and enable Email/Password.',
   'auth/popup-blocked':        'Popup was blocked by your browser. Allow popups for this site and try again.',
   'auth/popup-closed-by-user': 'Sign-in popup was closed before completing.',
@@ -2457,7 +2467,7 @@ function mountApp(){
     if(sbName) sbName.innerHTML=esc(p.name||'Mindvora user')+(p.mood?' <span style="font-size:16px" title="'+esc(p.mood.label)+'">'+p.mood.emoji+'</span>':'')+(p.isPremium?'<span class="sb-verified">✦ PRO</span>':'');
     var sbHandle = document.getElementById('sb-handle');
     if(sbHandle) sbHandle.textContent='@'+(p.handle||'user');
-    var refEl=document.getElementById('ref-link'); if(refEl) refEl.value='https://mindvora-vf8e.vercel.app?ref='+state.user.uid;
+    var refEl=document.getElementById('ref-link'); if(refEl) refEl.value=window.location.origin+'?ref='+state.user.uid;
     var premWidget = document.getElementById('prem-widget');
     if(p.isPremium && premWidget) premWidget.style.display='none';
   } catch(e){ console.warn('[Mindvora] mountApp sidebar error:', e); }
@@ -4717,7 +4727,7 @@ function openQRCode(){
   openModal('modal-qr');
   var wrap=document.getElementById('qr-wrap');
   wrap.innerHTML='<div style="padding:20px;color:#999">Generating...</div>';
-  var profileUrl='https://mindvora-vf8e.vercel.app?user='+((state.profile&&state.profile.handle)||'');
+  var profileUrl=window.location.origin+'?user='+((state.profile&&state.profile.handle)||'');
   var qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(profileUrl);
   var img=document.createElement('img');
   img.src=qrUrl;
@@ -10421,7 +10431,7 @@ function confirmDeleteAccount() {
 function sendVerificationEmail(user) {
   if (!user || user.emailVerified) return;
   user.sendEmailVerification({
-    url: 'https://mindvora-vf8e.vercel.app'
+    url: window.location.origin
   }).then(function() {
     showToast('📧 Verification email sent! Check your inbox.');
   }).catch(function(e) {
@@ -10612,7 +10622,7 @@ function sharePostToDM(sparkId, text) {
 
 function sendShareToDM(dmId, sparkId, previewText) {
   if (!state.user) return;
-  var msg = '📎 Shared a spark: "' + previewText + (previewText.length >= 40 ? '...' : '') + '" — mindvora-vf8e.vercel.app';
+  var msg = '📎 Shared a spark: "' + previewText + (previewText.length >= 40 ? '...' : '') + '" — ' + window.location.host;
   var msgRef = db.collection('dms').doc(dmId).collection('messages').doc();
   var batch = db.batch();
   batch.set(msgRef, {
@@ -10738,7 +10748,7 @@ function doForgotPassword() {
   if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
 
   auth.sendPasswordResetEmail(email, {
-    url: 'https://mindvora-vf8e.vercel.app',
+    url: window.location.origin,
     handleCodeInApp: false
   })
   .then(function() {
@@ -11185,16 +11195,8 @@ function logSecurityEvent(type, details){
   } catch(e){}
 }
 
-// Enhanced CSP via meta tag
-(function(){
-  var existingCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
-  if(!existingCSP){
-    var meta = document.createElement('meta');
-    meta.httpEquiv = 'Content-Security-Policy';
-    meta.content = "default-src 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://js.paystack.co https://upload-widget.cloudinary.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https:; frame-src 'self' https://js.paystack.co https://checkout.paystack.com;";
-    document.head.appendChild(meta);
-  }
-})();
+// (Removed: a second CSP meta tag used to be injected here. It silently blocked
+// reCAPTCHA, Google sign-in and the call server. Security headers live in vercel.json.)
 
 // Prevent clickjacking
 (function(){
