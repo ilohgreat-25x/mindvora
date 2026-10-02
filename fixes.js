@@ -417,3 +417,27 @@ function injectSocialFeatures() {
     return origReg.apply(this, arguments);
   };
 })();
+
+
+// ── "Get the Android app" bar (Android browsers only, not inside the app) ──
+(function () {
+  var APK_URL = 'https://github.com/ilohgreat-25x/mindvora-mobile/releases/latest/download/mindvora.apk';
+  window.MV_APK_URL = APK_URL;
+  function show() {
+    try {
+      if (!/Android/i.test(navigator.userAgent) || window.Capacitor) return;
+      if (Date.now() - Number(localStorage.getItem('mv_apk_bar') || 0) < 7 * 86400000) return;
+      if (!document.body || document.getElementById('mv-apk-bar')) return;
+      var b = document.createElement('div');
+      b.id = 'mv-apk-bar';
+      b.style.cssText = 'position:fixed;left:10px;right:10px;bottom:76px;z-index:9998;background:#111827;color:#fff;border-radius:14px;padding:10px 12px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:14px';
+      b.innerHTML = '<span style="flex:1">Get the Mindvora Android app</span>' +
+        '<a href="' + APK_URL + '" style="background:#16a34a;color:#fff;padding:7px 12px;border-radius:10px;font-weight:700;text-decoration:none">Download</a>' +
+        '<button type="button" aria-label="Close" style="background:none;border:0;color:#fff;font-size:18px">✕</button>';
+      b.querySelector('button').onclick = function () { b.remove(); try { localStorage.setItem('mv_apk_bar', String(Date.now())); } catch (e) {} };
+      document.body.appendChild(b);
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(show, 4000); });
+  else setTimeout(show, 4000);
+})();

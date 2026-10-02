@@ -53,5 +53,17 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/download",
+      "destination": "https://github.com/ilohgreat-25x/mindvora-mobile/releases/latest/download/mindvora.apk",
+      "permanent": false
+    },
+    {
+      "source": "/mindvora.apk",
+      "destination": "https://github.com/ilohgreat-25x/mindvora-mobile/releases/latest/download/mindvora.apk",
+      "permanent": false
+    }
   ]
 }

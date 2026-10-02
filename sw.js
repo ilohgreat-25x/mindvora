@@ -14,7 +14,7 @@ firebase.initializeApp({
   appId:             "1:720726547858:web:3175ba8d0b7c987e31754b"
 });
 
-const CACHE = 'mindvora-v9';
+const CACHE = 'mindvora-v11';
 const OFFLINE_URL = '/';
 const MAX_ENTRIES = 40;              // keeps the cache to a few MB instead of growing forever
 const SHELL = ['/', '/index.html', '/manifest.json', '/style.css', '/auth.css', '/responsive.css',
@@ -70,8 +70,9 @@ function showPush(d) {
     tag: d.tag || d.type || 'mindvora',
     renotify: true,
     requireInteraction: isCall,
-    vibrate: isCall ? [500, 250, 500, 250, 500] : [200, 100, 200],
-    data: { url: d.url || '/', type: d.type, callId: d.callId },
+    // Voice call = long double buzz, video call = quick triple pulse (browsers don't allow custom sounds here)
+    vibrate: isCall ? (d.media === 'video' ? [150, 100, 150, 100, 500, 400, 150, 100, 150, 100, 500] : [700, 300, 700, 1000, 700, 300, 700]) : [200, 100, 200],
+    data: { url: d.url || '/', type: d.type, callId: d.callId, media: d.media },
     actions: isCall ? [{ action: 'open', title: 'Answer' }, { action: 'dismiss', title: 'Ignore' }]
                     : [{ action: 'open', title: 'Open' }]
   });
@@ -87,6 +88,8 @@ self.addEventListener('notificationclick', function(e) {
   e.notification.close();
   if (e.action === 'dismiss') return;
   var url = (e.notification.data && e.notification.data.url) || '/';
+  // "Answer" on a call notification opens the app and answers straight away.
+  if (e.notification.data && e.notification.data.type === 'call' && e.action !== 'dismiss') url += (url.indexOf('?') > -1 ? '&' : '?') + 'answer=1';
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then(function(list) {
