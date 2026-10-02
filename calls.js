@@ -184,6 +184,7 @@ var MVCall = (function () {
   function onConnected() {
     if (!call) return;
     call.retries = 0;
+    if (call.media === 'video') tuneAllVideo();
     if (!call.connectedAt) { startDuration(); logRoute(); }
     else status(call.media === 'video' ? 'Video call' : 'Voice call');
   }
@@ -235,17 +236,50 @@ var MVCall = (function () {
   }
 
   // ── media ───────────────────────────────────────────────────────────
-  function getMedia(media, facing) {
-    var audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-    var video = media === 'video'
-      ? { width: { ideal: 1280, max: 1280 }, height: { ideal: 720, max: 720 }, frameRate: { ideal: 30, max: 30 }, facingMode: facing || 'user' }
-      : false;
-    return navigator.mediaDevices.getUserMedia({ audio: audio, video: video }).catch(function (e) {
-      // Some phones reject the size/frame-rate hints — retry with plain settings.
-      if (e && (e.name === 'OverconstrainedError' || e.name === 'NotReadableError' || e.name === 'AbortError'))
-        return navigator.mediaDevices.getUserMedia({ audio: true, video: media === 'video' ? { facingMode: facing || 'user' } : false });
+  // Video-call camera: ask for sharp 720p first, then step down so low-end phones still work.
+  var VIDEO_TIERS = [
+    { width: { min: 640, ideal: 1280, max: 1920 }, height: { min: 360, ideal: 720, max: 1080 }, frameRate: { ideal: 30, max: 30 } },
+    { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+    {}
+  ];
+  function videoConstraints(tier, facing) {
+    var c = {}; var t = VIDEO_TIERS[tier] || {};
+    for (var k in t) c[k] = t[k];
+    c.facingMode = facing || 'user';
+    return c;
+  }
+  function getVideoTier(audio, facing, tier) {
+    return navigator.mediaDevices.getUserMedia({ audio: audio, video: videoConstraints(tier, facing) }).catch(function (e) {
+      if (tier < VIDEO_TIERS.length - 1 && e && (e.name === 'OverconstrainedError' || e.name === 'NotReadableError' || e.name === 'AbortError' || e.name === 'TypeError'))
+        return getVideoTier(audio === false ? false : true, facing, tier + 1);
       throw e;
     });
+  }
+  function getMedia(media, facing) {
+    var audio = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
+    if (media === 'video') return getVideoTier(audio, facing, 0);
+    return navigator.mediaDevices.getUserMedia({ audio: audio, video: false }).catch(function (e) {
+      if (e && (e.name === 'OverconstrainedError' || e.name === 'NotReadableError' || e.name === 'AbortError'))
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      throw e;
+    });
+  }
+  // Send video at full resolution with enough bitrate (default sending was low and dropped resolution first -> blurry).
+  function tuneVideoSender(sender) {
+    if (!sender || !sender.track || sender.track.kind !== 'video' || !sender.getParameters) return;
+    try { sender.track.contentHint = 'detail'; } catch (e) {}
+    try {
+      var p = sender.getParameters();
+      p.degradationPreference = 'balanced';
+      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = 2500000;
+      p.encodings[0].maxFramerate = 30;
+      p.encodings[0].scaleResolutionDownBy = 1;
+      sender.setParameters(p).catch(function () {});
+    } catch (e) {}
+  }
+  function tuneAllVideo() {
+    try { if (call && call.pc) call.pc.getSenders().forEach(tuneVideoSender); } catch (e) {}
   }
   function mediaError(e) {
     var n = e && e.name;
@@ -265,15 +299,7 @@ var MVCall = (function () {
     call.pc = pc;
     call.local.getTracks().forEach(function (t) {
       var sender = pc.addTrack(t, call.local);
-      if (t.kind === 'video') {
-        try { t.contentHint = 'motion'; } catch (e) {}
-        try {
-          var p = sender.getParameters();
-          p.degradationPreference = 'maintain-framerate';   // drop resolution before frames: smoother on weak networks
-          if (p.encodings && p.encodings[0]) p.encodings[0].maxBitrate = 1500000;
-          sender.setParameters(p).catch(function () {});
-        } catch (e) {}
-      }
+      if (t.kind === 'video') tuneVideoSender(sender);
     });
     if (!call.noCodecPrefs) preferCodecs(pc);
     call.candTypes = {};
@@ -476,10 +502,10 @@ var MVCall = (function () {
   function flip() {
     if (!call || !call.local || call.media !== 'video') return;
     call.facing = call.facing === 'environment' ? 'user' : 'environment';
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: call.facing, width: { ideal: 1280 }, height: { ideal: 720 } } }).then(function (s) {
+    getVideoTier(false, call.facing, 0).then(function (s) {
       var nt = s.getVideoTracks()[0], old = call.local.getVideoTracks()[0];
       var sender = call.pc.getSenders().find(function (x) { return x.track && x.track.kind === 'video'; });
-      if (sender) sender.replaceTrack(nt);
+      if (sender) sender.replaceTrack(nt).then(function () { tuneVideoSender(sender); }).catch(function () {});
       if (old) { call.local.removeTrack(old); old.stop(); }
       call.local.addTrack(nt); $('mv-call-local').srcObject = call.local;
     }).catch(function () { toast('Could not switch camera.'); });
