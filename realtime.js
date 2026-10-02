@@ -101,11 +101,24 @@
   var ICON = { like: '❤️', comment: '💬', follow: '➕', tip: '💝', gift: '🎁', repost: '🔁', share: '🔁', save: '🔖', mention: '📣', referral: '🎉', live: '🔴', missed_call: '📵' };
   function showNotif(m) {
     if (m.ntype === 'dm' || m.ntype === 'call') return; // messages/calls have their own live display
+    var native = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+    if (!native && window.Notification && Notification.permission === 'granted') { var d0 = document.getElementById('nd'); if (d0) d0.style.display = 'block'; return; } // browser push already shows a toast
     toastMsg((ICON[m.ntype] || '🔔') + ' ' + (m.text || 'New notification'));
     var dot = document.getElementById('nd'); if (dot) dot.style.display = 'block';
   }
 
-  RT.onMessage(function (m) {
+  // Listen on the app's single socket itself (the existing socket code only passes call events on).
+  var hooked = typeof WeakSet === 'function' ? new WeakSet() : null;
+  function onRaw(ev) {
+    var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m && typeof m.type === 'string' && m.type.indexOf('RT_') === 0) dispatch(m);
+  }
+  var _wsSend = WebSocket.prototype.send;
+  WebSocket.prototype.send = function () {
+    try { if (/\/ws$/.test(this.url) && hooked && !hooked.has(this)) { hooked.add(this); this.addEventListener('message', onRaw); } } catch (e) {}
+    return _wsSend.apply(this, arguments);
+  };
+  function dispatch(m) {
     switch (m.type) {
       case 'RT_DM': showIncomingDm(m); break;
       case 'RT_TYPING': if (m.stop) hideTyping(m.dmId); else showTyping(m); break;
@@ -113,6 +126,8 @@
       case 'RT_NOTIF': showNotif(m); break;
       case 'RT_EVENT': try { document.dispatchEvent(new CustomEvent('mv:rt', { detail: m })); } catch (e) {} break;
     }
-  });
+  }
+  // Ask once right away so the current socket is hooked without waiting for the next ping.
+  if (live() && me()) send({ type: 'RT_PRESENCE', uids: [] });
   window.MVRealtime = { live: live, send: send };
 })();

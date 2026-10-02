@@ -12,6 +12,8 @@
   var uaV = (navigator.userAgent.match(/MindvoraApp\/(\d+\.\d+\.\d+)/) || [])[1];
   var APP_VERSION = uaV || WEB_VERSION;
   window.MV_APP_VERSION = APP_VERSION;
+  // Paystack live PUBLIC key (safe to be public). The server's key replaces it if it differs.
+  window.MV_PAYSTACK_PK = window.MV_PAYSTACK_PK || 'pk_live_bcfe1b9420a76c767e2559c4d8f2a4224e1ac57d';
   // Hidden features: switched on only by the server (config/app-version.json) AND only for
   // app versions that include them. Code checks MVFeatures.isOn('name') before showing a feature.
   var features = {};
