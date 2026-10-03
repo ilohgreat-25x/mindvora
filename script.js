@@ -7702,7 +7702,11 @@ async function ariaSend(){
         else if (d && d.code === 'ARIA_LIMIT') reply = d.message;
       } catch (e) { /* offline or server asleep: fall back to built-in answers */ }
     }
-    if (!reply) { await new Promise(function(r){ setTimeout(r,400); }); reply = local; }
+    if (!reply) {
+      await new Promise(function(r){ setTimeout(r,400); });
+      var aboutApp = /mindvora|spark|story|stories|reel|premium|verif|badge|earn|withdraw|referr|tip|gift|airtime|data|wallet|follow|post|profile|password|account|notification|call|message|chat|group|live|ads?\b|boost|paystack/i.test(text);
+      reply = (aboutApp && !isGeneric) ? local : "I couldn't reach my AI brain just now (the server may be waking up). Please ask again in a few seconds and I'll answer fully. 🌿";
+    }
     ariaRemoveTyping();
     ariaAddMsg('aria',reply);
     ariaHistory.push({role:'assistant',content:reply});

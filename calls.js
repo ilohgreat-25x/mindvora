@@ -181,10 +181,39 @@ var MVCall = (function () {
       var t = $('mv-call-timer'); if (t) t.textContent = fmt(Math.floor((Date.now() - call.connectedAt) / 1000));
     }, 1000);
   }
+  // One-way video fix: some Android phones cannot send H.264 video (the other side gets audio but a black screen).
+  // If no video frames arrive a few seconds after connecting, switch that direction to VP8 once.
+  function framesIn(pc) {
+    return pc.getStats().then(function (st) { var n = 0; st.forEach(function (r) { if (r.type === 'inbound-rtp' && r.kind === 'video') n += (r.framesDecoded || 0); }); return n; }).catch(function () { return -1; });
+  }
+  function reofferVp8() {
+    var c = call; if (!c || !c.pc || c.role !== 'caller' || c.vp8Tried) return;
+    c.vp8Tried = true; console.warn('[call] no video from the other phone; switching video format to VP8');
+    try { c.pc.getTransceivers().forEach(function (tr) {
+      if (!tr.setCodecPreferences || !tr.receiver || !tr.receiver.track || tr.receiver.track.kind !== 'video') return;
+      var caps = RTCRtpReceiver.getCapabilities('video'); if (!caps) return;
+      var order = ['video/VP8', 'video/VP9', 'video/H264'];
+      tr.setCodecPreferences(caps.codecs.slice().sort(function (a, b) { var ia = order.indexOf(a.mimeType), ib = order.indexOf(b.mimeType); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); }));
+    }); } catch (e) {}
+    c.pc.createOffer().then(function (o) { return c.pc.setLocalDescription(o); })
+      .then(function () { send({ type: 'CALL_SIGNAL', callId: c.id, data: { sdp: c.pc.localDescription } }); })
+      .catch(function (e) { console.warn('[call] VP8 switch failed', e); });
+  }
+  function watchVideo() {
+    var c = call; if (!c || c.watching) return; c.watching = true;
+    setTimeout(function () {
+      if (call !== c || !c.pc) return;
+      framesIn(c.pc).then(function (n) {
+        if (n !== 0 || call !== c) return;
+        if (c.role === 'caller') reofferVp8();
+        else if (!c.askedVp8) { c.askedVp8 = true; send({ type: 'CALL_SIGNAL', callId: c.id, data: { needVp8: true } }); }
+      });
+    }, 6000);
+  }
   function onConnected() {
     if (!call) return;
     call.retries = 0;
-    if (call.media === 'video') tuneAllVideo();
+    if (call.media === 'video') { tuneAllVideo(); watchVideo(); }
     if (!call.connectedAt) { startDuration(); logRoute(); }
     else status(call.media === 'video' ? 'Video call' : 'Voice call');
   }
@@ -544,6 +573,7 @@ var MVCall = (function () {
           } else if (m.data.sdp.type === 'answer' && call.pc) {
             call.pc.setRemoteDescription(fixSdp(m.data.sdp)).then(flushIce).catch(function (e) { console.error('[call] set answer failed', e); toast('Call could not connect (set answer failed: ' + why(e) + '). Try again.'); hangup(); });
           }
+        } else if (m.data.needVp8) { reofferVp8();
         } else if (m.data.ice) {
           (call.allIce = call.allIce || []).push(m.data.ice);
           pendingIce.push(m.data.ice); flushIce();
