@@ -14,7 +14,7 @@ firebase.initializeApp({
   appId:             "1:720726547858:web:3175ba8d0b7c987e31754b"
 });
 
-const CACHE = 'mindvora-v13';
+const CACHE = 'mindvora-v14';
 const OFFLINE_URL = '/';
 const MAX_ENTRIES = 40;              // keeps the cache to a few MB instead of growing forever
 const SHELL = ['/', '/index.html', '/manifest.json', '/style.css', '/auth.css', '/responsive.css',
