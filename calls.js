@@ -184,7 +184,7 @@ var MVCall = (function () {
   function onConnected() {
     if (!call) return;
     call.retries = 0;
-    if (call.media === 'video') { tuneAllVideo(); [3000, 8000, 15000].forEach(function (ms) { setTimeout(function () { if (call && call.media === 'video') tuneAllVideo(); }, ms); }); }
+    if (call.media === 'video') tuneAllVideo();
     if (!call.connectedAt) { startDuration(); logRoute(); }
     else status(call.media === 'video' ? 'Video call' : 'Voice call');
   }
@@ -238,9 +238,8 @@ var MVCall = (function () {
   // ── media ───────────────────────────────────────────────────────────
   // Video-call camera: ask for sharp 720p first, then step down so low-end phones still work.
   var VIDEO_TIERS = [
-    { width: { min: 640, ideal: 1920, max: 1920 }, height: { min: 360, ideal: 1080, max: 1080 }, frameRate: { ideal: 30, max: 30 } },
+    { width: { min: 640, ideal: 1280, max: 1920 }, height: { min: 360, ideal: 720, max: 1080 }, frameRate: { ideal: 30, max: 30 } },
     { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
-    { width: { ideal: 640 }, height: { ideal: 480 } },
     {}
   ];
   function videoConstraints(tier, facing) {
@@ -269,44 +268,16 @@ var MVCall = (function () {
   function tuneVideoSender(sender) {
     if (!sender || !sender.track || sender.track.kind !== 'video' || !sender.getParameters) return;
     try { sender.track.contentHint = 'detail'; } catch (e) {}
-    // Step 1: bitrate/size only. (Before, everything went in ONE call; browsers that reject
-    // degradationPreference threw the whole thing away, so the HD settings never applied.)
     try {
       var p = sender.getParameters();
+      p.degradationPreference = 'balanced';
       if (!p.encodings || !p.encodings.length) p.encodings = [{}];
-      p.encodings[0].maxBitrate = 4000000;
+      p.encodings[0].maxBitrate = 2500000;
       p.encodings[0].maxFramerate = 30;
       p.encodings[0].scaleResolutionDownBy = 1;
-      try { p.encodings[0].networkPriority = 'high'; p.encodings[0].priority = 'high'; } catch (e) {}
-      sender.setParameters(p).then(function () {
-        // Step 2 (optional): keep the picture sharp; lower the frame rate first on weak networks.
-        try {
-          var q = sender.getParameters(); q.degradationPreference = 'maintain-resolution';
-          sender.setParameters(q).catch(function () {});
-        } catch (e) {}
-      }).catch(function (e) { console.warn('[call] video quality settings refused:', e && e.message); });
+      sender.setParameters(p).catch(function () {});
     } catch (e) {}
   }
-  // Quality readout: tap the call timer to see what is really being sent/received.
-  function qualityReport() {
-    var pc = call && call.pc; if (!pc || !pc.getStats) return Promise.resolve('');
-    return pc.getStats().then(function (st) {
-      var out = '', inn = '', route = '';
-      st.forEach(function (r) {
-        if (r.type === 'outbound-rtp' && r.kind === 'video') out = 'Sending ' + (r.frameWidth || '?') + 'x' + (r.frameHeight || '?') + ' @' + Math.round(r.framesPerSecond || 0) + 'fps' + (r.qualityLimitationReason && r.qualityLimitationReason !== 'none' ? ' (limited by ' + r.qualityLimitationReason + ')' : '');
-        if (r.type === 'inbound-rtp' && r.kind === 'video') inn = 'Receiving ' + (r.frameWidth || '?') + 'x' + (r.frameHeight || '?');
-        if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') {
-          var lc = st.get(r.localCandidateId);
-          route = (lc && lc.candidateType === 'relay' ? 'Relay server' : 'Direct') + (r.availableOutgoingBitrate ? ' · ' + (r.availableOutgoingBitrate / 1e6).toFixed(1) + ' Mbps up' : '');
-        }
-      });
-      return [out, inn, route].filter(Boolean).join(' | ');
-    }).catch(function () { return ''; });
-  }
-  document.addEventListener('click', function (e) {
-    if (!e.target || e.target.id !== 'mv-call-timer' || !call || call.media !== 'video') return;
-    qualityReport().then(function (t) { if (t) toast(t); });
-  });
   function tuneAllVideo() {
     try { if (call && call.pc) call.pc.getSenders().forEach(tuneVideoSender); } catch (e) {}
   }
@@ -373,7 +344,7 @@ var MVCall = (function () {
       // and setting the answer then failed ("answer failed").
       var kind = tr.sender.track.kind, caps = window.RTCRtpReceiver && RTCRtpReceiver.getCapabilities ? RTCRtpReceiver.getCapabilities(kind) : null;
       if (!caps) return;
-      var order = kind === 'audio' ? ['audio/opus'] : ['video/VP8', 'video/H264', 'video/VP9'];
+      var order = kind === 'audio' ? ['audio/opus'] : ['video/H264', 'video/VP8', 'video/VP9'];
       var sorted = caps.codecs.slice().sort(function (a, b) {
         var ia = order.indexOf(a.mimeType), ib = order.indexOf(b.mimeType);
         return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
@@ -624,6 +595,16 @@ var MVCall = (function () {
 // Core chat features: reactions, reply, pin chats, drafts, voice-note speed.
 (function () { var sc = document.createElement('script'); sc.src = '/chat-core.js?v=14'; sc.defer = true; document.head.appendChild(sc); })();
 // Advanced Search: readable white text + matches anywhere in the name/post.
-(function () { var sc = document.createElement('script'); sc.src = '/search-fix.js?v=15'; sc.defer = true; document.head.appendChild(sc); })();
+(function () { var sc = document.createElement('script'); sc.src = '/search-fix.js?v=17'; sc.defer = true; document.head.appendChild(sc); })();
 // Story music: 26 streamed tracks, 15s playback, music saved with the story.
-(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=16'; sc.defer = true; document.head.appendChild(sc); })();
+(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=17'; sc.defer = true; document.head.appendChild(sc); })();
+
+// Advanced Search: force readable white typing on the exact box, every time it is opened or typed in.
+(function () {
+  function paint(el) { if (!el) return; var st = el.style;
+    st.setProperty('color', '#ffffff', 'important'); st.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
+    st.setProperty('caret-color', '#22c55e', 'important'); st.setProperty('background', '#0f1418', 'important');
+    st.setProperty('background-color', '#0f1418', 'important'); st.setProperty('opacity', '1', 'important'); }
+  ['focusin', 'input', 'click'].forEach(function (ev) { document.addEventListener(ev, function (e) { if (e.target && e.target.id === 'adv-search-inp') paint(e.target); }, true); });
+  var t = setInterval(function () { var el = document.getElementById('adv-search-inp'); if (el) { paint(el); clearInterval(t); } }, 500);
+})();

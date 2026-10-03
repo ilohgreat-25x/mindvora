@@ -10,7 +10,7 @@
   st.textContent =
     '#adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}' +
     '#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important;opacity:1}' +
-    'body.light #adv-search-inp{color:#0f2318!important;-webkit-text-fill-color:#0f2318!important;background:#e8f5e0!important}';
+    'body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;background:#0f1418!important}';
   document.head.appendChild(st);
 
   function h(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }

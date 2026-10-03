@@ -47,7 +47,13 @@
     previewT = setTimeout(stopPreview, PLAY_MS);
   };
   var origSelect = window.selectTrack || selectTrack;
-  window.selectTrack = selectTrack = function (i) { stopPreview(); return origSelect(i); };
+  window.selectTrack = selectTrack = function (i) {
+    stopPreview(); var r = origSelect(i);
+    // The 🎵 button sits in the post box, so "Spark" made a normal post and the song was lost.
+    // Now picking a song goes straight on to posting the story that carries it.
+    setTimeout(function () { if (pendingStoryMusic) postStory(); }, 350);
+    return r;
+  };
   var origCloseMP = window.closeMusicPicker || closeMusicPicker;
   window.closeMusicPicker = closeMusicPicker = function () { stopPreview(); return origCloseMP(); };
 
@@ -59,14 +65,14 @@
     var text = prompt('Share a story (disappears in 48h):');
     if (!text || !text.trim() || !state.user) return;
     db.collection('stories').add({
-      text: text.trim(), authorId: state.user.uid, authorName: state.profile.name, authorHandle: state.profile.handle,
+      text: text.trim(), uid: state.user.uid, authorId: state.user.uid, authorName: state.profile.name, authorHandle: state.profile.handle,
       authorColor: state.profile.color, seenBy: [], music: { name: chosen.name, url: chosen.url },
       createdAt: firebase.firestore.FieldValue.serverTimestamp(), expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000)
     }).then(function () {
       pendingStoryMusic = null;
       var b = document.getElementById('btn-story-music'); if (b) b.style.color = '';
       showToast('Story posted with 🎵 ' + chosen.name + '! 48h ⏱'); loadStories();
-    });
+    }).catch(function (e) { console.warn('[story] post failed', e); showToast('⚠️ Story not posted: ' + ((e && e.message) || 'try again')); });
   };
 
   // Viewer: a story with music stays open 15s and plays the track; others keep the old 5s.
