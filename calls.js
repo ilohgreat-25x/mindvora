@@ -625,3 +625,5 @@ var MVCall = (function () {
 (function () { var sc = document.createElement('script'); sc.src = '/chat-core.js?v=14'; sc.defer = true; document.head.appendChild(sc); })();
 // Advanced Search: readable white text + matches anywhere in the name/post.
 (function () { var sc = document.createElement('script'); sc.src = '/search-fix.js?v=15'; sc.defer = true; document.head.appendChild(sc); })();
+// Story music: 26 streamed tracks, 15s playback, music saved with the story.
+(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=16'; sc.defer = true; document.head.appendChild(sc); })();

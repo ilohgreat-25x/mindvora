@@ -3080,3 +3080,7 @@ input:-webkit-autofill:active,
 .tb-out svg{display:block}
 @media(max-width:480px){.sk-reactions-row{padding:4px 8px 2px;gap:1px}.sk-reactions-row .react-btn{font-size:11px;padding:4px 7px}}
 .btn-pay:disabled{opacity:.45;cursor:not-allowed}
+
+/* Advanced Search: always-readable typed text */
+#adv-search-inp,body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}
+#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important}

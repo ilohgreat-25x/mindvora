@@ -41,6 +41,7 @@
 <link rel="stylesheet" href="auth.css">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="responsive.css?v=7">
+<style id="mv-adv-search-css">#modal-adv-search input,#adv-search-inp,body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important;opacity:1}</style>
 </head>
 <body>
 
@@ -3522,7 +3523,7 @@
     <div class="modal-head"><span style="font-size:15px;font-weight:700">🔍 Advanced Search</span><button class="modal-close" onclick="closeModal('modal-adv-search')">✕</button></div>
     <div style="padding:16px">
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input class="m-input" id="adv-search-inp" placeholder="Search users, posts, hashtags..." style="flex:1;margin:0" onkeydown="if(event.key==='Enter')runAdvancedSearch()">
+        <input class="m-input" id="adv-search-inp" type="search" autocomplete="off" placeholder="Search users, posts, hashtags..." style="flex:1;margin:0;color:#ffffff !important;-webkit-text-fill-color:#ffffff !important;caret-color:#22c55e !important;background:#0f1418 !important;border:1px solid #22c55e !important" onkeydown="if(event.key==='Enter')runAdvancedSearch()">
         <button class="btn-pay" style="padding:0 16px;white-space:nowrap" onclick="runAdvancedSearch()">Search</button>
       </div>
       <div style="display:flex;gap:6px;margin-bottom:14px">
@@ -4107,7 +4108,7 @@
 </script>
 <script src="script.js?v=14"></script>
 <script src="fixes.js?v=7"></script>
-<script src="calls.js?v=15"></script>
+<script src="calls.js?v=16"></script>
 <script src="app-update.js?v=7"></script>
 
 <!-- THUMBNAIL PICKER OVERLAY — Task 1 -->
