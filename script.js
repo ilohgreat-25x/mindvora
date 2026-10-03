@@ -1608,7 +1608,7 @@ auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).then(function(){
   initAuthListener();
 });
 var COLORS = ['#166534','#16a34a','#0f766e','#854d0e','#1d4ed8','#7e22ce','#be123c'];
-var PAYSTACK_KEY = 'pk_live_1a3a25c1a562f8a054e34167dded3e1268f6c28c';
+var PAYSTACK_KEY = 'pk_live_bcfe1b9420a76c767e2559c4d8f2a4224e1ac57d';
 // NOTE: Paystack secret key handled server-side only for security
 var CLOUD_NAME   = 'dk4svvssf';
 
