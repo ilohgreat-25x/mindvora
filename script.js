@@ -270,20 +270,42 @@ var MindvoraRT = (function() {
   }
 
 // Connect
+  var lastRx = 0, reconnTimer = null;
+  // A phone in the background can leave the socket "open" while it is really dead (no close event).
+  // Drop it and open a fresh one; calls/chat re-authenticate in their onOpen hooks.
+  function forceReconnect(why) {
+    var old = ws; ws = null;
+    if (old) { old.onopen = old.onmessage = old.onclose = old.onerror = null; try { old.close(); } catch(e) {} }
+    isConnected = false; stopPing();
+    clearTimeout(reconnTimer); reconnectAttempts = 0;
+    console.log('[ws] reconnecting (' + (why || 'stale') + ')');
+    connect();
+  }
+  // Quick liveness probe: PING, and if nothing comes back within 4s the socket is dead.
+  function probe() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) { if (!ws || ws.readyState > 1) forceReconnect('closed'); return; }
+    var before = lastRx;
+    send({ type: 'PING' });
+    setTimeout(function () { if (ws && ws.readyState === WebSocket.OPEN && lastRx === before) forceReconnect('no-pong'); }, 4000);
+  }
   function connect() {
     if (ws && ws.readyState === WebSocket.CONNECTING) return;
     try {
       ws = new WebSocket(WS_URL);
     } catch(e) { scheduleReconnect(); return; }
+    var me = ws;
 
     ws.onopen = function() {
-      isConnected = true;
+      if (me !== ws) return;
+      isConnected = true; lastRx = Date.now();
       reconnectAttempts = 0;
       startPing();
       openHooks.forEach(function(fn){ try { fn(); } catch(e){} });
     };
 
     ws.onmessage = function(event) {
+      if (me !== ws) return;
+      lastRx = Date.now();
       var msg = safeParseMsg(event.data);
       if (!msg || !msg.type) return;
       if (/^(AUTH_OK|CALL_)/.test(msg.type)) {
@@ -294,12 +316,14 @@ var MindvoraRT = (function() {
     };
 
     ws.onclose = function() {
+      if (me !== ws) return;
       isConnected = false;
       stopPing();
       scheduleReconnect();
     };
 
     ws.onerror = function() {
+      if (me !== ws) return;
       isConnected = false;
     };
   }
@@ -309,13 +333,15 @@ var MindvoraRT = (function() {
     if (reconnectAttempts >= MAX_RECONNECT) return;
     reconnectAttempts++;
     var delay = Math.min(RECONNECT_DELAY * Math.pow(1.6, reconnectAttempts), 15000);
-    setTimeout(connect, delay);
+    clearTimeout(reconnTimer);
+    reconnTimer = setTimeout(connect, delay);
   }
 
-// Keepalive ping
+// Keepalive ping (server answers PONG). Two missed beats = dead socket → reconnect.
   function startPing() {
     stopPing();
     pingInterval = setInterval(function() {
+      if (lastRx && Date.now() - lastRx > 50000) { forceReconnect('missed-heartbeat'); return; }
       send({ type: 'PING' });
     }, 25000);
   }
@@ -708,16 +734,21 @@ var MindvoraRT = (function() {
     joinLiveStream:joinLiveStream,
     openLiveView:  openLiveView,
     send:          send,
-    isConnected:   function() { return isConnected; },
+    isConnected:   function() { return isConnected && !!ws && ws.readyState === 1 && (!lastRx || Date.now() - lastRx < 50000); },
     onMessage:     function(fn) { listeners.push(fn); },
     onOpen:        function(fn) { openHooks.push(fn); if (isConnected) { try { fn(); } catch(e){} } },
-    connect:       function() { if (!ws || ws.readyState > 1) { reconnectAttempts = 0; connect(); } }
+    connect:       function() { if (!ws || ws.readyState > 1) { reconnectAttempts = 0; connect(); } else if (ws.readyState === 1) probe(); },
+    check:         probe,
+    reconnect:     forceReconnect
   };
 
 })();
 
-window.addEventListener('online', function(){ MindvoraRT.connect(); });
+window.addEventListener('online', function(){ MindvoraRT.reconnect('online'); });
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) MindvoraRT.connect(); });
+// Android app: coming back from the background → check the socket right away.
+try { var _capApp = window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.App;
+  if (_capApp && _capApp.addListener) _capApp.addListener('resume', function(){ MindvoraRT.connect(); }); } catch(e) {}
 
 // Global shortcuts for HTML onclick handlers
 function openGoLive()    { MindvoraRT.openGoLive(); }

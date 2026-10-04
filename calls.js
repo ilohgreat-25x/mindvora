@@ -7,7 +7,8 @@
 (function () {
   if (window.MindvoraRT && MindvoraRT.connect && !MindvoraRT._oneSocket) {
     var _connect = MindvoraRT.connect;
-    MindvoraRT.connect = function () { if (MindvoraRT.isConnected && MindvoraRT.isConnected()) return; return _connect.apply(this, arguments); };
+    // isConnected() is now false for a dead/stale socket, so this guard no longer blocks a reconnect.
+    MindvoraRT.connect = function () { if (MindvoraRT.isConnected && MindvoraRT.isConnected()) { if (MindvoraRT.check) MindvoraRT.check(); return; } return _connect.apply(this, arguments); };
     MindvoraRT._oneSocket = true;
   }
 })();
@@ -36,7 +37,7 @@ var MVCall = (function () {
     u.getIdToken(authFail).then(function (t) {
       authFail = false;
       send({ type: 'AUTH', token: t });
-      if (call && call.state === 'active') send({ type: 'CALL_REATTACH', callId: call.id });
+      if (call && (call.state === 'active' || call.state === 'calling')) send({ type: 'CALL_REATTACH', callId: call.id });
     }).catch(function () {});
   }
 
@@ -145,6 +146,8 @@ var MVCall = (function () {
         '<button class="mv-cb" id="mv-cb-cam" onclick="MVCall.toggleCam()" aria-label="Camera">📷</button>' +
         '<button class="mv-cb" id="mv-cb-flip" onclick="MVCall.flip()" aria-label="Switch camera">🔄</button>' +
         '<button class="mv-cb" id="mv-cb-spk" onclick="MVCall.toggleSpeaker()" aria-label="Speaker">🔊</button>' +
+        '<button class="mv-cb" id="mv-cb-share" onclick="MVCall.toggleShare()" aria-label="Share screen" title="Share screen">🖥️</button>' +
+        '<button class="mv-cb" id="mv-cb-min" onclick="MVCall.minimize()" aria-label="Keep call, go back to the app" title="Back to chats (call stays on)">⤡</button>' +
         '<button class="mv-cb mv-cb-decline" onclick="MVCall.hangup()" aria-label="Hang up">✕</button>' +
       '</div>' +
       '<audio id="mv-call-audio" autoplay></audio>';
@@ -162,6 +165,7 @@ var MVCall = (function () {
     var isVid = call && call.media === 'video';
     $('mv-cb-cam').style.display = isVid ? '' : 'none';
     $('mv-cb-flip').style.display = isVid ? '' : 'none';
+    $('mv-cb-share').style.display = isVid && canShare() ? '' : 'none';
   }
   function status(t) { var s = $('mv-call-status'); if (s) s.textContent = t; }
   var durTimer = null, connectTimer = null;
@@ -258,7 +262,7 @@ var MVCall = (function () {
   }
   function hide() {
     var el = $('mv-call');
-    if (el) el.classList.remove('open', 'video');
+    if (el) el.classList.remove('open', 'video', 'sharing', 'mini');
     clearInterval(durTimer); clearTimeout(connectTimer); connectTimer = null;
     var t = $('mv-call-timer'); if (t) { t.style.display = 'none'; t.textContent = ''; }
     var b = $('mv-call-unmute'); if (b) b.style.display = 'none';
@@ -398,9 +402,10 @@ var MVCall = (function () {
   // ── outgoing ────────────────────────────────────────────────────────
   function start(peerUid, peerName, media) {
     if (!uid()) { toast('Log in to make calls.'); return; }
-    if (call) { toast('You are already in a call.'); return; }
     if (!window.RTCPeerConnection || !navigator.mediaDevices) { toast('This browser does not support calls. Try Chrome or Safari.'); return; }
-    call = { id: newId(), peer: peerUid, peerName: peerName || 'User', media: media === 'video' ? 'video' : 'audio', role: 'caller', state: 'calling' };
+    if (call && !callIsLive()) { send({ type: 'CALL_END', callId: call.id }); cleanup(true, true); }
+    if (call) { toast('You are already in a call.'); return; }
+    call = { id: newId(), peer: peerUid, peerName: peerName || 'User', media: media === 'video' ? 'video' : 'audio', role: 'caller', state: 'calling', createdAt: Date.now() };
     show('outgoing'); status('Starting…');
     Promise.all([getMedia(call.media), getIce()]).then(function (r) {
       if (!call) { r[0].getTracks().forEach(function (t) { t.stop(); }); return; }
@@ -440,10 +445,37 @@ var MVCall = (function () {
     if (q0.get('call') && q0.get('answer') === '1') autoAnswer = q0.get('call');
     if (q0.get('call')) history.replaceState(null, '', location.pathname);
   } catch (e) {}
+  // Is the current call real? A call left over from a dropped connection must never make us reply "busy".
+  function callIsLive() {
+    if (!call) return false;
+    var age = Date.now() - (call.createdAt || 0);
+    if (call.role === 'callee' && call.state === 'ringing') return age < 45000;
+    if (call.state === 'calling') return age < 50000;
+    if (call.pc) {
+      var st = call.pc.connectionState || call.pc.iceConnectionState;
+      if (st === 'closed') return false;
+      if (st === 'failed' && age > 20000) return false;
+      return true;
+    }
+    return age < 20000;   // accepting / starting
+  }
   function incoming(m) {
     if (call && call.id === m.callId) return;          // same call delivered twice (reconnect)
-    if (call) { send({ type: 'CALL_DECLINE', callId: m.callId, reason: 'busy' }); return; }
-    call = { id: m.callId, peer: m.from, peerName: m.fromName || 'User', media: m.media === 'video' ? 'video' : 'audio', role: 'callee', state: 'ringing' };
+    // Both pressed call at the same moment: drop my outgoing call and take theirs.
+    if (call && call.role === 'caller' && call.peer === m.from && !call.connectedAt) {
+      var keep = call.local; call.local = null; send({ type: 'CALL_END', callId: call.id }); cleanup(true, true);
+      if (keep) keep.getTracks().forEach(function (t) { t.stop(); });
+      autoAnswer = m.callId;
+    } else if (call && !callIsLive()) {
+      console.warn('[call] clearing stale call state', call.id, call.state);
+      send({ type: 'CALL_END', callId: call.id }); cleanup(true, true);
+    }
+    if (call) {
+      send({ type: 'CALL_DECLINE', callId: m.callId, reason: 'busy' });
+      toast('Missed ' + (m.media === 'video' ? 'video' : 'voice') + ' call from ' + (m.fromName || 'someone') + ' (you were on a call).');
+      return;
+    }
+    call = { id: m.callId, peer: m.from, peerName: m.fromName || 'User', media: m.media === 'video' ? 'video' : 'audio', role: 'callee', state: 'ringing', createdAt: Date.now() };
     show('incoming');
     status(call.media === 'video' ? 'Incoming video call' : 'Incoming voice call');
     ring(call.media === 'video' ? 'video' : 'voice');
@@ -498,24 +530,113 @@ var MVCall = (function () {
   function decline() {
     if (!call) return;
     send({ type: 'CALL_DECLINE', callId: call.id });
-    cleanup();
+    cleanup(true);
   }
   function hangup() {
     if (!call) return;
     send({ type: 'CALL_END', callId: call.id });
-    cleanup();
+    cleanup(true);
   }
-  function cleanup() {
+  // Every exit path ends here. Unless the server already ended the call (notified=true), tell it,
+  // so neither phone is left marked "in a call" (that silently blocked the next call).
+  function cleanup(notified, quiet) {
     stopRing();
-    if (call && call.connectedAt) toast((call.media === 'video' ? 'Video' : 'Voice') + ' call ended · ' + fmt(Math.floor((Date.now() - call.connectedAt) / 1000)));
+    clearTimeout(connectTimer); connectTimer = null;
+    clearInterval(durTimer); durTimer = null;
+    if (call && !notified && call.id) send({ type: 'CALL_END', callId: call.id });
+    if (call && call.connectedAt && !quiet) toast((call.media === 'video' ? 'Video' : 'Voice') + ' call ended · ' + fmt(Math.floor((Date.now() - call.connectedAt) / 1000)));
     if (call) {
+      call.onAuth = null;
       if (call.pc) { try { call.pc.close(); } catch (e) {} }
       if (call.local) call.local.getTracks().forEach(function (t) { t.stop(); });
+      if (call.screen) call.screen.getTracks().forEach(function (t) { t.stop(); });
     }
     call = null; pendingIce = [];
     ['mv-call-remote', 'mv-call-local', 'mv-call-audio'].forEach(function (id) { var v = $(id); if (v) v.srcObject = null; });
-    hide();
+    hide(); setMini(false);
   }
+
+  // ── minimise: keep the call running while using the app ─────────────
+  function pill() {
+    var p = $('mv-call-pill'); if (p) return p;
+    var css = document.createElement('style');
+    css.textContent = '.mv-call.mini{transform:translateX(-300vw)!important;pointer-events:none!important}' +
+      '#mv-call-pill{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));z-index:100000;display:none;align-items:center;gap:8px;' +
+      'background:#16a34a;color:#fff;border-radius:22px;padding:8px 14px;font:600 14px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;max-width:92vw}' +
+      '#mv-call-pill button{background:#dc2626;color:#fff;border:0;border-radius:50%;width:28px;height:28px;font-weight:700;margin-left:4px}' +
+      '#mv-call-pill.open{display:flex}#mv-call-pill .t{font-variant-numeric:tabular-nums;opacity:.9}' +
+      '.mv-call.sharing .mv-call-remote{object-fit:contain}';
+    document.head.appendChild(css);
+    p = document.createElement('div'); p.id = 'mv-call-pill';
+    p.innerHTML = '<span>📞</span><span class="n"></span><span class="t"></span><button type="button" aria-label="Hang up">✕</button>';
+    p.onclick = function (e) { if (e.target.tagName === 'BUTTON') { hangup(); return; } setMini(false); };
+    document.body.appendChild(p);
+    return p;
+  }
+  var pillTimer = null;
+  function setMini(on) {
+    var el = $('mv-call'), p = pill();
+    if (on && !call) on = false;
+    if (el) el.classList.toggle('mini', !!on);
+    p.classList.toggle('open', !!on);
+    clearInterval(pillTimer); pillTimer = null;
+    if (on) {
+      var tick = function () {
+        if (!call) { setMini(false); return; }
+        p.querySelector('.n').textContent = (call.peerName || 'Call') + ' · ';
+        p.querySelector('.t').textContent = call.connectedAt ? fmt(Math.floor((Date.now() - call.connectedAt) / 1000)) : 'connecting…';
+      };
+      tick(); pillTimer = setInterval(tick, 1000);
+    }
+  }
+  function minimize() { if (call && call.state !== 'ringing') setMini(true); }
+
+  // ── two-way screen sharing (video calls; same connection, track swap, no renegotiation) ──
+  function canShare() { return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia); }
+  function videoSender() { return call && call.pc && call.pc.getSenders().find(function (x) { return x.track && x.track.kind === 'video'; }); }
+  function toggleShare() {
+    if (!call || !call.pc || call.media !== 'video') return;
+    if (call.screen) { stopShare(); return; }
+    if (!canShare()) { toast('Screen sharing is not supported on this device. It works in Chrome/Edge on a computer.'); return; }
+    navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }).then(function (s) {
+      if (!call) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
+      var tr = s.getVideoTracks()[0], snd = videoSender();
+      if (!tr || !snd) { s.getTracks().forEach(function (t) { t.stop(); }); toast('Could not share the screen.'); return; }
+      try { tr.contentHint = 'detail'; } catch (e) {}
+      snd.replaceTrack(tr).then(function () {
+        call.screen = s;
+        tr.onended = function () { stopShare(); };
+        $('mv-call-local').srcObject = s;
+        var b = $('mv-cb-share'); if (b) b.classList.add('on');
+        send({ type: 'CALL_SIGNAL', callId: call.id, data: { screen: true } });
+        toast('You are sharing your screen.');
+      }).catch(function () { s.getTracks().forEach(function (t) { t.stop(); }); toast('Could not share the screen.'); });
+    }).catch(function (e) { if (e && e.name !== 'NotAllowedError') toast('Could not share the screen.'); });
+  }
+  function stopShare() {
+    if (!call || !call.screen) return;
+    var s = call.screen; call.screen = null;
+    s.getTracks().forEach(function (t) { t.stop(); });
+    var cam = call.local && call.local.getVideoTracks()[0], snd = videoSender() || (call.pc && call.pc.getSenders().find(function (x) { return !x.track || x.track.kind === 'video'; }));
+    if (snd && cam) snd.replaceTrack(cam).then(function () { tuneVideoSender(snd); }).catch(function () {});
+    if (call.local) $('mv-call-local').srcObject = call.local;
+    var b = $('mv-cb-share'); if (b) b.classList.remove('on');
+    send({ type: 'CALL_SIGNAL', callId: call.id, data: { screen: false } });
+  }
+
+  // ── watchdog: clear any call state that has no live session behind it ──
+  setInterval(function () {
+    if (!call) return;
+    if (!callIsLive()) {
+      if (call.state !== 'calling' && call.state !== 'ringing' && (call.staleHits = (call.staleHits || 0) + 1) < 2) return; // allow time to reconnect
+      console.warn('[call] watchdog cleared stale call', call.id, call.state);
+      if (call.role === 'caller' && call.state === 'calling') toast('No answer.');
+      cleanup(false, true);
+      return;
+    }
+    call.staleHits = 0;
+    if (call.state !== 'ringing') send({ type: 'CALL_ALIVE', callId: call.id });
+  }, 15000);
 
   // ── controls ────────────────────────────────────────────────────────
   function toggleMute() {
@@ -573,6 +694,9 @@ var MVCall = (function () {
           } else if (m.data.sdp.type === 'answer' && call.pc) {
             call.pc.setRemoteDescription(fixSdp(m.data.sdp)).then(flushIce).catch(function (e) { console.error('[call] set answer failed', e); toast('Call could not connect (set answer failed: ' + why(e) + '). Try again.'); hangup(); });
           }
+        } else if (typeof m.data.screen === 'boolean') {
+          var ce = $('mv-call'); if (ce) ce.classList.toggle('sharing', m.data.screen);
+          toast(m.data.screen ? (call.peerName + ' is sharing their screen.') : (call.peerName + ' stopped sharing.'));
         } else if (m.data.needVp8) { reofferVp8();
         } else if (m.data.ice) {
           (call.allIce = call.allIce || []).push(m.data.ice);
@@ -580,17 +704,17 @@ var MVCall = (function () {
         }
         break;
       case 'CALL_DECLINED':
-        if (call && call.id === m.callId) { toast(m.reason === 'busy' ? (call.peerName + ' is on another call.') : 'Call declined.'); cleanup(); }
+        if (call && call.id === m.callId) { toast(m.reason === 'busy' ? (call.peerName + ' is on another call.') : 'Call declined.'); cleanup(true); }
         break;
       case 'CALL_ENDED':
         if (call && call.id === m.callId) {
           var why = { 'no-answer': 'No answer.', 'connection-lost': 'Call dropped.', cancelled: 'Missed call.' }[m.reason];
           if (why) toast(why);
-          cleanup();
+          cleanup(true);
         }
         break;
       case 'CALL_TAKEN':
-        if (call && call.id === m.callId && call.role === 'callee' && call.state === 'ringing') cleanup();
+        if (call && call.id === m.callId && call.role === 'callee' && call.state === 'ringing') cleanup(true);
         break;
       case 'CALL_ERROR':
         if (m.code === 'AUTH_FAILED') { authed = false; authFail = true; return; }
@@ -617,7 +741,7 @@ var MVCall = (function () {
   } catch (e) {}
 
   return { start: start, accept: accept, decline: decline, hangup: hangup, toggleMute: toggleMute,
-    toggleCam: toggleCam, flip: flip, toggleSpeaker: toggleSpeaker, playSound: playRemote, active: function () { return !!call; } };
+    toggleCam: toggleCam, flip: flip, toggleSpeaker: toggleSpeaker, playSound: playRemote, minimize: minimize, toggleShare: toggleShare, active: function () { return !!call; } };
 })();
 
 // Real-time messages, typing, presence and notifications share this same socket.
