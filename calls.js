@@ -621,7 +621,9 @@ var MVCall = (function () {
 })();
 
 // Real-time messages, typing, presence and notifications share this same socket.
-(function () { var sc = document.createElement('script'); sc.src = '/realtime.js?v=13'; sc.defer = true; document.head.appendChild(sc); })();
+(function () { var sc = document.createElement('script'); sc.src = '/realtime.js?v=14'; sc.defer = true; document.head.appendChild(sc); })();
+// ARIA chat UI (streamed answers on this same socket, safe Markdown, real errors).
+(function () { var sc = document.createElement('script'); sc.src = '/aria-ui.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
 // Core chat features: reactions, reply, pin chats, drafts, voice-note speed.
 (function () { var sc = document.createElement('script'); sc.src = '/chat-core.js?v=14'; sc.defer = true; document.head.appendChild(sc); })();
 // Advanced Search: readable white text + matches anywhere in the name/post.

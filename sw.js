@@ -14,11 +14,11 @@ firebase.initializeApp({
   appId:             "1:720726547858:web:3175ba8d0b7c987e31754b"
 });
 
-const CACHE = 'mindvora-v18';
+const CACHE = 'mindvora-v19';
 const OFFLINE_URL = '/';
 const MAX_ENTRIES = 40;              // keeps the cache to a few MB instead of growing forever
 const SHELL = ['/', '/index.html', '/manifest.json', '/style.css', '/auth.css', '/responsive.css',
-               '/script.js', '/fixes.js', '/calls.js', '/app-update.js', '/icons/icon-192.png'];
+               '/script.js', '/aria-ui.js', '/fixes.js', '/calls.js', '/app-update.js', '/icons/icon-192.png'];
 
 self.addEventListener('install', function(e) {
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL).catch(function(){}); })

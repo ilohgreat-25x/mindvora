@@ -125,6 +125,8 @@
       case 'RT_PRESENCE': showPresence(m); break;
       case 'RT_NOTIF': showNotif(m); break;
       case 'RT_EVENT': try { document.dispatchEvent(new CustomEvent('mv:rt', { detail: m })); } catch (e) {} break;
+      default: // Aria's streamed answers (RT_ARIA_*) and login errors go to aria-ui.js
+        if (m.type.indexOf('RT_ARIA') === 0 || m.type === 'RT_ERROR') { try { document.dispatchEvent(new CustomEvent('mv:aria', { detail: m })); } catch (e) {} }
     }
   }
   // Ask once right away so the current socket is hooked without waiting for the next ping.
