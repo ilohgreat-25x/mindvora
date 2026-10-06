@@ -158,6 +158,7 @@
   var svAudio = null, svT = null, fadeT = null, svList = [], svIdx = -1, svMuted = false;
   function stopSv() {
     clearTimeout(svT); clearInterval(fadeT); svT = fadeT = null;
+    if (window.MVMediaSounds) MVMediaSounds.stopStory();
     if (svAudio) { try { svAudio.pause(); } catch (e) {} svAudio.removeAttribute('src'); try { svAudio.load(); } catch (e) {} svAudio = null; }
   }
   function closeViewer() { stopSv(); var ov = $('sv-overlay'); if (ov) ov.classList.remove('open'); svList = []; svIdx = -1; }
@@ -168,7 +169,7 @@
     var txt = $('sv-text'); txt.parentNode.insertBefore(img, txt);
     var mute = document.createElement('button'); mute.id = 'sv-mute'; mute.type = 'button';
     mute.style.cssText = 'position:absolute;bottom:24px;right:20px;z-index:5;background:rgba(0,0,0,.5);color:#fff;border:0;border-radius:50%;width:40px;height:40px;font-size:18px;display:none';
-    mute.onclick = function (e) { e.stopPropagation(); svMuted = !svMuted; if (svAudio) svAudio.muted = svMuted; mute.textContent = svMuted ? '🔇' : '🔊'; };
+    mute.onclick = function (e) { e.stopPropagation(); svMuted = !svMuted; if (svAudio) svAudio.muted = svMuted; if (window.MVMediaSounds) MVMediaSounds.muteStory(svMuted); mute.textContent = svMuted ? '🔇' : '🔊'; };
     ov.appendChild(mute);
     ov.addEventListener('click', function (e) {
       if (e.target.closest && e.target.closest('#sv-x, #sv-mute')) return;
@@ -200,7 +201,8 @@
     $('sv-tm').textContent = timeAgo(s.createdAt) + (hasMusic ? ' · 🎵 ' + (s.music.name || '') : '');
     $('sv-text').textContent = s.text || '';
     var img = $('sv-img'); if (img) { if (hasImg) { img.src = s.media.url; img.style.display = 'block'; } else { img.removeAttribute('src'); img.style.display = 'none'; } }
-    var mute = $('sv-mute'); if (mute) { mute.style.display = hasMusic ? 'block' : 'none'; mute.textContent = svMuted ? '🔇' : '🔊'; }
+    var hasSnd = !!(window.MVMediaSounds && MVMediaSounds.story(s, svMuted)); // Sound Board sound on a photo story
+    var mute = $('sv-mute'); if (mute) { mute.style.display = (hasMusic || hasSnd) ? 'block' : 'none'; mute.textContent = svMuted ? '🔇' : '🔊'; }
     $('sv-overlay').classList.add('open');
     var fill = $('sv-fill'); fill.style.transition = 'none'; fill.style.width = '0%';
     setTimeout(function () { fill.style.transition = 'width ' + (ms / 1000) + 's linear'; fill.style.width = '100%'; }, 50);
