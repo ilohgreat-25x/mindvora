@@ -53,7 +53,7 @@
       '</div>'+
     '</div>';
   }).join('')||'<div style="text-align:center;padding:20px;font-size:12px;color:var(--muted)">No messages yet</div>'; box.scrollTop=box.scrollHeight; }, function(err){ console.warn('[chat] messages listener', err); }); document.getElementById('ci-'+dmId).addEventListener('keydown',function(e){ if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(dmId,otherId,otherName,otherColor||COLORS[0]); } }); };
-  var baseLoad = function(){ if(!state.user) return; db.collection('dms').where('members','array-contains',state.user.uid).limit(20).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; if(!snap.docs.length){ list.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--muted)">No conversations yet</div>'; return; } snap.docs.slice().sort(function(a,b){ var k='pin_'+state.user.uid; return (b.data()[k]?1:0)-(a.data()[k]?1:0); }).forEach(function(d){ var dm=d.data(),oid=dm.members.find(function(m){ return m!==state.user.uid; }),oname=dm.names?dm.names[oid]:'User',ocolor=dm.colors?dm.colors[oid]:COLORS[0]; if(window.MVChatActions && !MVChatActions.listed(d.id,dm)) return; var row=document.createElement('div'); row.className='dm-row'; row.innerHTML='<div class="dm-av" style="background:'+ocolor+'">'+esc(oname.charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="dm-nm">'+esc(oname)+(dm['pin_'+state.user.uid]?' 📌':'')+(window.MVChatActions?MVChatActions.badges(dm):'')+'</div><div class="dm-pv">'+esc(dm.lastMsg||'')+'</div></div>'+(dm.unread?'<div class="dm-ud"></div>':''); row.addEventListener('click',function(){ openChat(d.id,oid,oname,ocolor); }); list.appendChild(row); }); if(window.MVChatActions) MVChatActions.afterList(list, snap); }).catch(function(err){ console.warn('[chat] conversations', err); }); };
+  var baseLoad = function(){ if(!state.user) return; db.collection('dms').where('members','array-contains',state.user.uid).limit(20).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; if(!snap.docs.length){ list.innerHTML='<div style="padding:20px;text-align:center;font-size:12px;color:var(--muted)">No conversations yet</div>'; return; } snap.docs.slice().sort(function(a,b){ var k='pin_'+state.user.uid; return (b.data()[k]?1:0)-(a.data()[k]?1:0); }).forEach(function(d){ var dm=d.data(),oid=dm.members.find(function(m){ return m!==state.user.uid; }),oname=dm.names?dm.names[oid]:'User',ocolor=dm.colors?dm.colors[oid]:COLORS[0]; if(window.MVChatActions && !MVChatActions.listed(d.id,dm)) return; var row=document.createElement('div'); row.className='dm-row'; row.setAttribute('data-dm',d.id); names[d.id]=oname; row.innerHTML='<div class="dm-av" style="background:'+ocolor+'">'+esc(oname.charAt(0).toUpperCase())+'</div><div style="flex:1;min-width:0"><div class="dm-nm">'+esc(oname)+(dm['pin_'+state.user.uid]?' 📌':'')+(window.MVChatActions?MVChatActions.badges(dm):'')+'</div><div class="dm-pv">'+esc(dm.lastMsg||'')+'</div></div>'+(dm.unread?'<div class="dm-ud"></div>':''); row.addEventListener('click',function(){ openChat(d.id,oid,oname,ocolor); }); list.appendChild(row); }); if(window.MVChatActions) MVChatActions.afterList(list, snap); }).catch(function(err){ console.warn('[chat] conversations', err); }); };
   // ── state ────────────────────────────────────────────────────────────
   function me() { return window.state && state.user ? state.user.uid : null; }
   function fdb() { return window.db; }
@@ -152,12 +152,16 @@
   var REPORT_REASONS = ['Harassment', 'Spam', 'Inappropriate behavior', 'Fake account', 'Scam or fraud', 'Other'];
   function backToList() {
     var right = document.getElementById('dm-right'), w = right && right.closest('.dm-wrap');
+    if (lastAct && right && !right.querySelector('#cm-' + lastAct)) { if (typeof loadConversations === 'function') loadConversations(); return; } // acted from the list: leave any open chat alone
     if (w) w.classList.remove('chat-open');
     if (right) right.innerHTML = '';
     if (window.__mvChatUnsub) { try { window.__mvChatUnsub(); } catch (e) {} window.__mvChatUnsub = null; }
     if (typeof loadConversations === 'function') loadConversations();
   }
-  function reopen() { if (cur) window.openChat(cur.dmId, cur.otherId, cur.otherName, cur.otherColor); }
+  function reopen() {
+    if (cur && cur.dmId === lastAct && document.getElementById('cm-' + cur.dmId)) return window.openChat(cur.dmId, cur.otherId, cur.otherName, cur.otherColor);
+    if (typeof loadConversations === 'function') loadConversations();
+  }
   function fail(what) { return function (e) { console.warn('[chat-actions]', what, e); toast('Could not ' + what + ' — ' + (e && e.code === 'permission-denied' ? 'not allowed' : 'check your connection')); }; }
 
   function doBlock(dmId, uid, name) {
@@ -186,7 +190,8 @@
     });
   }
   function act(a, dmId) {
-    var d = docs[dmId] || {}, uid = other(dmId), name = cur && cur.dmId === dmId ? cur.otherName : 'User', o = {};
+    lastAct = dmId;
+    var d = docs[dmId] || {}, uid = other(dmId), name = cur && cur.dmId === dmId ? cur.otherName : (names[dmId] || 'User'), o = {};
     switch (a) {
       case 'pin': o[key('pin')] = !d[key('pin')]; return upd(dmId, o).then(function () { toast(o[key('pin')] ? '📌 Chat pinned' : 'Chat unpinned'); }).catch(fail('pin'));
       case 'mute': o[key('muted')] = !d[key('muted')]; return upd(dmId, o).then(function () { toast(o[key('muted')] ? '🔕 Chat muted' : '🔔 Chat unmuted'); }).catch(fail('mute'));
@@ -211,7 +216,7 @@
   }
 
   // ── header menu (⋮) ─────────────────────────────────────────────────
-  var menu = null;
+  var menu = null, names = {}, lastAct = null;
   function closeMenu() { if (menu) { menu.remove(); menu = null; } }
   function openMenu(btn, dmId) {
     closeMenu();
@@ -238,10 +243,38 @@
     menu.addEventListener('click', function (e) { var b = e.target.closest('[data-mvact]'); if (!b) return; closeMenu(); act(b.getAttribute('data-mvact'), dmId); });
   }
   document.addEventListener('click', function (e) {
+    // the click that follows a long-press must not open the chat or close the menu just opened
+    if (lp.firedAt && Date.now() - lp.firedAt < 1500 && e.target.closest && e.target.closest('#dm-list .dm-row[data-dm]')) { lp.firedAt = 0; e.stopPropagation(); e.preventDefault(); return; }
     var b = e.target.closest && e.target.closest('.mv-chat-more');
     if (b) { e.stopPropagation(); openMenu(b, b.getAttribute('data-dm')); return; }
     if (menu && !menu.contains(e.target)) closeMenu();
   }, true);
+
+  // ── long-press (touch ~500 ms) / right-click on a chat in the list → same actions menu ──
+  var lp = { t: null, x: 0, y: 0, firedAt: 0 };
+  function pt(x, y) { return { getBoundingClientRect: function () { return { bottom: y, right: x + 120 }; } }; }
+  function lpRow(e) { return e.target && e.target.closest ? e.target.closest('#dm-list .dm-row[data-dm]') : null; }
+  function lpCancel() { if (lp.t) { clearTimeout(lp.t); lp.t = null; } }
+  function lpOpen(row, x, y) {
+    lp.firedAt = Date.now();
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch (err) {}
+    openMenu(pt(x, y), row.getAttribute('data-dm'));
+  }
+  document.addEventListener('pointerdown', function (e) {
+    var row = lpRow(e); if (!row || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    lpCancel(); lp.x = e.clientX; lp.y = e.clientY;
+    lp.t = setTimeout(function () { lp.t = null; lpOpen(row, lp.x, lp.y); }, 500);
+  }, true);
+  document.addEventListener('pointermove', function (e) { if (lp.t && (Math.abs(e.clientX - lp.x) > 10 || Math.abs(e.clientY - lp.y) > 10)) lpCancel(); }, true);
+  ['pointerup', 'pointercancel', 'scroll'].forEach(function (ev) { document.addEventListener(ev, lpCancel, true); });
+  document.addEventListener('contextmenu', function (e) {
+    var row = lpRow(e); if (!row) return; e.preventDefault(); lpCancel();
+    if (menu && Date.now() - lp.firedAt < 800) return; // Android fires contextmenu right after our own long-press
+    lpOpen(row, e.clientX, e.clientY);
+  }, true);
+  var lpCss = document.createElement('style');
+  lpCss.textContent = '#dm-list .dm-row[data-dm]{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}';
+  document.head.appendChild(lpCss);
 
   function decorate() {
     var right = document.getElementById('dm-right'); if (!right) return;
@@ -353,11 +386,23 @@
   function paintSearch() {
     var el = document.getElementById('adv-search-inp'); if (!el) return;
     [['background', '#ffffff'], ['background-color', '#ffffff'], ['color', '#000000'], ['-webkit-text-fill-color', '#000000'],
-     ['caret-color', '#000000'], ['border', '1px solid #d1d5db'], ['color-scheme', 'light']].forEach(function (x) { el.style.setProperty(x[0], x[1], 'important'); });
+     ['caret-color', '#000000'], ['border', '1px solid #d1d5db'], ['color-scheme', 'light'], ['opacity', '1'],
+     ['flex', '1 1 auto'], ['min-width', '0'], ['width', 'auto']].forEach(function (x) { el.style.setProperty(x[0], x[1], 'important'); });
+    var btn = el.nextElementSibling; // the Search button had width:100% (.btn-pay) and squeezed the box to ~28px on phones
+    if (btn && btn.tagName === 'BUTTON') { btn.style.setProperty('width', 'auto', 'important'); btn.style.setProperty('flex', '0 0 auto', 'important'); }
+    if (!el.__mvGuard && window.MutationObserver) {
+      el.__mvGuard = new MutationObserver(function () {
+        var c = el.style.getPropertyValue('color'), w = el.style.getPropertyValue('width');
+        if (!/^(#000000|rgb\(0, 0, 0\))$/.test(c) || w !== 'auto') paintSearch();
+      });
+      el.__mvGuard.observe(el, { attributes: true, attributeFilter: ['style'] });
+    }
   }
   var st = document.createElement('style');
   st.textContent = '#adv-search-inp::placeholder{color:#6b7280!important;-webkit-text-fill-color:#6b7280!important;opacity:1}' +
-    '#adv-search-inp:-webkit-autofill{-webkit-text-fill-color:#000!important;-webkit-box-shadow:0 0 0 1000px #fff inset!important}';
+    '#adv-search-inp:-webkit-autofill{-webkit-text-fill-color:#000!important;-webkit-box-shadow:0 0 0 1000px #fff inset!important}' +
+    '#modal-adv-search #adv-search-inp{min-width:0!important;flex:1 1 auto!important;width:auto!important}' +
+    '#modal-adv-search #adv-search-inp + .btn-pay{width:auto!important;flex:0 0 auto!important}';
   document.head.appendChild(st);
   paintSearch();
   if (typeof window.openAdvancedSearch === 'function') {
