@@ -476,3 +476,14 @@ function injectSocialFeatures() {
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
 })();
+
+// ROUND 7 — ONE call system on ONE WebSocket. script.js still contains an old Firestore-based call system
+// (calls collection + onSnapshot listener started 3s after login). Nothing starts calls with it any more, but its
+// listener still popped a second "incoming call" banner for old 'ringing' docs. Route everything to MVCall
+// (backend WebSocket signalling) and switch the old listener off. script.js itself stays untouched.
+(function(){
+  window.listenForIncomingCalls = function(){};
+  window.startCall = function (targetUid, targetName, targetColor, isVideo) {
+    if (window.MVCall && MVCall.start) return MVCall.start(targetUid, targetName, isVideo ? 'video' : 'audio');
+  };
+})();

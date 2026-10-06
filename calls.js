@@ -354,8 +354,10 @@ var MVCall = (function () {
     var stateChange = function () {
       if (!call || call.pc !== pc) return;
       var st = pc.connectionState || pc.iceConnectionState, ice = pc.iceConnectionState;
-      if (st === 'connected' || ice === 'connected' || ice === 'completed') { onConnected(); return; }
-      if (st === 'disconnected' || ice === 'disconnected') { if (call.connectedAt) status('Reconnecting…'); return; }
+      if (st === 'connected' || ice === 'connected' || ice === 'completed') { call.discAt = 0; onConnected(); return; }
+      // Remember WHEN the link dropped: a peer that hung up while its CALL_ENDED was lost leaves us 'disconnected'
+      // forever, and that stale call used to make this phone auto-answer "busy" to every later incoming call.
+      if (st === 'disconnected' || ice === 'disconnected') { if (!call.discAt) call.discAt = Date.now(); if (call.connectedAt) status('Reconnecting…'); return; }
       if (st === 'failed' || ice === 'failed') {
         // ICE restart instead of dropping the call (network switch Wi-Fi ↔ mobile data)
         if (call.role === 'caller' && (call.retries = (call.retries || 0) + 1) <= 3) { status('Reconnecting…'); restartIce(); }
@@ -455,6 +457,10 @@ var MVCall = (function () {
       var st = call.pc.connectionState || call.pc.iceConnectionState;
       if (st === 'closed') return false;
       if (st === 'failed' && age > 20000) return false;
+      // ROOT CAUSE of "B calls A works, A cannot call B back": after a call, the side that missed CALL_ENDED kept a
+      // 'disconnected' peer connection that counted as live forever → every new incoming call got an automatic "busy".
+      if (st === 'disconnected') return !call.discAt || Date.now() - call.discAt < 20000;
+      if ((st === 'new' || st === 'connecting' || st === 'checking') && !call.connectedAt) return age < 45000;
       return true;
     }
     return age < 20000;   // accepting / starting
