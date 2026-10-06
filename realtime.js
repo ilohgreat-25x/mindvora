@@ -20,6 +20,7 @@
   if (typeof origSend === 'function') {
     window.sendMsg = function (dmId, otherId, otherName, otherColor) {
       var inp = document.getElementById('ci-' + dmId), text = inp ? inp.value.trim() : '';
+      if (window.MVChatActions && MVChatActions.pairBlocked(otherId)) return origSend.apply(this, arguments); // refused there; never relay
       var r = origSend.apply(this, arguments);
       if (text && me() && otherId) {
         send({ type: 'RT_DM', to: otherId, dmId: dmId, text: text, name: profile().name || 'User', color: profile().color || '' });
@@ -29,6 +30,7 @@
     };
   }
   function showIncomingDm(m) {
+    if (window.MVChatActions && MVChatActions.blocked(m.from || other(m.dmId))) return; // I blocked the sender
     var box = document.getElementById('cm-' + m.dmId);
     hideTyping(m.dmId);
     if (box) {
@@ -38,7 +40,7 @@
       el.innerHTML = '<div class="msg-av" style="background:' + h(m.color || '#555') + '">' + h((m.name || 'U').charAt(0)) + '</div>' +
         '<div><div class="msg-bub">' + h(m.text) + '</div><div class="msg-t">now</div></div>';
       box.appendChild(el); box.scrollTop = box.scrollHeight;
-    } else {
+    } else if (!(window.MVChatActions && MVChatActions.isMuted(m.dmId))) {
       toastMsg('💬 ' + (m.name || 'New message') + ': ' + String(m.text || '').slice(0, 80));
     }
   }

@@ -466,6 +466,7 @@ var MVCall = (function () {
     return age < 20000;   // accepting / starting
   }
   function incoming(m) {
+    if (window.MVChatActions && MVChatActions.blocked(m.from)) { send({ type: 'CALL_DECLINE', callId: m.callId, reason: 'declined' }); return; } // blocked caller
     if (call && call.id === m.callId) return;          // same call delivered twice (reconnect)
     // Both pressed call at the same moment: drop my outgoing call and take theirs.
     if (call && call.role === 'caller' && call.peer === m.from && !call.connectedAt) {
@@ -754,7 +755,7 @@ var MVCall = (function () {
 })();
 
 // Real-time messages, typing, presence and notifications share this same socket.
-(function () { var sc = document.createElement('script'); sc.src = '/realtime.js?v=14'; sc.defer = true; document.head.appendChild(sc); })();
+(function () { var sc = document.createElement('script'); sc.src = '/realtime.js?v=15'; sc.defer = true; document.head.appendChild(sc); })();
 // ARIA chat UI (streamed answers on this same socket, safe Markdown, real errors).
 (function () { var sc = document.createElement('script'); sc.src = '/aria-ui.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
 // Core chat features: reactions, reply, pin chats, drafts, voice-note speed.

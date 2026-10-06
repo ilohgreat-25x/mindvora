@@ -83,18 +83,39 @@ service cloud.firestore {
     }
 
     // ── dms (private messages) ─────────────────────────────────────────────
-    match /dms/{docId} {
-      allow read: if isSignedIn()
-        && (resource.data.fromUid == request.auth.uid
-            || resource.data.toUid == request.auth.uid
-            || resource.data.participants != null
-              && request.auth.uid in resource.data.participants);
-      allow create: if isSignedIn()
-        && (request.resource.data.fromUid == request.auth.uid
-            || request.resource.data.toUid == request.auth.uid
-            || request.resource.data.participants != null
-              && request.auth.uid in request.resource.data.participants);
-      allow update, delete: if false;
+    // Matches what the app really writes: doc id = the two uids sorted and joined with "_",
+    // fields `members`, `lastMsg`, per-user flags (pin_/muted_/archived_/locked_/cleared_/deleted_/unread_<uid>),
+    // and a `messages` subcollection with `fromId`. (The old rule checked fromUid/toUid/participants, which the
+    // app never writes, and had no rule for `messages` — so every send was refused.)
+    function dmMember(dmId) {
+      return isSignedIn() && request.auth.uid in dmId.split('_');
+    }
+    function hasBlocked(a, b) {
+      return exists(/databases/$(database)/documents/users/$(a))
+        && get(/databases/$(database)/documents/users/$(a)).data.get('blockedUsers', []).hasAny([b]);
+    }
+    function dmBlocked(dmId) {
+      return hasBlocked(dmId.split('_')[0], dmId.split('_')[1])
+        || hasBlocked(dmId.split('_')[1], dmId.split('_')[0]);
+    }
+    match /dms/{dmId} {
+      allow get: if dmMember(dmId);
+      allow list: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow create, update: if dmMember(dmId)
+        && request.resource.data.members.size() == 2
+        && request.resource.data.members.hasAll(dmId.split('_'));
+      allow delete: if false;
+
+      match /messages/{msgId} {
+        allow read: if dmMember(dmId);
+        allow create: if dmMember(dmId)
+          && request.resource.data.fromId == request.auth.uid
+          && !dmBlocked(dmId);
+        allow update: if dmMember(dmId)
+          && ((resource.data.fromId == request.auth.uid && request.resource.data.fromId == request.auth.uid)
+              || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt']));
+        allow delete: if dmMember(dmId) && resource.data.fromId == request.auth.uid;
+      }
     }
 
     // ── calls ──────────────────────────────────────────────────────────────
