@@ -493,18 +493,75 @@ function injectSocialFeatures() {
 // Sound Board sounds on photo/video posts and photo stories (in-app playback only).
 (function(){ var sc = document.createElement('script'); sc.src = '/media-sounds.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
 
-// PUSH TAP WHEN THE APP WAS CLOSED — the service worker opens "/?action=dm" or "/?action=notifications",
-// but only an already-open tab used to be routed. On a cold start, wait until the user is logged in and
-// the app screen is showing, then open Messages / Notifications.
+// PUSH NOTIFICATIONS — every kind of activity, and a tap lands on the right screen.
+// Links from the server: ?action=dm | notifications | spark&id= | profile&uid= | earn | live, and ?call=…
 (function(){
+  var ACTS = { dm:1, notifications:1, spark:1, profile:1, earn:1, live:1 };
+  function route(url) {
+    var q; try { q = new URL(url, location.origin).searchParams; } catch (e) { return; }
+    var act = q.get('action');
+    try {
+      if (act === 'dm') { var d = document.getElementById('nav-dm'); if (d) d.click(); }
+      else if (act === 'spark' && q.get('id') && typeof openComments === 'function') openComments(q.get('id'));
+      else if (act === 'profile' && q.get('uid') && typeof openUserProfile === 'function') {
+        db.collection('users').doc(q.get('uid')).get().then(function (u) { openUserProfile(q.get('uid'), u.exists ? u.data() : {}); }).catch(function () {});
+      }
+      else if (act === 'earn') { var e = document.getElementById('nav-earn'); if (e) e.click(); }
+      else if (act === 'live' && typeof openLivesList === 'function') openLivesList();
+      else if (act === 'notifications') { var n = document.getElementById('notif-btn'); if (n) n.click(); }
+    } catch (err) { console.warn('[push] open failed', err); }
+  }
+  window.handleOpenUrl = route;   // the service worker's message to an open tab goes through this name
+  // Cold start (app was closed): wait for login + app screen, then route.
   var act; try { act = new URLSearchParams(location.search).get('action'); } catch (e) {}
-  if (act !== 'dm' && act !== 'notifications') return;
+  if (!ACTS[act]) return;
+  var url = location.search;
   try { history.replaceState(null, '', location.pathname); } catch (e) {}
   var tries = 0, t = setInterval(function(){
     tries++;
     var app = document.getElementById('app-screen');
-    var ready = typeof state !== 'undefined' && state.user && app && getComputedStyle(app).display !== 'none' && typeof handleOpenUrl === 'function';
-    if (ready) { clearInterval(t); setTimeout(function(){ handleOpenUrl('/?action=' + act); }, 400); }
+    var ready = typeof state !== 'undefined' && state.user && app && getComputedStyle(app).display !== 'none';
+    if (ready) { clearInterval(t); setTimeout(function(){ route('/' + url); }, 400); }
     else if (tries > 60) clearInterval(t); // 30 s: not logged in → normal start
   }, 500);
+})();
+
+// Comments and reposts never created a notification, so the author was never told (in-app or push).
+(function(){
+  if (typeof firebase === 'undefined' || !firebase.firestore) return;
+  var CR = firebase.firestore.CollectionReference.prototype, add = CR.add;
+  function note(toUid, type, text, sparkId) {
+    if (!toUid || !state.user || toUid === state.user.uid) return;
+    db.collection('notifications').add({ toUid: toUid, fromUid: state.user.uid, fromName: (state.profile && state.profile.name) || 'Someone',
+      type: type, text: text, sparkId: sparkId, read: false, createdAt: firebase.firestore.FieldValue.serverTimestamp() }).catch(function(){});
+  }
+  CR.add = function (data) {
+    var p = add.apply(this, arguments), path = this.path || '';
+    try {
+      var who = (state.profile && state.profile.name) || 'Someone';
+      var m = /^sparks\/([^/]+)\/comments$/.exec(path);
+      if (m && data && state.user && data.authorId === state.user.uid) {
+        var sid = m[1];
+        p.then(function () { return db.collection('sparks').doc(sid).get(); }).then(function (s) {
+          if (s.exists) note(s.data().authorId, 'comment', who + ' commented: ' + String(data.text || '').slice(0, 100), sid);
+        }).catch(function(){});
+      } else if (path === 'sparks' && data && data.isRepost && data.originalId && state.user) {
+        p.then(function () { return db.collection('sparks').doc(data.originalId).get(); }).then(function (s) {
+          if (s.exists) note(s.data().authorId, 'repost', who + ' reposted your spark', data.originalId);
+        }).catch(function(){});
+      }
+    } catch (e) {}
+    return p;
+  };
+})();
+
+// Permission banner: it's about all activity, not only messages and calls.
+(function(){
+  if (typeof showPushPrompt !== 'function') return;
+  var orig = showPushPrompt;
+  window.showPushPrompt = function () {
+    orig.apply(this, arguments);
+    var sp = document.querySelector('#mv-push-prompt span');
+    if (sp) sp.textContent = 'Get notified about messages, calls, likes, comments, follows, tips and more — even when Mindvora is closed.';
+  };
 })();
