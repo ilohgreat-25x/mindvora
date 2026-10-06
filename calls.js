@@ -765,12 +765,13 @@ var MVCall = (function () {
 // Story music: 26 streamed tracks, 15s playback, music saved with the story.
 (function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=18'; sc.defer = true; document.head.appendChild(sc); })();
 
-// Advanced Search: force readable white typing on the exact box, every time it is opened or typed in.
+// Advanced Search: WHITE box with BLACK typing on the exact box, every time it is opened or typed in.
 (function () {
   function paint(el) { if (!el) return; var st = el.style;
-    st.setProperty('color', '#ffffff', 'important'); st.setProperty('-webkit-text-fill-color', '#ffffff', 'important');
-    st.setProperty('caret-color', '#22c55e', 'important'); st.setProperty('background', '#0f1418', 'important');
-    st.setProperty('background-color', '#0f1418', 'important'); st.setProperty('opacity', '1', 'important'); }
+    st.setProperty('color', '#000000', 'important'); st.setProperty('-webkit-text-fill-color', '#000000', 'important');
+    st.setProperty('caret-color', '#000000', 'important'); st.setProperty('background', '#ffffff', 'important');
+    st.setProperty('background-color', '#ffffff', 'important'); st.setProperty('opacity', '1', 'important');
+    st.setProperty('border', '1px solid #d1d5db', 'important'); st.setProperty('color-scheme', 'light', 'important'); }
   ['focusin', 'input', 'click'].forEach(function (ev) { document.addEventListener(ev, function (e) { if (e.target && e.target.id === 'adv-search-inp') paint(e.target); }, true); });
   var t = setInterval(function () { var el = document.getElementById('adv-search-inp'); if (el) { paint(el); clearInterval(t); } }, 500);
 })();
