@@ -763,7 +763,7 @@ var MVCall = (function () {
 // Advanced Search: readable white text + matches anywhere in the name/post.
 (function () { var sc = document.createElement('script'); sc.src = '/search-fix.js?v=17'; sc.defer = true; document.head.appendChild(sc); })();
 // Story music: 26 streamed tracks, 15s playback, music saved with the story.
-(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=19'; sc.defer = true; document.head.appendChild(sc); })();
+(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=20'; sc.defer = true; document.head.appendChild(sc); })();
 
 // Advanced Search: WHITE box with BLACK typing on the exact box, every time it is opened or typed in.
 (function () {

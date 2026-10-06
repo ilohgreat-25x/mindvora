@@ -169,7 +169,9 @@
     var txt = $('sv-text'); txt.parentNode.insertBefore(img, txt);
     var mute = document.createElement('button'); mute.id = 'sv-mute'; mute.type = 'button';
     mute.style.cssText = 'position:absolute;bottom:24px;right:20px;z-index:5;background:rgba(0,0,0,.5);color:#fff;border:0;border-radius:50%;width:40px;height:40px;font-size:18px;display:none';
-    mute.onclick = function (e) { e.stopPropagation(); svMuted = !svMuted; if (svAudio) svAudio.muted = svMuted; if (window.MVMediaSounds) MVMediaSounds.muteStory(svMuted); mute.textContent = svMuted ? '🔇' : '🔊'; };
+    mute.onclick = function (e) { e.stopPropagation();
+      if (svBlocked && svAudio) { svBlocked = false; svMuted = false; svAudio.muted = false; svAudio.play().catch(function () {}); if (window.MVMediaSounds) MVMediaSounds.muteStory(false); mute.textContent = '🔊'; return; }
+      svMuted = !svMuted; if (svAudio) svAudio.muted = svMuted; if (window.MVMediaSounds) MVMediaSounds.muteStory(svMuted); mute.textContent = svMuted ? '🔇' : '🔊'; };
     ov.appendChild(mute);
     ov.addEventListener('click', function (e) {
       if (e.target.closest && e.target.closest('#sv-x, #sv-mute')) return;
@@ -180,9 +182,21 @@
     document.addEventListener('visibilitychange', function () { if (document.hidden) closeViewer(); });
     window.addEventListener('popstate', closeViewer);
   }
+  // Stories saved before the tracks moved into the app point at Pixabay links that no longer work: play the local
+  // track with the same (or closest) name. Only this site's /music/ files are ever played.
+  var OLD = { 'Upbeat Energy': 'feel-good', 'Lo-Fi Beat': 'street-beat', 'Ambient': 'calm-waves' };
+  function musicUrl(m) {
+    var u = String(m && m.url || ''), n = String(m && m.name || '');
+    if (/^\/music\/[a-z0-9-]+\.mp3$/.test(u)) return u;
+    for (var i = 0; i < TRACKS.length; i++) if (TRACKS[i].name === n) return TRACKS[i].url;
+    return OLD[n] ? '/music/' + OLD[n] + '.mp3' : null;
+  }
+  var svBlocked = false;
   function playMusic(music, ms) {
-    svAudio = new Audio(music.url); svAudio.volume = 0.7; svAudio.muted = svMuted; svAudio.loop = true; // loop if track shorter than story
-    svAudio.play().catch(function () { var m = $('sv-mute'); if (m) { m.textContent = '🔇'; } }); // autoplay blocked → user taps 🔊
+    var url = musicUrl(music); if (!url) return;
+    svBlocked = false;
+    svAudio = new Audio(url); svAudio.volume = 0.7; svAudio.muted = svMuted; svAudio.loop = true; // loop if track shorter than story
+    svAudio.play().catch(function () { svBlocked = true; var m = $('sv-mute'); if (m) { m.textContent = '🔇'; } }); // autoplay blocked → user taps 🔊 to start
     var a = svAudio;
     setTimeout(function () { // fade out over the last 600 ms so the cut at the story's end is clean
       if (a !== svAudio) return; var v = a.volume; clearInterval(fadeT);
@@ -193,7 +207,7 @@
     stopSv();
     if (i < 0 || i >= svList.length) { closeViewer(); return; }
     svIdx = i; var id = svList[i].id, s = svList[i].s || {};
-    var hasMusic = !!(s.music && s.music.url), hasImg = !!(s.media && s.media.url && s.media.type === 'image');
+    var hasMusic = !!(s.music && musicUrl(s.music)), hasImg = !!(s.media && s.media.url && s.media.type === 'image');
     var ms = Number(s.durationMs) > 0 ? Math.min(15000, Math.max(3000, Number(s.durationMs))) : storyDuration(s.text, hasImg);
     $('sv-av').textContent = (s.authorName || 'Z').charAt(0).toUpperCase();
     $('sv-av').style.background = s.authorColor || COLORS[0];
