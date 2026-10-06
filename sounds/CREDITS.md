@@ -11,7 +11,8 @@
   https://commons.wikimedia.org/wiki/File%3ADrum_Roll_Intro.ogg
 - `fanfare.mp3` (🎺 Fanfare) — "Fanfares of the President of Azerbaijan.ogg" by Central Band of the Armed Forces of the Republic of Azerbaij, Wikimedia Commons, **Public domain**. Trimmed, normalised.
   https://commons.wikimedia.org/wiki/File%3AFanfares_of_the_President_of_Azerbaijan.ogg
-- `bell.mp3` (🔔 Bell) — "De-Handglocke.ogg" by Jeuwre, Wikimedia Commons, **CC BY-SA 4.0**. Trimmed, normalised.
+- `bell.mp3` (🔔 Bell) — "Old school bell 4.ogg" by ezwa, Wikimedia Commons, **Public domain**. Trimmed, normalised.
+  https://commons.wikimedia.org/wiki/File%3AOld_school_bell_4.ogg
   https://commons.wikimedia.org/wiki/File%3ADe-Handglocke.ogg
 - `boom.mp3` (💥 Boom) — "Explosion 10.ogg" by tcpp, Wikimedia Commons, **Public domain**. Trimmed, normalised.
   https://commons.wikimedia.org/wiki/File%3AExplosion_10.ogg
@@ -21,7 +22,8 @@
   https://commons.wikimedia.org/wiki/File%3ASad_Trombone-Joe_Lamb-665429450.ogg
 - `zap.mp3` (⚡ Zap) — "Massie Wireless Station "PJ" Spark Sound.ogg" by Djringjr, Wikimedia Commons, **CC BY 4.0**. Trimmed, normalised.
   https://commons.wikimedia.org/wiki/File%3AMassie_Wireless_Station_%22PJ%22_Spark_Sound.ogg
-- `cat-meow.mp3` (🐱 Cat Meow) — "Meow of a Siamese cat - freemaster2.wav" by freemaster2, Wikimedia Commons, **CC0**. Trimmed, normalised.
+- `cat-meow.mp3` (🐱 Cat Meow) — "Felis silvestris catus meows.ogg" by Tobias Puderer, Wikimedia Commons, **CC BY-SA 3.0**. Trimmed, normalised.
+  https://commons.wikimedia.org/wiki/File%3AFelis_silvestris_catus_meows.ogg
   https://commons.wikimedia.org/wiki/File%3AMeow_of_a_Siamese_cat_-_freemaster2.wav
 - `guitar.mp3` (🎸 Guitar) — "Strumming Vibrato off on.ogg" by Hombre, Wikimedia Commons, **CC BY-SA 4.0**. Trimmed, normalised.
   https://commons.wikimedia.org/wiki/File%3AStrumming_Vibrato_off_on.ogg
@@ -29,7 +31,8 @@
   https://commons.wikimedia.org/wiki/File%3AHowling_wind.ogg
 - `snore.mp3` (😴 Snore) — "Snore man 50 years 160 kg.ogg" by Vladlen666, Wikimedia Commons, **CC BY-SA 3.0**. Trimmed, normalised.
   https://commons.wikimedia.org/wiki/File%3ASnore_man_50_years_160_kg.ogg
-- `ding.mp3` (🎵 Ding) — "Triangle-ar.wav" by باسم, Wikimedia Commons, **Public domain**. Trimmed, normalised.
+- `ding.mp3` (🎵 Ding) — "Doorbell.wav" by Are shyde, Wikimedia Commons, **CC BY 4.0**. Trimmed, normalised.
+  https://commons.wikimedia.org/wiki/File%3ADoorbell.wav
   https://commons.wikimedia.org/wiki/File%3ATriangle-ar.wav
 - `scream.mp3` (😱 Scream) — "Wilhelm Scream.ogg" by likely Sheb Wooley, Wikimedia Commons, **CC0**. Trimmed, normalised.
   https://commons.wikimedia.org/wiki/File%3AWilhelm_Scream.ogg
