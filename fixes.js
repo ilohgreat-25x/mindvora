@@ -451,3 +451,28 @@ function injectSocialFeatures() {
   window.loadStories = function loadStories(){ var cutoff=Date.now()-48*60*60*1000; db.collection('stories').where('expiresAt','>',new Date(cutoff)).limit(20).get().then(function(snap){ var bar=document.getElementById('stories-bar'); bar.innerHTML='<div class="s-add" id="story-add">＋</div>'; var list=snap.docs.map(function(x){ return {id:x.id,s:x.data()}; }); snap.docs.forEach(function(d){ var s=d.data(),seen=state.user&&(s.seenBy||[]).indexOf(state.user.uid)>-1; var el=document.createElement('div'); el.className='s-item'; el.innerHTML='<div class="s-ring'+(seen?' seen':'')+'"><div class="s-av">'+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div></div><div class="s-name">'+esc(s.authorName||'')+'</div>'; el.addEventListener('click',function(){ window.viewStory(d.id,s,list); }); bar.appendChild(el); }); document.getElementById('story-add').addEventListener('click',function(){ window.postStory(); }); }); };
   window.postStory = function postStory(){ var text=prompt('Share a story (disappears in 48h):'); if(!text||!text.trim()||!state.user) return; db.collection('stories').add({text:text.trim(),uid:state.user.uid,authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color,seenBy:[],createdAt:firebase.firestore.FieldValue.serverTimestamp(),expiresAt:new Date(Date.now()+48*60*60*1000)}).then(function(){ showToast('Story posted! 48h ⏱'); loadStories(); }); };
 })();
+
+// ROUND 6 — LIVE FOOTBALL + ANIME MOVIES menu entries (index.html stays untouched; panels live in live-hub.js)
+(function(){
+  var sc = document.createElement('script'); sc.src = '/live-hub.js?v=1'; sc.defer = true; document.head.appendChild(sc);
+  function run(name) {
+    try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
+    if (typeof window[name] === 'function') return window[name]();
+    var tries = 0, t = setInterval(function () {
+      if (typeof window[name] === 'function') { clearInterval(t); window[name](); }
+      else if (++tries > 40) { clearInterval(t); try { showToast('⚠️ Could not load. Check your connection and try again.'); } catch (e) {} }
+    }, 250);
+  }
+  window.mvOpenLive = run;
+  function add() {
+    if (document.getElementById('mv-dr-football')) return;
+    var anchor = document.querySelector('.drawer-item[onclick*="openMindvoraTV"]') || document.querySelector('.drawer-item[onclick*="openSoundboard"]');
+    if (!anchor) return;
+    [['mv-dr-anime', 'openAnimeMovies', '🎬 Stream Live Anime Movies'], ['mv-dr-football', 'openLiveFootball', '⚽ Stream Live Football Matches']].forEach(function (d) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = d[0]; b.textContent = d[2];
+      b.addEventListener('click', function () { run(d[1]); });
+      anchor.parentNode.insertBefore(b, anchor.nextSibling);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
+})();
