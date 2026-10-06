@@ -49,19 +49,15 @@ service cloud.firestore {
 
     // ── sparks (posts) ─────────────────────────────────────────────────────
     match /sparks/{sparkId} {
+      // Matches what the app writes (authorId, mediaUrl, mediaType, sound, …). Older posts may use uid.
+      function sparkOwner(d) { return d.get('authorId', null) == request.auth.uid || d.get('uid', null) == request.auth.uid; }
       allow read: if isSignedIn();
-      allow create: if isSignedIn()
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.keys().hasOnly([
-          'uid', 'name', 'avatar', 'text', 'image', 'imageUrl', 'video',
-          'likes', 'likedBy', 'comments', 'reposts', 'type', 'tags',
-          'category', 'poll', 'giftCount', 'createdAt', 'editedAt',
-          'scheduledAt', 'mentionUsers', 'location', 'privacy', 'pinned'
-        ]);
-      allow update: if isSignedIn()
-        && resource.data.uid == request.auth.uid;
-      allow delete: if isSignedIn()
-        && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && sparkOwner(request.resource.data);
+      // Owner edits anything; everyone else may only touch engagement counters/lists.
+      allow update: if isSignedIn() && (sparkOwner(resource.data)
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'likes', 'saved', 'commentCount', 'reposts', 'viewCount', 'tags', 'reactions', 'poll', 'giftCount', 'shares']));
+      allow delete: if isSignedIn() && sparkOwner(resource.data);
     }
 
     // ── comments ───────────────────────────────────────────────────────────
