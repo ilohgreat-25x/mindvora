@@ -223,8 +223,13 @@ service cloud.firestore {
     }
     match /stories/{docId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt <= request.time + duration.value(49, 'h');
+      // Owner can edit; any signed-in viewer may ONLY add themselves to seenBy (was owner-only → errors for viewers).
+      allow update: if isSignedIn() && (resource.data.uid == request.auth.uid
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy'])
+            && request.resource.data.seenBy.toSet().difference(resource.data.seenBy.toSet()).hasOnly([request.auth.uid])));
       allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
     }
     match /newsletters/{docId} {

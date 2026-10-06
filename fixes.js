@@ -441,3 +441,13 @@ function injectSocialFeatures() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(show, 4000); });
   else setTimeout(show, 4000);
 })();
+
+// ROUND 6 — STORIES (moved here so the 545 KB script.js stays untouched)
+// • The ＋ button calls window.postStory() at click time, so story-music.js's photo/music composer is used
+//   (it loads deferred; the old code bound the ORIGINAL prompt()-only postStory before it existed).
+// • Story docs carry `uid` — firestore.rules require uid == auth.uid, so text stories were being rejected.
+// • Taps pass the whole story list to viewStory so next/previous works.
+(function(){
+  window.loadStories = function loadStories(){ var cutoff=Date.now()-48*60*60*1000; db.collection('stories').where('expiresAt','>',new Date(cutoff)).limit(20).get().then(function(snap){ var bar=document.getElementById('stories-bar'); bar.innerHTML='<div class="s-add" id="story-add">＋</div>'; var list=snap.docs.map(function(x){ return {id:x.id,s:x.data()}; }); snap.docs.forEach(function(d){ var s=d.data(),seen=state.user&&(s.seenBy||[]).indexOf(state.user.uid)>-1; var el=document.createElement('div'); el.className='s-item'; el.innerHTML='<div class="s-ring'+(seen?' seen':'')+'"><div class="s-av">'+esc((s.authorName||'Z').charAt(0).toUpperCase())+'</div></div><div class="s-name">'+esc(s.authorName||'')+'</div>'; el.addEventListener('click',function(){ window.viewStory(d.id,s,list); }); bar.appendChild(el); }); document.getElementById('story-add').addEventListener('click',function(){ window.postStory(); }); }); };
+  window.postStory = function postStory(){ var text=prompt('Share a story (disappears in 48h):'); if(!text||!text.trim()||!state.user) return; db.collection('stories').add({text:text.trim(),uid:state.user.uid,authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color,seenBy:[],createdAt:firebase.firestore.FieldValue.serverTimestamp(),expiresAt:new Date(Date.now()+48*60*60*1000)}).then(function(){ showToast('Story posted! 48h ⏱'); loadStories(); }); };
+})();
