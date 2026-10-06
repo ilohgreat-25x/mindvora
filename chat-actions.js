@@ -324,7 +324,10 @@
   if (typeof window.sendMsg === 'function') window.sendMsg = guardSend(window.sendMsg);
   // A Firestore refusal (e.g. blocked) must not look like a sent message.
   window.addEventListener('unhandledrejection', function (e) {
-    var r = e.reason; if (r && r.code === 'permission-denied' && document.querySelector('#dm-right .chat-msgs')) toast('Message not sent — you can’t message this account.');
+    var r = e.reason; if (!r || r.code !== 'permission-denied' || !document.querySelector('#dm-right .chat-msgs')) return;
+    console.warn('[chat] Firestore refused a write', r);
+    var uid = cur && cur.otherId;
+    toast(uid && pairBlocked(uid) ? 'Message not sent — you can’t message this account.' : 'Message not sent — the server refused it. Please try again.');
   });
 
   // ── calls from/to blocked users ─────────────────────────────────────
@@ -346,15 +349,43 @@
     isMuted: function (dmId) { return !!(docs[dmId] || {})[key('muted')]; }
   };
 
-  // ── Advanced Search: typed text always white (this input only) ──────
+  // ── Advanced Search: WHITE box, BLACK text (inline !important beats the old inline white-text style) ──
+  function paintSearch() {
+    var el = document.getElementById('adv-search-inp'); if (!el) return;
+    [['background', '#ffffff'], ['background-color', '#ffffff'], ['color', '#000000'], ['-webkit-text-fill-color', '#000000'],
+     ['caret-color', '#000000'], ['border', '1px solid #d1d5db'], ['color-scheme', 'light']].forEach(function (x) { el.style.setProperty(x[0], x[1], 'important'); });
+  }
   var st = document.createElement('style');
-  st.textContent = '#adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#fff!important;background-color:#0f1418!important;color-scheme:dark;-webkit-appearance:none;appearance:none}' +
-    '#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important;opacity:1}' +
-    '#adv-search-inp:-webkit-autofill{-webkit-text-fill-color:#fff!important;-webkit-box-shadow:0 0 0 1000px #0f1418 inset!important}';
+  st.textContent = '#adv-search-inp::placeholder{color:#6b7280!important;-webkit-text-fill-color:#6b7280!important;opacity:1}' +
+    '#adv-search-inp:-webkit-autofill{-webkit-text-fill-color:#000!important;-webkit-box-shadow:0 0 0 1000px #fff inset!important}';
   document.head.appendChild(st);
+  paintSearch();
+  if (typeof window.openAdvancedSearch === 'function') {
+    var baseAdv = window.openAdvancedSearch;
+    window.openAdvancedSearch = function () { var r = baseAdv.apply(this, arguments); paintSearch(); setTimeout(paintSearch, 350); return r; };
+  }
 
   // ── Sound Board: real recordings for Laugh and Dog Bark ─────────────
-  var REAL = { '😂 Laugh': '/sounds/laughter.mp3', '🐶 Dog Bark': '/sounds/dog-bark.mp3' }, clips = {};
+  var REAL = {
+    '😂 Laugh': '/sounds/laughter.mp3', '🐶 Dog Bark': '/sounds/dog-bark.mp3',
+    '👏 Applause': '/sounds/applause.mp3',
+    '🥁 Drum Roll': '/sounds/drum-roll.mp3',
+    '🎺 Fanfare': '/sounds/fanfare.mp3',
+    '🔔 Bell': '/sounds/bell.mp3',
+    '💥 Boom': '/sounds/boom.mp3',
+    '🎉 Party Horn': '/sounds/party-horn.mp3',
+    '😢 Sad Trombone': '/sounds/sad-trombone.mp3',
+    '⚡ Zap': '/sounds/zap.mp3',
+    '🐱 Cat Meow': '/sounds/cat-meow.mp3',
+    '🎸 Guitar': '/sounds/guitar.mp3',
+    '👻 Spooky': '/sounds/spooky.mp3',
+    '😴 Snore': '/sounds/snore.mp3',
+    '🎵 Ding': '/sounds/ding.mp3',
+    '😱 Scream': '/sounds/scream.mp3',
+    '🤣 Ha Ha Ha': '/sounds/ha-ha-ha.mp3',
+    '🏆 Level Up': '/sounds/level-up.mp3',
+    '❌ Wrong Buzz': '/sounds/wrong-buzz.mp3'
+  }, clips = {};
   if (typeof SOUNDS !== 'undefined' && SOUNDS && SOUNDS.forEach) SOUNDS.forEach(function (s) {
     var src = REAL[s.label]; if (!src) return;
     var fallback = s.play;

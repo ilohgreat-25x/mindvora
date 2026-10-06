@@ -489,4 +489,4 @@ function injectSocialFeatures() {
 })();
 
 // ROUND 8 — chat view fix, chat actions, Sound Board recordings, Advanced Search text colour.
-(function(){ var sc = document.createElement('script'); sc.src = '/chat-actions.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
+(function(){ var sc = document.createElement('script'); sc.src = '/chat-actions.js?v=2'; sc.defer = true; document.head.appendChild(sc); })();

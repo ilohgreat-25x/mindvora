@@ -90,8 +90,10 @@ service cloud.firestore {
     function dmMember(dmId) {
       return isSignedIn() && request.auth.uid in dmId.split('_');
     }
+    // Fails OPEN: only a real `blockedUsers` list on the user doc that contains the other uid blocks.
     function hasBlocked(a, b) {
       return exists(/databases/$(database)/documents/users/$(a))
+        && get(/databases/$(database)/documents/users/$(a)).data.get('blockedUsers', []) is list
         && get(/databases/$(database)/documents/users/$(a)).data.get('blockedUsers', []).hasAny([b]);
     }
     function dmBlocked(dmId) {
@@ -135,7 +137,7 @@ service cloud.firestore {
 
       match /{candidateSub}/{candidateId} {
         function isCallParticipant() {
-          let call = get(/databases/$(database)/documents/calls/$(callId)).data;
+          let call = get(/databases/$(database)/documents/calls/$(docId)).data;
           return call.callerId == request.auth.uid || call.calleeId == request.auth.uid;
         }
         allow read, create: if isSignedIn() && isCallParticipant();
