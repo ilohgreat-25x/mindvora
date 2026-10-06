@@ -492,3 +492,19 @@ function injectSocialFeatures() {
 (function(){ var sc = document.createElement('script'); sc.src = '/chat-actions.js?v=3'; sc.defer = true; document.head.appendChild(sc); })();
 // Sound Board sounds on photo/video posts and photo stories (in-app playback only).
 (function(){ var sc = document.createElement('script'); sc.src = '/media-sounds.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
+
+// PUSH TAP WHEN THE APP WAS CLOSED — the service worker opens "/?action=dm" or "/?action=notifications",
+// but only an already-open tab used to be routed. On a cold start, wait until the user is logged in and
+// the app screen is showing, then open Messages / Notifications.
+(function(){
+  var act; try { act = new URLSearchParams(location.search).get('action'); } catch (e) {}
+  if (act !== 'dm' && act !== 'notifications') return;
+  try { history.replaceState(null, '', location.pathname); } catch (e) {}
+  var tries = 0, t = setInterval(function(){
+    tries++;
+    var app = document.getElementById('app-screen');
+    var ready = typeof state !== 'undefined' && state.user && app && getComputedStyle(app).display !== 'none' && typeof handleOpenUrl === 'function';
+    if (ready) { clearInterval(t); setTimeout(function(){ handleOpenUrl('/?action=' + act); }, 400); }
+    else if (tries > 60) clearInterval(t); // 30 s: not logged in → normal start
+  }, 500);
+})();
