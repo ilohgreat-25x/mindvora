@@ -708,8 +708,11 @@ var MVCall = (function () {
         break;
       case 'CALL_ENDED':
         if (call && call.id === m.callId) {
-          var why = { 'no-answer': 'No answer.', 'connection-lost': 'Call dropped.', cancelled: 'Missed call.' }[m.reason];
-          if (why) toast(why);
+          // NOTE: this used to be `var why = …`. `var` is hoisted to the top of this whole callback, so it
+          // shadowed the why(e) helper: every offer/answer failure handler threw a TypeError instead of
+          // showing the error and hanging up, leaving a half-open call ("Connecting…" forever, user busy).
+          var endMsg = { 'no-answer': 'No answer.', 'connection-lost': 'Call dropped.', cancelled: 'Missed call.' }[m.reason];
+          if (endMsg) toast(endMsg);
           cleanup(true);
         }
         break;
@@ -753,7 +756,7 @@ var MVCall = (function () {
 // Advanced Search: readable white text + matches anywhere in the name/post.
 (function () { var sc = document.createElement('script'); sc.src = '/search-fix.js?v=17'; sc.defer = true; document.head.appendChild(sc); })();
 // Story music: 26 streamed tracks, 15s playback, music saved with the story.
-(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=17'; sc.defer = true; document.head.appendChild(sc); })();
+(function () { var sc = document.createElement('script'); sc.src = '/story-music.js?v=18'; sc.defer = true; document.head.appendChild(sc); })();
 
 // Advanced Search: force readable white typing on the exact box, every time it is opened or typed in.
 (function () {
