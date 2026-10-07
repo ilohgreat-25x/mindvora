@@ -568,3 +568,6 @@ function injectSocialFeatures() {
 
 // Owner batch (Oct 7): Go Live → watch, Aria voice, Scheduled Posts, Leaderboard.
 (function(){ var sc = document.createElement('script'); sc.src = '/owner-batch.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
+
+// Advertise run by the server (Oct 7): verified payments, exact unique views, auto-moderation + auto-refund, live admin alerts.
+(function(){ var sc = document.createElement('script'); sc.src = '/ads-v2.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();

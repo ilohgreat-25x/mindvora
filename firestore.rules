@@ -168,6 +168,11 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update, delete: if false;
     }
+    // Live ad activity for the owner's admin panel (written only by the server).
+    match /admin_events/{docId} {
+      allow read: if isSignedIn() && request.auth.token.email == 'ilohgreat25@gmail.com';
+      allow write: if false;
+    }
     match /app_settings/{docId} { allow read: if isSignedIn(); allow write: if false; }
     match /gifts/{docId} {
       allow read: if isSignedIn();
