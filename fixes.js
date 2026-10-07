@@ -521,7 +521,7 @@ function injectSocialFeatures() {
     tries++;
     var app = document.getElementById('app-screen');
     var ready = typeof state !== 'undefined' && state.user && app && getComputedStyle(app).display !== 'none';
-    if (ready) { clearInterval(t); setTimeout(function(){ route('/' + url); }, 400); }
+    if (ready) { clearInterval(t); setTimeout(function(){ (window.handleOpenUrl || route)('/' + url); }, 400); }
     else if (tries > 60) clearInterval(t); // 30 s: not logged in → normal start
   }, 500);
 })();
@@ -565,3 +565,6 @@ function injectSocialFeatures() {
     if (sp) sp.textContent = 'Get notified about messages, calls, likes, comments, follows, tips and more — even when Mindvora is closed.';
   };
 })();
+
+// Owner batch (Oct 7): Go Live → watch, Aria voice, Scheduled Posts, Leaderboard.
+(function(){ var sc = document.createElement('script'); sc.src = '/owner-batch.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();

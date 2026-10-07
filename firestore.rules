@@ -230,10 +230,13 @@ service cloud.firestore {
       allow read: if request.auth.token.admin == true;
       allow update, delete: if false;
     }
+    // The app saves the owner as authorId (older docs: uid). Rules only checked uid, so every
+    // scheduled post was refused and the list showed "Error loading".
     match /scheduled_posts/{docId} {
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && (request.resource.data.get('authorId', '') == request.auth.uid
+                                        || request.resource.data.get('uid', '') == request.auth.uid);
+      allow read, update, delete: if isSignedIn() && (resource.data.get('authorId', '') == request.auth.uid
+                                                      || resource.data.get('uid', '') == request.auth.uid);
     }
     match /groups/{docId} {
       allow read: if isSignedIn();
@@ -265,10 +268,28 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
+    // Go Live saves the host as hostId (older docs: uid); rules only checked uid, so Go Live was refused.
     match /live_streams/{docId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && (request.resource.data.get('hostId', '') == request.auth.uid
+                                        || request.resource.data.get('uid', '') == request.auth.uid);
+      allow update, delete: if isSignedIn() && (resource.data.get('hostId', '') == request.auth.uid
+                                                || resource.data.get('uid', '') == request.auth.uid);
+      // Viewers only bump the viewer count.
+      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']);
+      // WebRTC connection signals between host and viewers, and the live chat. There were no rules
+      // for these, so every viewer was refused and nobody could actually watch a stream.
+      match /signals/{sigId} {
+        allow read, create, update: if isSignedIn();
+        allow delete: if isSignedIn() && get(/databases/$(database)/documents/live_streams/$(docId)).data.get('hostId', '') == request.auth.uid;
+        match /{ice}/{iceId} {   // host_ice / viewer_ice network candidates
+          allow read, create: if isSignedIn();
+        }
+      }
+      match /{sub}/{subId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() && sub in ['chat', 'viewers', 'reactions', 'answers', 'candidates'];
+      }
     }
   }
 }
