@@ -663,6 +663,38 @@ app.post('/api/paystack/webhook', (req, res) => {
   res.status(200).send('OK');
 });
 
+/* LIVE NEWS CHANNELS — GET /api/news/live */
+
+const NEWS_CHANNELS = [
+  ['aljazeera', 'Al Jazeera English', 'Qatar', 'world', 'UCNye-wNBqNL5ZzHSJj3l8Bg'],
+  ['bbc', 'BBC News', 'United Kingdom', 'world', 'UC16niRr50-MSBwiO3YDb3RA'],
+  ['sky', 'Sky News', 'United Kingdom', 'world', 'UCoMdktPbSTixAyNGwb-UYkQ'],
+  ['dw', 'DW News', 'Germany', 'world', 'UCknLrEdhRCp1aegoMqRaCZg'],
+  ['france24', 'FRANCE 24 English', 'France', 'world', 'UCQfwfsi5VrQ8yKZ-UWmAEFg'],
+  ['euronews', 'Euronews English', 'Europe', 'world', 'UCSrZ3UV4jOidv8ppoVuvW9Q'],
+  ['cna', 'CNA', 'Singapore', 'world', 'UC83jt4dlz1Gjl58fzQrrKZg'],
+  ['abcau', 'ABC News Australia', 'Australia', 'world', 'UCVgO39Bk5sMo66-6o6Spn6Q'],
+  ['arise', 'Arise News', 'Nigeria', 'nigeria', 'UCyEJX-kSj0kOOCS7Qlq2G7g'],
+  ['channels', 'Channels Television', 'Nigeria', 'nigeria', 'UCEXGDNclvmg6RW0vipJYsTQ'],
+];
+
+app.get('/api/news/live', (_req, res) => {
+  const channels = NEWS_CHANNELS.map(([id, name, country, region, channelId]) => ({
+    id,
+    name,
+    country,
+    region,
+    live: true,
+    title: '',
+    embed: `https://www.youtube.com/embed/live_stream?channel=${channelId}&autoplay=1&playsinline=1&rel=0`,
+    watch: `https://www.youtube.com/channel/${channelId}/live`,
+    thumb: '',
+  }));
+
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json({ status: true, channels });
+});
+
 // 404 CATCH-ALL
 
 app.use((_req, res) => {
