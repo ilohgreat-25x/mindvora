@@ -173,7 +173,18 @@ service cloud.firestore {
       allow read: if isSignedIn() && request.auth.token.email == 'ilohgreat25@gmail.com';
       allow write: if false;
     }
-    match /app_settings/{docId} { allow read: if isSignedIn(); allow write: if false; }
+    // Only the owner may switch the referral system (the app saves it through the backend, which also
+    // notifies every user; this rule lets the owner's own login write it too). Everything else stays server-only.
+    function isOwnerAdmin() {
+      return isSignedIn() && request.auth.token.email == 'ilohgreat25@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    match /app_settings/{docId} {
+      allow read: if isSignedIn();
+      allow create, update: if docId == 'referral' && isOwnerAdmin()
+        && request.resource.data.enabled is bool;
+      allow delete: if false;
+    }
     match /gifts/{docId} {
       allow read: if isSignedIn();
       allow create: if false; // gifts are recorded by the backend after payment
