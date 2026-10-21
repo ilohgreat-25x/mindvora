@@ -43,7 +43,7 @@
     m.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border,rgba(255,255,255,.1))">' +
       '<button type="button" data-x style="background:none;border:0;color:inherit;font-size:20px;cursor:pointer">←</button>' +
       '<b style="flex:1;font-size:16px">📰 Live News</b><span style="font-size:11px;color:#ef4444;font-weight:700">● LIVE</span></div>' +
-      '<div data-player style="background:#000;display:none"><div style="position:relative;width:100%;max-width:calc(50vh * 16 / 9);margin:0 auto;aspect-ratio:16/9"><iframe data-if title="Live news" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen referrerpolicy="strict-origin" style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>' +
+      '<div data-player style="background:#000;display:none"><div style="position:relative;width:100%;max-width:calc(50vh * 16 / 9);margin:0 auto;aspect-ratio:16/9"><iframe data-if title="Live news" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>' +
       '<div data-now style="padding:8px 12px;font-size:13px;background:var(--bg2,#111)"></div></div>' +
       '<div data-tools style="padding:8px 12px">' + [['all', 'All (10)'], ['world', '🌍 International (8)'], ['nigeria', '🇳🇬 Nigeria (2)']].map(function (r) {
         return '<button type="button" data-r="' + r[0] + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (r[0] === 'all' ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + r[1] + '</button>';
