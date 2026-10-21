@@ -1,24 +1,31 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
     function isSignedIn() {
       return request.auth != null;
     }
-
     function isSelf(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
-
     function owns(doc) {
       return isSignedIn() && resource.data.uid == request.auth.uid;
     }
-
     // Read-only lookup of another user's doc (for name/avatar checks).
     function canViewUser(userId) {
       return isSignedIn() && exists(/databases/$(database)/documents/users/$(userId));
     }
-
+    // The app owner (admin). Must be signed in with the verified owner email.
+    // MOVED: this used to sit inside `match /admin_events`, so it only existed there.
+    function isOwnerAdmin() {
+      return isSignedIn()
+        && request.auth.token.email == 'ilohgreat25@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+    // Referral system is ON unless the admin switched it OFF (same default as the app: no doc = ON).
+    function referralEnabled() {
+      return !exists(/databases/$(database)/documents/app_settings/referral)
+        || get(/databases/$(database)/documents/app_settings/referral).data.get('enabled', true) != false;
+    }
     // A brand-new profile may not start out premium, verified, rich or admin.
     function safeNewUser(d) {
       return !d.keys().hasAny(['role', 'isAdmin', 'admin', 'wallet', 'balance', 'banned', 'disabled',
@@ -28,25 +35,21 @@ service cloud.firestore {
         && (!('earnings' in d) || d.earnings == 0)
         && (!('tips' in d) || d.tips == 0);
     }
-
     // ── users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSelf(userId) && safeNewUser(request.resource.data);
-      // FIX: `'x' in request.resource.data` checks the WHOLE resulting doc, so
-      // once the server wrote e.g. `earnings`, every later self-update (name,
-      // avatar, bio…) was denied. Only block changes to protected fields.
+      // Only block changes to protected fields (diff-based, so later self-updates still work).
       allow update: if isSelf(userId)
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
           'role', 'isAdmin', 'admin', 'wallet', 'balance', 'earnings', 'banned',
           'disabled', 'disabledAt', 'disabledReason', 'referralCount',
-          // Paid features — only the backend (Firebase Admin) may grant these now.
+          // Paid features — only the backend (Firebase Admin) may grant these.
           'isPremium', 'plan', 'premiumRef', 'premiumProvider', 'premiumSince', 'premiumActivatedCrypto',
           'isVerified', 'verifiedSince', 'verifiedRef', 'tips'
         ]);
       allow delete: if false;
     }
-
     // ── sparks (posts) ─────────────────────────────────────────────────────
     match /sparks/{sparkId} {
       // Matches what the app writes (authorId, mediaUrl, mediaType, sound, …). Older posts may use uid.
@@ -59,7 +62,6 @@ service cloud.firestore {
           'likes', 'saved', 'commentCount', 'reposts', 'viewCount', 'tags', 'reactions', 'poll', 'giftCount', 'shares']));
       allow delete: if isSignedIn() && sparkOwner(resource.data);
     }
-
     // ── comments ───────────────────────────────────────────────────────────
     match /comments/{commentId} {
       allow read: if isSignedIn();
@@ -68,7 +70,6 @@ service cloud.firestore {
       allow update, delete: if isSignedIn()
         && resource.data.uid == request.auth.uid;
     }
-
     // ── follows ────────────────────────────────────────────────────────────
     match /follows/{followId} {
       allow read: if isSignedIn();
@@ -77,12 +78,10 @@ service cloud.firestore {
       allow update, delete: if isSignedIn()
         && resource.data.uid == request.auth.uid;
     }
-
     // ── dms (private messages) ─────────────────────────────────────────────
-    // Matches what the app really writes: doc id = the two uids sorted and joined with "_",
-    // fields `members`, `lastMsg`, per-user flags (pin_/muted_/archived_/locked_/cleared_/deleted_/unread_<uid>),
-    // and a `messages` subcollection with `fromId`. (The old rule checked fromUid/toUid/participants, which the
-    // app never writes, and had no rule for `messages` — so every send was refused.)
+    // doc id = the two uids sorted and joined with "_", fields `members`, `lastMsg`,
+    // per-user flags (pin_/muted_/archived_/locked_/cleared_/deleted_/unread_<uid>),
+    // and a `messages` subcollection with `fromId`.
     function dmMember(dmId) {
       return isSignedIn() && request.auth.uid in dmId.split('_');
     }
@@ -103,7 +102,6 @@ service cloud.firestore {
         && request.resource.data.members.size() == 2
         && request.resource.data.members.hasAll(dmId.split('_'));
       allow delete: if false;
-
       match /messages/{msgId} {
         allow read: if dmMember(dmId);
         allow create: if dmMember(dmId)
@@ -115,7 +113,6 @@ service cloud.firestore {
         allow delete: if dmMember(dmId) && resource.data.fromId == request.auth.uid;
       }
     }
-
     // ── calls ──────────────────────────────────────────────────────────────
     match /calls/{docId} {
       allow read: if isSignedIn()
@@ -130,7 +127,6 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && (resource.data.callerId == request.auth.uid
             || resource.data.calleeId == request.auth.uid);
-
       match /{candidateSub}/{candidateId} {
         function isCallParticipant() {
           let call = get(/databases/$(database)/documents/calls/$(docId)).data;
@@ -140,7 +136,6 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
-
     // ── notifications ──────────────────────────────────────────────────────
     match /notifications/{notifId} {
       allow read, update: if isSignedIn()
@@ -150,19 +145,21 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && resource.data.toUid == request.auth.uid;
     }
-
+    // ── user_interests (personalised feed profile) ─────────────────────────
+    // Each user's private taste profile. Only that user can read or write it.
+    match /user_interests/{userId} {
+      allow read, create, update, delete: if isSelf(userId);
+    }
     // ── presence ───────────────────────────────────────────────────────────
     match /presence/{userId} {
       allow read: if isSignedIn();
       allow create, update: if isSelf(userId);
       allow delete: if isSelf(userId);
     }
-
     // ── push_queue / security_logs / security_alerts ───────────────────────
     match /push_queue/{docId} { allow read, write: if false; }
     match /security_logs/{docId} { allow read, write: if false; }
     match /security_alerts/{docId} { allow read, write: if false; }
-
     // ── content that is visible to all signed-in users but not writable ───
     match /ads/{docId} {
       allow read: if isSignedIn();
@@ -170,25 +167,20 @@ service cloud.firestore {
     }
     // Live ad activity for the owner's admin panel (written only by the server).
     match /admin_events/{docId} {
-      allow read: if isSignedIn() && request.auth.token.email == 'ilohgreat25@gmail.com';
+      allow read: if isOwnerAdmin();
       allow write: if false;
     }
-    // Only the owner may switch the referral system (the app saves it through the backend, which also
-    // notifies every user; this rule lets the owner's own login write it too). Everything else stays server-only.
-    function isOwnerAdmin() {
-      return isSignedIn() && request.auth.token.email == 'ilohgreat25@gmail.com'
-        && request.auth.token.email_verified == true;
-    }
+    // ── app_settings ───────────────────────────────────────────────────────
+    // MOVED out of admin_events (it was nested inside it, so the path was wrong and
+    // nobody — not even the admin — could reach app_settings/referral).
+    // Every signed-in user can READ it, so the app's onSnapshot() listener notifies
+    // all users in real time when the admin flips the switch. Only the admin can WRITE.
     match /app_settings/{docId} {
       allow read: if isSignedIn();
-      allow create, update: if docId == 'referral' && isOwnerAdmin()
+      allow create, update: if docId == 'referral'
+        && isOwnerAdmin()
         && request.resource.data.enabled is bool;
       allow delete: if false;
-    }
-    match /gifts/{docId} {
-      allow read: if isSignedIn();
-      allow create: if false; // gifts are recorded by the backend after payment
-      allow update, delete: if false;
     }
     match /withdrawals/{docId} {
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
@@ -200,7 +192,6 @@ service cloud.firestore {
       allow read: if request.auth.token.admin == true;
       allow update, delete: if false;
     }
-
     // ── transactional docs: writers are server-only, owners may read ──────
     match /topups/{docId} {
       allow create: if false; // top-ups are recorded by the backend after payment
@@ -246,8 +237,7 @@ service cloud.firestore {
       allow read: if request.auth.token.admin == true;
       allow update, delete: if false;
     }
-    // The app saves the owner as authorId (older docs: uid). Rules only checked uid, so every
-    // scheduled post was refused and the list showed "Error loading".
+    // The app saves the owner as authorId (older docs: uid).
     match /scheduled_posts/{docId} {
       allow create: if isSignedIn() && (request.resource.data.get('authorId', '') == request.auth.uid
                                         || request.resource.data.get('uid', '') == request.auth.uid);
@@ -264,7 +254,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.expiresAt <= request.time + duration.value(49, 'h');
-      // Owner can edit; any signed-in viewer may ONLY add themselves to seenBy (was owner-only → errors for viewers).
+      // Owner can edit; any signed-in viewer may ONLY add themselves to seenBy.
       allow update: if isSignedIn() && (resource.data.uid == request.auth.uid
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy'])
             && request.resource.data.seenBy.toSet().difference(resource.data.seenBy.toSet()).hasOnly([request.auth.uid])));
@@ -274,9 +264,17 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update, delete: if false;
     }
+    // ── referrals ──────────────────────────────────────────────────────────
+    // A referral can only be recorded while the admin has the referral system ON,
+    // only by the new user themselves, and nobody can refer themselves.
     match /referrals/{docId} {
-      allow read: if isSignedIn() && (resource.data.newUserId == request.auth.uid || resource.data.referrerId == request.auth.uid);
-      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (resource.data.newUserId == request.auth.uid
+                                      || resource.data.referrerId == request.auth.uid
+                                      || isOwnerAdmin());
+      allow create: if isSignedIn()
+        && referralEnabled()
+        && request.resource.data.newUserId == request.auth.uid
+        && request.resource.data.referrerId != request.auth.uid;
       allow update, delete: if false;
     }
     match /creator_subs/{docId} {
@@ -284,17 +282,18 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if false;
     }
-    // Go Live saves the host as hostId (older docs: uid); rules only checked uid, so Go Live was refused.
+    // Go Live saves the host as hostId (older docs: uid).
     match /live_streams/{docId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && (request.resource.data.get('hostId', '') == request.auth.uid
                                         || request.resource.data.get('uid', '') == request.auth.uid);
-      allow update, delete: if isSignedIn() && (resource.data.get('hostId', '') == request.auth.uid
-                                                || resource.data.get('uid', '') == request.auth.uid);
-      // Viewers only bump the viewer count.
-      allow update: if isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']);
-      // WebRTC connection signals between host and viewers, and the live chat. There were no rules
-      // for these, so every viewer was refused and nobody could actually watch a stream.
+      // Host edits/deletes; viewers may only bump the viewer count.
+      allow update: if isSignedIn() && (resource.data.get('hostId', '') == request.auth.uid
+                                        || resource.data.get('uid', '') == request.auth.uid
+                                        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewers']));
+      allow delete: if isSignedIn() && (resource.data.get('hostId', '') == request.auth.uid
+                                        || resource.data.get('uid', '') == request.auth.uid);
+      // WebRTC connection signals between host and viewers, and the live chat.
       match /signals/{sigId} {
         allow read, create, update: if isSignedIn();
         allow delete: if isSignedIn() && get(/databases/$(database)/documents/live_streams/$(docId)).data.get('hostId', '') == request.auth.uid;

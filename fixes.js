@@ -574,4 +574,7 @@ function injectSocialFeatures() {
 
 // ROUND 9 — "📰 Stream Live News" (directly under Stream Live Anime Movies, 10 official channels) +
 // owner referral switch that saves via the backend and notifies every user when turned ON.
-(function(){ var sc = document.createElement('script'); sc.src = '/live-news.js?v=2'; sc.defer = true; document.head.appendChild(sc); })();
+(function(){ var sc = document.createElement('script'); sc.src = '/live-news.js?v=3'; sc.defer = true; document.head.appendChild(sc); })();
+
+// ROUND 10 — personalised "For You" ranking of the All feed (learns from watch time, re-watches, likes, comments, saves, shares).
+(function(){ var sc = document.createElement('script'); sc.src = '/for-you.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();

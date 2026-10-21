@@ -26,7 +26,7 @@
     ['france24', 'FRANCE 24 English', 'France', 'world', 'UCQfwfsi5VrQ8yKZ-UWmAEFg', 'HvZt-nh9sGg'],
     ['euronews', 'Euronews English', 'Europe', 'world', 'UCSrZ3UV4jOidv8ppoVuvW9Q', 'pykpO5kQJ98'],
     ['cna', 'CNA', 'Singapore', 'world', 'UC83jt4dlz1Gjl58fzQrrKZg', '-PWMxjBgr0k'],
-    ['abcau', 'ABC News Australia', 'Australia', 'world', 'UCVgO39Bk5sMo66-6o6Spn6Q', 'vOTiJkg1voo'],
+    ['africanews', 'Africanews', 'Pan-African', 'world', 'UC1_E8NeF5QHY2dtdLRBCCLA', ''], // replaced ABC News Australia (geo-locked to Australia)
     ['arise', 'Arise News', 'Nigeria', 'nigeria', 'UCyEJX-kSj0kOOCS7Qlq2G7g', 'wqAwGhKnkjc'],
     ['channels', 'Channels Television', 'Nigeria', 'nigeria', 'UCEXGDNclvmg6RW0vipJYsTQ', 'd4zDorDl5UE'],
   ].map(function (c) {
@@ -65,7 +65,7 @@
 
   function list(m) {
     var body = m.querySelector('[data-body]');
-    var rows = (channels || FALLBACK).filter(function (c) { return region === 'all' || c.region === region; });
+    var rows = (channels || FALLBACK).filter(function (c) { return !dead[c.id] && (region === 'all' || c.region === region); });
     body.innerHTML = rows.map(function (c) {
       var on = current === c.id;
       return '<button type="button" data-c="' + esc(c.id) + '" style="display:flex;width:100%;align-items:center;gap:12px;text-align:left;padding:10px;margin-top:8px;border-radius:12px;border:1px solid ' + (on ? 'var(--green,#16a34a)' : 'var(--border,rgba(255,255,255,.1))') + ';background:var(--bg2,rgba(255,255,255,.03));color:inherit;cursor:pointer">' +
@@ -82,11 +82,30 @@
     var c = (channels || FALLBACK).filter(function (x) { return x.id === id; })[0]; if (!c) return;
     current = id;
     m.querySelector('[data-player]').style.display = 'block';
-    m.querySelector('[data-if]').src = c.embed;
+    var ifr = m.querySelector('[data-if]');
+    // enablejsapi lets us hear YouTube's onError (100 = gone, 101/150 = blocked in this country/embed off).
+    ifr.src = c.embed + (c.embed.indexOf('?') > -1 ? '&' : '?') + 'enablejsapi=1&origin=' + encodeURIComponent(location.origin);
+    ifr.onload = function () { try { ifr.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'mvnews' }), '*'); } catch (e) {} };
     m.querySelector('[data-now]').innerHTML = '<b>' + esc(c.name) + '</b> · <span style="color:#ef4444">● LIVE</span> &nbsp;<a href="' + safeUrl(c.watch) + '" target="_blank" rel="noopener noreferrer" style="color:inherit;opacity:.7;font-size:12px">Open on YouTube ↗</a>';
     list(m);
     m.querySelector('[data-body]').scrollTop = 0;
   }
+
+  // AUTO-REPLACE: if a stream is unavailable in the viewer's country (e.g. Nigeria), skip to the next working one.
+  var dead = {};
+  window.addEventListener('message', function (ev) {
+    if (!/youtube(-nocookie)?\.com$/.test((ev.origin || '').replace(/^https?:\/\/(www\.)?/, ''))) return;
+    var d; try { d = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data; } catch (e) { return; }
+    if (!d || d.event !== 'onError' || !current) return;
+    var m = document.getElementById('mv-news-live'); if (!m || m.style.display === 'none') return;
+    dead[current] = true;
+    var all = (channels || FALLBACK);
+    var cur = all.filter(function (x) { return x.id === current; })[0];
+    var next = all.filter(function (x) { return !dead[x.id] && x.region === (cur && cur.region); })[0]
+            || all.filter(function (x) { return !dead[x.id]; })[0];
+    toast((cur ? cur.name : 'This channel') + ' isn\'t available in your region — switching to ' + (next ? next.name : 'another source') + '…');
+    if (next) play(m, next.id);
+  });
 
   window.openLiveNews = function () {
     var m = panel();
