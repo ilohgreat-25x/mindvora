@@ -19,20 +19,23 @@
 
   // ── LIVE NEWS ───────────────────────────────────────────────────────
   var FALLBACK = [
-    ['aljazeera', 'Al Jazeera English', 'Qatar', 'world', 'UCNye-wNBqNL5ZzHSJj3l8Bg'],
-    ['bbc', 'BBC News', 'United Kingdom', 'world', 'UC16niRr50-MSBwiO3YDb3RA'],
-    ['sky', 'Sky News', 'United Kingdom', 'world', 'UCoMdktPbSTixAyNGwb-UYkQ'],
-    ['dw', 'DW News', 'Germany', 'world', 'UCknLrEdhRCp1aegoMqRaCZg'],
-    ['france24', 'FRANCE 24 English', 'France', 'world', 'UCQfwfsi5VrQ8yKZ-UWmAEFg'],
-    ['euronews', 'Euronews English', 'Europe', 'world', 'UCSrZ3UV4jOidv8ppoVuvW9Q'],
-    ['cna', 'CNA', 'Singapore', 'world', 'UC83jt4dlz1Gjl58fzQrrKZg'],
-    ['abcau', 'ABC News Australia', 'Australia', 'world', 'UCVgO39Bk5sMo66-6o6Spn6Q'],
-    ['arise', 'Arise News', 'Nigeria', 'nigeria', 'UCyEJX-kSj0kOOCS7Qlq2G7g'],
-    ['channels', 'Channels Television', 'Nigeria', 'nigeria', 'UCEXGDNclvmg6RW0vipJYsTQ'],
+    ['aljazeera', 'Al Jazeera English', 'Qatar', 'world', 'UCNye-wNBqNL5ZzHSJj3l8Bg', 'gCNeDWCI0vo'],
+    ['bbc', 'BBC News', 'United Kingdom', 'world', 'UC16niRr50-MSBwiO3YDb3RA', '-NabWfv-VdA'],
+    ['sky', 'Sky News', 'United Kingdom', 'world', 'UCoMdktPbSTixAyNGwb-UYkQ', 'umLWFz4izTM'],
+    ['dw', 'DW News', 'Germany', 'world', 'UCknLrEdhRCp1aegoMqRaCZg', 'LuKwFajn37U'],
+    ['france24', 'FRANCE 24 English', 'France', 'world', 'UCQfwfsi5VrQ8yKZ-UWmAEFg', 'HvZt-nh9sGg'],
+    ['euronews', 'Euronews English', 'Europe', 'world', 'UCSrZ3UV4jOidv8ppoVuvW9Q', 'pykpO5kQJ98'],
+    ['cna', 'CNA', 'Singapore', 'world', 'UC83jt4dlz1Gjl58fzQrrKZg', '-PWMxjBgr0k'],
+    ['abcau', 'ABC News Australia', 'Australia', 'world', 'UCVgO39Bk5sMo66-6o6Spn6Q', 'vOTiJkg1voo'],
+    ['arise', 'Arise News', 'Nigeria', 'nigeria', 'UCyEJX-kSj0kOOCS7Qlq2G7g', 'wqAwGhKnkjc'],
+    ['channels', 'Channels Television', 'Nigeria', 'nigeria', 'UCEXGDNclvmg6RW0vipJYsTQ', 'd4zDorDl5UE'],
   ].map(function (c) {
     return { id: c[0], name: c[1], country: c[2], region: c[3], live: true, title: '',
-      embed: 'https://www.youtube.com/embed/live_stream?channel=' + c[4] + '&autoplay=1&playsinline=1&rel=0',
-      watch: 'https://www.youtube.com/channel/' + c[4] + '/live', thumb: '' };
+      // Known 24/7 stream ID (used until the backend answers — Render's free plan can take ~1 min to wake).
+      // The bare "live_stream?channel=" embed often shows "Video unavailable", so it is only a last resort.
+      embed: c[5] ? 'https://www.youtube.com/embed/' + c[5] + '?autoplay=1&playsinline=1&rel=0'
+                  : 'https://www.youtube.com/embed/live_stream?channel=' + c[4] + '&autoplay=1&playsinline=1&rel=0',
+      watch: c[5] ? 'https://www.youtube.com/watch?v=' + c[5] : 'https://www.youtube.com/channel/' + c[4] + '/live', thumb: '' };
   });
   var channels = null, region = 'all', current = null;
 
@@ -138,4 +141,19 @@
     }).catch(function () {});
   }
   setTimeout(syncStatus, 3000);
+
+  // Real time: every signed-in user's referral ON/OFF banner flips the moment the owner switches it.
+  var liveRef = null;
+  function watchReferral() {
+    try {
+      if (liveRef || !window.firebase || !firebase.auth || !firebase.auth().currentUser || !firebase.firestore) return;
+      liveRef = firebase.firestore().collection('app_settings').doc('referral').onSnapshot(function (d) {
+        var on = !d.exists || d.data().enabled !== false;
+        try { referralEnabled = on; } catch (e) {}
+        window.referralEnabled = on;
+        try { updateReferralUI(); } catch (e) {}
+      }, function () { liveRef = null; });
+    } catch (e) {}
+  }
+  var wTries = 0, wT = setInterval(function () { watchReferral(); if (liveRef || ++wTries > 120) clearInterval(wT); }, 1000);
 })();
