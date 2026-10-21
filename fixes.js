@@ -571,3 +571,7 @@ function injectSocialFeatures() {
 
 // Advertise run by the server (Oct 7): verified payments, exact unique views, auto-moderation + auto-refund, live admin alerts.
 (function(){ var sc = document.createElement('script'); sc.src = '/ads-v2.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
+
+// ROUND 9 — "📰 Stream Live News" (directly under Stream Live Anime Movies, 10 official channels) +
+// owner referral switch that saves via the backend and notifies every user when turned ON.
+(function(){ var sc = document.createElement('script'); sc.src = '/live-news.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
