@@ -6229,6 +6229,7 @@ function launchTypingGame(container) {
             clearInterval(interval);
             started = false;
             inp.disabled = true;
+            if (window.MVGameAudio) MVGameAudio.result('typing', totalTyped, passageWords.length);
             showToast('🎉 Passage complete! ' + totalTyped + ' words in ' + (60 - timeLeft) + 's');
           }
         } else {
@@ -6249,6 +6250,7 @@ function launchTypingGame(container) {
         clearInterval(interval);
         started = false;
         inp.disabled = true;
+        if (window.MVGameAudio) MVGameAudio.stop();
         var wpm = Math.round(totalTyped / 1);
         document.getElementById('tg-wpm').textContent = wpm;
         showToast('⌨️ ' + totalTyped + ' words! WPM: ' + wpm + ' — ' + (wpm > 50 ? 'Outstanding! 🔥' : wpm > 30 ? 'Great job! 👏' : wpm > 15 ? 'Good effort! 💪' : 'Keep practicing! 🌱'));
@@ -6287,7 +6289,7 @@ function launchMemoryGame(container) {
           flipped.forEach(function(c){c.style.background='rgba(34,197,94,.2)';});
           matched.push(flipped[0].dataset.emoji);
           flipped=[];
-          if (matched.length===emojis.length) { setTimeout(function(){showToast('🎉 You won in '+moves+' moves!');},300); }
+          if (matched.length===emojis.length) { if (window.MVGameAudio) MVGameAudio.result('memory', moves, emojis.length); setTimeout(function(){showToast('🎉 You won in '+moves+' moves!');},300); }
         } else {
           var f=flipped.slice();
           setTimeout(function(){ f.forEach(function(c){c.textContent='?';c.style.borderColor='var(--border)';c.dataset.shown='0';}); flipped=[]; }, 800);
@@ -6524,6 +6526,7 @@ function runTriviaQuestion(gc) {
   if(triviaState.cur >= questions.length){
     var sc=triviaState.score, tot=questions.length;
     var pct=Math.round(sc/tot*100);
+    if (window.MVGameAudio) MVGameAudio.result('trivia', sc, tot);
     var msg = pct===100?'🎯 Perfect score!':pct>=80?'🌟 Excellent!':pct>=60?'👍 Good job!':pct>=40?'📖 Keep learning!':'💪 Practice more!';
     gc.innerHTML='<div style="text-align:center;padding:30px">'+
       '<div style="font-size:48px;margin-bottom:10px">'+(pct===100?'🏆':pct>=60?'🥈':'🎗️')+'</div>'+
@@ -11314,7 +11317,7 @@ setInterval(function(){
   var iframes = document.querySelectorAll('iframe');
   iframes.forEach(function(f){
     var src = f.src || '';
-    if(src && !src.includes('paystack') && !src.includes('cloudinary') && !src.includes('mindvora')){
+    if(src && !src.includes('paystack') && !src.includes('cloudinary') && !src.includes('mindvora') && !/^https:\/\/(www\.)?youtube(-nocookie)?\.com\//i.test(src)){
       logSecurityEvent('iframe_injection', 'Unauthorized iframe removed: ' + src.substring(0,80));
       f.remove();
     }

@@ -468,7 +468,7 @@ function injectSocialFeatures() {
     if (document.getElementById('mv-dr-football')) return;
     var anchor = document.querySelector('.drawer-item[onclick*="openMindvoraTV"]') || document.querySelector('.drawer-item[onclick*="openSoundboard"]');
     if (!anchor) return;
-    [['mv-dr-anime', 'openAnimeMovies', '🎬 Stream Live Anime Movies'], ['mv-dr-football', 'openLiveFootball', '⚽ Stream Live Football Matches']].forEach(function (d) {
+    [['mv-dr-anime', 'openAnimeMovies', '🎬 Stream Live Anime Movies'], ['mv-dr-football', 'openLiveSports', '🏟️ Stream Live Sports']].forEach(function (d) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = d[0]; b.textContent = d[2];
       b.addEventListener('click', function () { run(d[1]); });
       anchor.parentNode.insertBefore(b, anchor.nextSibling);

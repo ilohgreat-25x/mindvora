@@ -1,7 +1,7 @@
 /**
- * MINDVORA — LIVE FOOTBALL + ANIME MOVIES  ·  live-hub.js
- * Talks ONLY to the Mindvora backend (/api/football/*, /api/anime/*). No API keys live in the frontend.
- * Football: scores/status refresh every 60 s while the panel is open (server caches, so many viewers = few upstream calls).
+ * MINDVORA — LIVE SPORTS + ANIME MOVIES  ·  live-hub.js
+ * Talks ONLY to the Mindvora backend (/api/sports/*, /api/anime/*). No API keys live in the frontend.
+ * Sports scores/status refresh every 60 s while the panel is open (server caches, so many viewers = few upstream calls).
  * Video: links to official competition sites / broadcasters and official anime streaming services only.
  */
 (function () {
@@ -33,56 +33,52 @@
   function close(m) { m.style.display = 'none'; document.body.style.overflow = ''; if (m._onClose) m._onClose(); }
   function msg(icon, h, p) { return '<div class="feed-empty" style="text-align:center;padding:40px 10px"><div style="font-size:36px">' + icon + '</div><h3>' + esc(h) + '</h3><p style="opacity:.7">' + esc(p || '') + '</p></div>'; }
 
-  // ── FOOTBALL ────────────────────────────────────────────────────────
-  var fbTimer = null, fbDate = null;
+  // ── ALL SPORTS ───────────────────────────────────────────────────────
+  var sportTimer = null, sportDate = null, selectedSport = 'soccer', sportCatalog = [
+    { id: 'soccer', name: 'Soccer' }, { id: 'american-football', name: 'American Football' },
+    { id: 'basketball', name: 'Basketball' }, { id: 'baseball', name: 'Baseball' },
+    { id: 'cricket', name: 'Cricket' }, { id: 'cycling', name: 'Cycling' },
+    { id: 'golf', name: 'Golf' }, { id: 'hockey', name: 'Ice Hockey' },
+    { id: 'rugby', name: 'Rugby' }, { id: 'tennis', name: 'Tennis' },
+    { id: 'combat-sports', name: 'Combat Sports' }, { id: 'motorsport', name: 'Motorsport' }
+  ];
   function dstr(off) { var d = new Date(Date.now() + off * 86400000); return d.toISOString().slice(0, 10); }
-  function statusLabel(m) {
-    switch (m.status) {
-      case 'IN_PLAY': case 'LIVE': return '<span style="color:#ef4444;font-weight:700">● LIVE' + (m.minute ? ' ' + esc(m.minute) + '\'' : '') + '</span>';
-      case 'PAUSED': return '<span style="color:#f59e0b;font-weight:700">HT</span>';
-      case 'FINISHED': return 'FT';
-      case 'POSTPONED': return 'Postponed'; case 'SUSPENDED': return 'Suspended'; case 'CANCELLED': return 'Cancelled';
-      default: return esc(new Date(m.utcDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    }
-  }
+  function statusLabel(m) { return m.live ? '<span style="color:#ef4444;font-weight:700">● LIVE</span>' : esc(m.statusLabel || new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
   function score(v) { return v == null ? '–' : esc(v); }
-  function matchCard(m) {
-    var ft = m.score && m.score.fullTime || {};
+  function eventCard(m) {
     var watch = (m.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--green,#22c55e);margin-right:10px">' + esc(w.name) + ' ↗</a>'; }).join('');
-    var ev = '';
-    if (m.goals && m.goals.length) ev = '<div style="font-size:11px;opacity:.8;margin-top:6px">⚽ ' + m.goals.map(function (g) { return esc(g.scorer) + ' ' + esc(g.minute) + '\''; }).join(', ') + '</div>';
     return '<div style="border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px">' +
-      '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.competition && m.competition.name) + '</span><span>' + statusLabel(m) + '</span></div>' +
-      '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.crest) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(ft.home) + '</b></div>' +
-      '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><img src="' + safeUrl(m.away && m.away.crest) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.away && m.away.name) + '</span><b>' + score(ft.away) + '</b></div>' +
-      ev + '<div style="margin-top:8px">' + watch + '</div></div>';
+      '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
+      '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><img src="' + safeUrl(m.away && m.away.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.away && m.away.name) + '</span><b>' + score(m.away && m.away.score) + '</b></div>' +
+      '<div style="margin-top:8px">' + watch + '</div></div>';
   }
-  function loadFootball(m, quiet) {
+  function loadSports(m, quiet) {
     var body = m.querySelector('[data-body]'), meta = m.querySelector('[data-meta]');
-    if (!quiet) body.innerHTML = msg('⚽', 'Loading matches…');
-    getJSON('/api/football/matches?date=' + fbDate).then(function (d) {
+    if (!quiet) body.innerHTML = msg('🏟️', 'Loading ' + (sportCatalog.filter(function (s) { return s.id === selectedSport; })[0] || {}).name + '…');
+    getJSON('/api/sports/events?sport=' + encodeURIComponent(selectedSport) + '&date=' + sportDate).then(function (d) {
       meta.textContent = 'Updated ' + new Date(d.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (d.stale ? ' (delayed)' : '');
-      if (!d.matches.length) { body.innerHTML = msg('📅', 'No matches on this day', 'Covered competitions: Premier League, Champions League, LaLiga, Serie A, Bundesliga, Ligue 1 and more.'); return; }
+      if (!d.events.length) { body.innerHTML = msg('📅', 'No events on this day', 'Try another sport or date.'); return; }
       var head = d.live ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700">' + d.live + ' live now</div>' : '';
-      body.innerHTML = head + d.matches.map(matchCard).join('') +
-        '<p style="font-size:11px;opacity:.55;margin-top:14px">Scores: football-data.org. Mindvora does not host match video. Use the official broadcaster links to watch legally where available in your region.</p>';
-    }).catch(function (e) { if (!quiet) body.innerHTML = msg('⚠️', 'Football is unavailable right now', e.message); });
+      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Scores and schedules: ESPN public feeds. Mindvora does not host sports video. Use official broadcaster links where available in your region.</p>';
+    }).catch(function (e) { if (!quiet) body.innerHTML = msg('⚠️', 'Sports are unavailable right now', e.message); });
   }
-  window.openLiveFootball = function () {
-    var m = panel('mv-football', '⚽ Live Football');
-    fbDate = dstr(0);
+  window.openLiveSports = function () {
+    var m = panel('mv-sports', '🏟️ Live Sports');
+    sportDate = dstr(0);
     var tools = m.querySelector('[data-tools]');
-    tools.innerHTML = [[-1, 'Yesterday'], [0, 'Today'], [1, 'Tomorrow']].map(function (x) {
-      return '<button type="button" data-d="' + dstr(x[0]) + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (x[0] === 0 ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + x[1] + '</button>';
-    }).join('');
+    tools.innerHTML = '<select data-sport style="padding:7px 10px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.15));background:var(--bg2,#111);color:inherit;font-size:13px;margin-bottom:8px;width:100%">' + sportCatalog.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === selectedSport ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' + [[-1, 'Yesterday'], [0, 'Today'], [1, 'Tomorrow']].map(function (x) {
+      return '<button type="button" data-d="' + dstr(x[0]) + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (x[0] === 0 ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + x[1] + '</button>'; }).join('');
+    tools.querySelector('[data-sport]').onchange = function () { selectedSport = this.value; loadSports(m); };
     tools.querySelectorAll('button').forEach(function (b) {
-      b.onclick = function () { fbDate = b.getAttribute('data-d'); tools.querySelectorAll('button').forEach(function (o) { o.style.background = o === b ? 'var(--green,#16a34a)' : 'transparent'; }); loadFootball(m); };
+      b.onclick = function () { sportDate = b.getAttribute('data-d'); tools.querySelectorAll('button').forEach(function (o) { o.style.background = o === b ? 'var(--green,#16a34a)' : 'transparent'; }); loadSports(m); };
     });
-    open(m); loadFootball(m);
-    clearInterval(fbTimer);
-    fbTimer = setInterval(function () { if (!document.hidden && m.style.display !== 'none') loadFootball(m, true); }, 60000);
-    m._onClose = function () { clearInterval(fbTimer); fbTimer = null; };
+    open(m); loadSports(m);
+    clearInterval(sportTimer);
+    sportTimer = setInterval(function () { if (!document.hidden && m.style.display !== 'none') loadSports(m, true); }, 60000);
+    m._onClose = function () { clearInterval(sportTimer); sportTimer = null; };
   };
+  window.openLiveFootball = window.openLiveSports;
 
   // ── ANIME MOVIES ────────────────────────────────────────────────────
   var aniSort = 'trending', aniQ = '', aniSeq = 0;
