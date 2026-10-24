@@ -1,7 +1,7 @@
 /* Mindvora media quota UI and signed upload helper. Never contains Cloudinary secrets. */
 (function () {
   'use strict';
-  var LIMIT_MESSAGE = 'You have reached your up your media allowance, kindly delete older media to continue posting.';
+  var LIMIT_MESSAGE = 'You have reached your media allowance, kindly delete older media to continue posting.';
   var lastQuota = null;
   function api(path, body) {
     var u = window.firebase && firebase.auth && firebase.auth().currentUser;
