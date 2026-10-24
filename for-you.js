@@ -22,7 +22,7 @@
 
   var HALF_LIFE_DAYS = 14, EXPLORE = 0.2, SAVE_EVERY_MS = 20000;
   var W = { view: 0.3, dwell: 0.15 /* per second, capped */, complete: 2, rewatch: 3,
-            like: 3, comment: 4, save: 5, share: 6, repost: 5, skip: -0.6 };
+            like: 3, comment: 4, save: 5, share: 6, repost: 5, follow: 6, tag: 2.5, skip: -0.6 };
 
   function S() { return window.state || (typeof state !== 'undefined' ? state : null); }
   function uid() { var s = S(); return s && s.user && s.user.uid; }
@@ -152,6 +152,13 @@
     wrap('shareSparkLink', function (id) { learn(id, 'share'); });
     wrap('shareSparkToDMFromProfile', function (id) { learn(id, 'share'); });
     wrap('repostSpark', function (id) { learn(id, 'repost'); });
+    wrap('toggleFollow', function (authorId) {
+      var wasFollowing = false;
+      try { wasFollowing = typeof isFollowing === 'function' && isFollowing(authorId); } catch (e) {}
+      var posts = (S() && S().sparks || []).filter(function (x) { return (x.authorId || x.uid) === authorId; });
+      posts.slice(0, 5).forEach(function (x) { learn(x.id, 'follow', wasFollowing ? -0.7 : 1); });
+    });
+    wrap('tagFriendOnPost', function (id) { learn(id, 'tag'); });
     wrap('openComments', function (id) { learn(id, 'view', 2); });
     return true;
   }

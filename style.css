@@ -15,6 +15,7 @@ body.light-mode {
   --border:rgba(0,0,0,.1);--cream:#111827;
   --cream2:#374151;--creamdim:rgba(0,0,0,.05);
 }
+body.light-mode .s-av{color:#000 !important;font-weight:800;text-shadow:none}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);overflow:hidden}
 button,input,textarea,select{font-family:'DM Sans',sans-serif}
@@ -265,6 +266,7 @@ select:-webkit-autofill:active {
 }
 /* Light mode: make avatar letter darker for visibility */
 body.light .sk-av{color:#0a1f0e !important;font-weight:800}
+body.light .s-av{color:#000 !important;font-weight:800;text-shadow:none}
 body.light-mode .sk-av{color:#0a1f0e !important;font-weight:800}
 .sk-name{font-size:13px;font-weight:700;color:var(--white)}
 .sk-handle{font-size:10px;color:var(--muted)}
