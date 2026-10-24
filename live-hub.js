@@ -9,14 +9,6 @@
   var API = function () { return (window.BACKEND_URL || '').replace(/\/$/, ''); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function safeUrl(u) { return /^https:\/\//i.test(String(u || '')) ? esc(u) : '#'; }
-  function youtubeEmbed(url) {
-    try {
-      var u = new URL(String(url || '')), h = u.hostname.toLowerCase().replace(/^www\./, ''), id = '';
-      if (h === 'youtu.be') id = u.pathname.slice(1);
-      else if (h === 'youtube.com' || h === 'youtube-nocookie.com') id = u.searchParams.get('v') || (u.pathname.match(/^\/embed\/([\w-]{11})/) || [])[1] || '';
-      return /^[\w-]{11}$/.test(id) ? 'https://www.youtube.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0' : '';
-    } catch (e) { return ''; }
-  }
   function getJSON(path) {
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var t = ctl ? setTimeout(function () { ctl.abort(); }, 15000) : null;
@@ -58,22 +50,12 @@
   function statusLabel(m) { return m.live ? '<span style="color:#ef4444;font-weight:700">● LIVE</span>' : esc(m.statusLabel || new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
   function score(v) { return v == null ? '–' : esc(v); }
   function eventCard(m) {
-    return '<button type="button" data-event-id="' + esc(m.id) + '" style="display:block;width:100%;text-align:left;color:inherit;background:none;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px;cursor:pointer">' +
+    var links = (m.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:7px 8px 0 0;color:#86efac;font-size:11px">▶ ' + esc(w.name) + ' ↗</a>'; }).join('');
+    return '<div style="display:block;width:100%;text-align:left;color:inherit;background:none;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px">' +
       '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
       '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
       '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><img src="' + safeUrl(m.away && m.away.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.away && m.away.name) + '</span><b>' + score(m.away && m.away.score) + '</b></div>' +
-      '<div style="margin-top:8px;font-size:11px;color:var(--green,#22c55e)">▶ Tap to play inside Mindvora</div></button>';
-  }
-  function playSportsEvent(m, e) {
-    var player = m.querySelector('[data-sport-player]'); if (!player) return;
-    var yt = (e.watch || []).map(function (w) { return { w: w, embed: youtubeEmbed(w.url) }; }).filter(function (x) { return x.embed; })[0];
-    var links = (e.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:6px 8px 0 0;color:#86efac">' + esc(w.name) + ' ↗</a>'; }).join('');
-    player.style.display = 'block';
-    player.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="flex:1">' + esc(e.name) + '</b><button type="button" data-close-player style="background:none;border:0;color:inherit;font-size:18px;cursor:pointer">✕</button></div>' +
-      (yt ? '<div style="position:relative;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden"><iframe src="' + safeUrl(yt.embed) + '" title="' + esc(e.name) + ' official live player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div><div style="font-size:11px;opacity:.65;margin-top:6px">Official YouTube source: ' + esc(yt.w.name) + '</div>' : '<div style="padding:14px;border-radius:10px;background:var(--deep,#111);font-size:12px;line-height:1.5">This event has no official YouTube embed URL in the source feed yet. Use the official link below; it will open in a new tab without leaving this Mindvora panel.<div>' + links + '</div></div>') +
-      (yt ? '<div style="margin-top:6px;font-size:11px">' + links + '</div>' : '');
-    player.querySelector('[data-close-player]').onclick = function () { player.style.display = 'none'; player.innerHTML = ''; };
-    player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      (links || '<div style="margin-top:7px;font-size:11px;opacity:.6">No official watch link is listed for this event.</div>') + '</div>';
   }
   function loadSports(m, quiet) {
     var body = m.querySelector('[data-body]'), meta = m.querySelector('[data-meta]');
@@ -83,15 +65,13 @@
       if (!d.events.length) { body.innerHTML = msg('📅', 'No events on this day', 'Try another sport or date.'); return; }
       var head = d.live ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700">' + d.live + ' live now</div>' : '';
       m._sportEvents = {}; d.events.forEach(function (e) { m._sportEvents[e.id] = e; });
-      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Tap an event to play an official YouTube stream inside Mindvora when the source provides one. Other events keep their official watch links inside this panel.</p>';
-      body.querySelectorAll('[data-event-id]').forEach(function (b) { b.onclick = function () { playSportsEvent(m, m._sportEvents[b.getAttribute('data-event-id')]); }; });
+      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Choose an official broadcaster or competition link above to watch the live event. The link opens in a new tab.</p>';
     }).catch(function (e) { if (!quiet) body.innerHTML = msg('⚠️', 'Sports are unavailable right now', e.message); });
   }
   window.openLiveSports = function () {
     var m = panel('mv-sports', '🏟️ Live Sports');
     sportDate = dstr(0);
     var tools = m.querySelector('[data-tools]');
-    if (!m.querySelector('[data-sport-player]')) { tools.insertAdjacentHTML('beforebegin', '<div data-sport-player style="display:none;margin:10px 12px 0;padding:10px;border-radius:12px;background:var(--card,#171717)"></div>'); }
     tools.innerHTML = '<select data-sport style="padding:7px 10px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.15));background:var(--bg2,#111);color:inherit;font-size:13px;margin-bottom:8px;width:100%">' + sportCatalog.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === selectedSport ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' + [[-1, 'Yesterday'], [0, 'Today'], [1, 'Tomorrow']].map(function (x) {
       return '<button type="button" data-d="' + dstr(x[0]) + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (x[0] === 0 ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + x[1] + '</button>'; }).join('');
     tools.querySelector('[data-sport]').onchange = function () { selectedSport = this.value; loadSports(m); };
@@ -113,17 +93,6 @@
       '<div style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.25">' + esc(a.title) + '</div>' +
       '<div style="font-size:11px;opacity:.6">' + esc(a.year || '') + (a.score ? ' · ★ ' + esc(a.score) + '%' : '') + (a.watch && a.watch.length ? ' · ▶ ' + a.watch.length : '') + '</div></button>';
   }
-  function animeEmbed(url) {
-    try {
-      var u = new URL(String(url || ''));
-      var host = u.hostname.toLowerCase().replace(/^www\./, '');
-      if (host === 'youtube.com' || host === 'youtube-nocookie.com' || host === 'youtu.be') {
-        var id = host === 'youtu.be' ? u.pathname.slice(1) : u.searchParams.get('v');
-        if (id && /^[\w-]{11}$/.test(id)) return 'https://www.youtube.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0';
-      }
-    } catch (e) {}
-    return '';
-  }
   function loadAnime(m) {
     var body = m.querySelector('[data-body]'), seq = ++aniSeq;
     body.innerHTML = msg('🎬', 'Loading anime movies…');
@@ -140,12 +109,7 @@
     var d = panel('mv-anime-detail', '🎬 Anime movie'); open(d);
     var body = d.querySelector('[data-body]'); d.querySelector('[data-tools]').innerHTML = '';
     function render(x) {
-      var playable = (x.watch || []).map(function (w) { return { link: w, embed: animeEmbed(w.url) }; }).filter(function (w) { return !!w.embed; })[0];
-      var player = playable
-        ? '<div style="margin-top:10px;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 4px 18px rgba(0,0,0,.35)">' +
-            '<div style="position:relative;padding-top:56.25%"><iframe src="' + safeUrl(playable.embed) + '" title="' + esc(x.title) + ' official player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>' +
-            '<div style="padding:8px 10px;font-size:11px;color:#fff;background:#111">▶ Playing from ' + esc(playable.link.site) + ' · <a href="' + safeUrl(playable.link.url) + '" target="_blank" rel="noopener noreferrer" style="color:#86efac">Open official page ↗</a></div></div>'
-        : '<div style="margin-top:10px;padding:14px;border-radius:12px;background:var(--deep,#111);border:1px solid var(--border,rgba(255,255,255,.1));font-size:12px;line-height:1.5"><b>In-app playback is not available for this title.</b><br><span style="opacity:.7">The official service does not allow its player to be embedded inside Mindvora. Choose an official service below; it will open in a new tab.</span></div>';
+      var player = '<div style="margin-top:10px;padding:14px;border-radius:12px;background:var(--deep,#111);border:1px solid var(--border,rgba(255,255,255,.1));font-size:12px;line-height:1.5"><b>Watch this title on an official streaming service.</b><br><span style="opacity:.7">Choose Crunchyroll, Netflix, HIDIVE, Prime Video, or another listed service below. It will open in a new tab.</span></div>';
       var links = (x.watch || []).length
         ? x.watch.map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:12px;margin-top:8px;border-radius:10px;background:var(--green,#16a34a);color:#fff;font-weight:700;text-decoration:none">▶ Watch on ' + esc(w.site) + ' ↗</a>'; }).join('')
         : '<p style="opacity:.7">No official streaming service is listed for this title yet.</p>';
