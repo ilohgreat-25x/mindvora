@@ -9,6 +9,14 @@
   var API = function () { return (window.BACKEND_URL || '').replace(/\/$/, ''); };
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function safeUrl(u) { return /^https:\/\//i.test(String(u || '')) ? esc(u) : '#'; }
+  function youtubeEmbed(url) {
+    try {
+      var u = new URL(String(url || '')), h = u.hostname.toLowerCase().replace(/^www\./, ''), id = '';
+      if (h === 'youtu.be') id = u.pathname.slice(1);
+      else if (h === 'youtube.com' || h === 'youtube-nocookie.com') id = u.searchParams.get('v') || (u.pathname.match(/^\/embed\/([\w-]{11})/) || [])[1] || '';
+      return /^[\w-]{11}$/.test(id) ? 'https://www.youtube.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0' : '';
+    } catch (e) { return ''; }
+  }
   function getJSON(path) {
     var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var t = ctl ? setTimeout(function () { ctl.abort(); }, 15000) : null;
@@ -40,18 +48,32 @@
     { id: 'cricket', name: 'Cricket' }, { id: 'cycling', name: 'Cycling' },
     { id: 'golf', name: 'Golf' }, { id: 'hockey', name: 'Ice Hockey' },
     { id: 'rugby', name: 'Rugby' }, { id: 'tennis', name: 'Tennis' },
-    { id: 'combat-sports', name: 'Combat Sports' }, { id: 'motorsport', name: 'Motorsport' }
+    { id: 'mma', name: 'MMA' }, { id: 'boxing', name: 'Boxing' }, { id: 'wrestling', name: 'Wrestling' },
+    { id: 'karate', name: 'Karate' }, { id: 'judo', name: 'Judo' }, { id: 'taekwondo', name: 'Taekwondo' },
+    { id: 'kickboxing', name: 'Kickboxing' }, { id: 'muay-thai', name: 'Muay Thai' },
+    { id: 'brazilian-jiu-jitsu', name: 'Brazilian Jiu-Jitsu' }, { id: 'sumo', name: 'Sumo' }, { id: 'fencing', name: 'Fencing' },
+    { id: 'motorsport', name: 'Motorsport' }
   ];
   function dstr(off) { var d = new Date(Date.now() + off * 86400000); return d.toISOString().slice(0, 10); }
   function statusLabel(m) { return m.live ? '<span style="color:#ef4444;font-weight:700">● LIVE</span>' : esc(m.statusLabel || new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
   function score(v) { return v == null ? '–' : esc(v); }
   function eventCard(m) {
-    var watch = (m.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--green,#22c55e);margin-right:10px">' + esc(w.name) + ' ↗</a>'; }).join('');
-    return '<div style="border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px">' +
+    return '<button type="button" data-event-id="' + esc(m.id) + '" style="display:block;width:100%;text-align:left;color:inherit;background:none;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px;cursor:pointer">' +
       '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
       '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
       '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><img src="' + safeUrl(m.away && m.away.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.away && m.away.name) + '</span><b>' + score(m.away && m.away.score) + '</b></div>' +
-      '<div style="margin-top:8px">' + watch + '</div></div>';
+      '<div style="margin-top:8px;font-size:11px;color:var(--green,#22c55e)">▶ Tap to play inside Mindvora</div></button>';
+  }
+  function playSportsEvent(m, e) {
+    var player = m.querySelector('[data-sport-player]'); if (!player) return;
+    var yt = (e.watch || []).map(function (w) { return { w: w, embed: youtubeEmbed(w.url) }; }).filter(function (x) { return x.embed; })[0];
+    var links = (e.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:6px 8px 0 0;color:#86efac">' + esc(w.name) + ' ↗</a>'; }).join('');
+    player.style.display = 'block';
+    player.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="flex:1">' + esc(e.name) + '</b><button type="button" data-close-player style="background:none;border:0;color:inherit;font-size:18px;cursor:pointer">✕</button></div>' +
+      (yt ? '<div style="position:relative;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden"><iframe src="' + safeUrl(yt.embed) + '" title="' + esc(e.name) + ' official live player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div><div style="font-size:11px;opacity:.65;margin-top:6px">Official YouTube source: ' + esc(yt.w.name) + '</div>' : '<div style="padding:14px;border-radius:10px;background:var(--deep,#111);font-size:12px;line-height:1.5">This event has no official YouTube embed URL in the source feed yet. Use the official link below; it will open in a new tab without leaving this Mindvora panel.<div>' + links + '</div></div>') +
+      (yt ? '<div style="margin-top:6px;font-size:11px">' + links + '</div>' : '');
+    player.querySelector('[data-close-player]').onclick = function () { player.style.display = 'none'; player.innerHTML = ''; };
+    player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
   function loadSports(m, quiet) {
     var body = m.querySelector('[data-body]'), meta = m.querySelector('[data-meta]');
@@ -60,13 +82,16 @@
       meta.textContent = 'Updated ' + new Date(d.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (d.stale ? ' (delayed)' : '');
       if (!d.events.length) { body.innerHTML = msg('📅', 'No events on this day', 'Try another sport or date.'); return; }
       var head = d.live ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700">' + d.live + ' live now</div>' : '';
-      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Scores and schedules: ESPN public feeds. Mindvora does not host sports video. Use official broadcaster links where available in your region.</p>';
+      m._sportEvents = {}; d.events.forEach(function (e) { m._sportEvents[e.id] = e; });
+      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Tap an event to play an official YouTube stream inside Mindvora when the source provides one. Other events keep their official watch links inside this panel.</p>';
+      body.querySelectorAll('[data-event-id]').forEach(function (b) { b.onclick = function () { playSportsEvent(m, m._sportEvents[b.getAttribute('data-event-id')]); }; });
     }).catch(function (e) { if (!quiet) body.innerHTML = msg('⚠️', 'Sports are unavailable right now', e.message); });
   }
   window.openLiveSports = function () {
     var m = panel('mv-sports', '🏟️ Live Sports');
     sportDate = dstr(0);
     var tools = m.querySelector('[data-tools]');
+    if (!m.querySelector('[data-sport-player]')) { tools.insertAdjacentHTML('beforebegin', '<div data-sport-player style="display:none;margin:10px 12px 0;padding:10px;border-radius:12px;background:var(--card,#171717)"></div>'); }
     tools.innerHTML = '<select data-sport style="padding:7px 10px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.15));background:var(--bg2,#111);color:inherit;font-size:13px;margin-bottom:8px;width:100%">' + sportCatalog.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === selectedSport ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' + [[-1, 'Yesterday'], [0, 'Today'], [1, 'Tomorrow']].map(function (x) {
       return '<button type="button" data-d="' + dstr(x[0]) + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (x[0] === 0 ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + x[1] + '</button>'; }).join('');
     tools.querySelector('[data-sport]').onchange = function () { selectedSport = this.value; loadSports(m); };
