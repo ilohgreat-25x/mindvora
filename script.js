@@ -3002,11 +3002,11 @@ document.getElementById('btn-post').addEventListener('click',function(){ var tex
   }
 // Auto-detect best category silently
   var finalCat = autoDetectCategory(text, pendingMedia ? pendingMedia.type : null, compCat);
-  db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:finalCat,userCategory:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,commentsLocked:commentsLocked,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark';
+  db.collection('sparks').add({text:text,authorId:state.user.uid,authorName:state.profile.name||'Mindvora user',authorHandle:state.profile.handle||'user',authorColor:state.profile.color||COLORS[0],authorPremium:state.profile.isPremium||false,category:finalCat,userCategory:compCat,isPremium:state.profile.isPremium||false,likes:[],saved:[],commentCount:0,commentsLocked:commentsLocked,mediaUrl:pendingMedia?pendingMedia.url:null,mediaType:pendingMedia?pendingMedia.type:null,mediaOwnerUid:pendingMedia?state.user.uid:null,mediaBytes:pendingMedia?pendingMedia.bytes:0,mediaPublicId:pendingMedia?pendingMedia.publicId:null,poll:pendingPoll||null,location:pendingLocation||null,reposts:0,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){ document.getElementById('comp-ta').value=''; pendingPoll=null; pendingLocation=null; pendingSchedule=null; document.getElementById('btn-location').style.color=''; document.getElementById('btn-location').style.borderColor=''; document.getElementById('cc').textContent='280'; pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; btn.disabled=false; btn.textContent='✦ Spark';
 // Reset comments lock
               commentsLocked=false;
               var ctBtn=document.getElementById('btn-comments-toggle');
-              if(ctBtn){ctBtn.textContent='💬';ctBtn.style.color='';ctBtn.style.borderColor='';} db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)}); showToast('Spark launched! 🌿'); }).catch(function(e){ showToast('Failed: '+e.message); btn.disabled=false; btn.textContent='✦ Spark'; }); });
+              if(ctBtn){ctBtn.textContent='💬';ctBtn.style.color='';ctBtn.style.borderColor='';} db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)}); showToast('Spark launched! 🌿'); }).catch(function(e){ if(pendingMedia) releaseMediaReservation(pendingMedia); showToast('Failed: '+e.message); btn.disabled=false; btn.textContent='✦ Spark'; }); });
 
 document.getElementById('btn-camera').addEventListener('click', function(){
   openCameraModal();
@@ -3055,7 +3055,7 @@ document.getElementById('btn-media').addEventListener('click',function(){
     var file = fileInput.files[0];
     document.body.removeChild(fileInput);
     if(!file) return;
-    if(file.size > 209715200){ showToast('File too large! Max 200MB'); return; }
+    if(file.size > 100*1024*1024){ showToast('File too large! Max 100MB'); return; }
 // Show persistent uploading banner
     var uploadBanner = document.createElement('div');
     uploadBanner.id = 'upload-banner';
@@ -3063,20 +3063,13 @@ document.getElementById('btn-media').addEventListener('click',function(){
     uploadBanner.textContent = '⏳ Uploading media... Please wait, do not close this page.';
     document.body.appendChild(uploadBanner);
 
-    var formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'ml_default');
-    formData.append('cloud_name', CLOUD_NAME);
     try{
       var resourceType = file.type.startsWith('video') ? 'video' : 'image';
-      var resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/' + resourceType + '/upload', {
-        method: 'POST',
-        body: formData
-      });
-      var data = await resp.json();
+      if (!window.MVMediaQuota) throw new Error('Media quota service unavailable');
+      var data = await window.MVMediaQuota.upload(file, resourceType);
       document.body.removeChild(uploadBanner);
       if(data.error){ showToast('Upload failed: ' + data.error.message); return; }
-      pendingMedia = {url: data.secure_url, type: resourceType};
+      pendingMedia = {url: data.secure_url, type: resourceType, bytes: file.size, ownerUid: state.user.uid, publicId: data.public_id || data.publicId || null};
       if(resourceType === 'image'){
         document.getElementById('prev-img').src = data.secure_url;
         document.getElementById('prev-img').style.display = 'block';
@@ -3090,7 +3083,7 @@ document.getElementById('btn-media').addEventListener('click',function(){
       showToast('✅ Media ready! Now click Spark to post.');
     } catch(e){
       if(document.getElementById('upload-banner')) document.body.removeChild(uploadBanner);
-      showToast('Upload failed: ' + e.message);
+      showToast(e.code === 'MEDIA_QUOTA_EXCEEDED' ? window.MVMediaQuota.limitMessage : 'Upload failed: ' + e.message);
     }
   }); });
 document.getElementById('media-rm').addEventListener('click',function(){ pendingMedia=null; document.getElementById('media-prev').style.display='none'; document.getElementById('prev-img').style.display='none'; document.getElementById('prev-vid').style.display='none'; });
@@ -4349,11 +4342,9 @@ function retakeCamera(){
 
 function useCaptured(){
   if(!camCapturedBlob){ showToast('Nothing captured yet!'); return; }
-// Upload to Cloudinary
-  var formData = new FormData();
+// Upload through the quota-authorized media path.
   var ext = camCapturedType === 'image' ? 'jpg' : 'webm';
-  formData.append('file', camCapturedBlob, 'zync-cam-' + Date.now() + '.' + ext);
-  formData.append('upload_preset', 'ml_default');
+  var camFile = new File([camCapturedBlob], 'zync-cam-' + Date.now() + '.' + ext, { type: camCapturedBlob.type || (camCapturedType === 'image' ? 'image/jpeg' : 'video/webm') });
   var resourceType = camCapturedType === 'image' ? 'image' : 'video';
   closeCameraModal();
 // Show upload banner
@@ -4363,14 +4354,15 @@ function useCaptured(){
   banner.textContent = '⏳ Uploading your ' + camCapturedType + '... Please wait';
   document.body.appendChild(banner);
 
-  fetch('https://api.cloudinary.com/v1_1/dk4svvssf/' + resourceType + '/upload', {
-    method: 'POST', body: formData
-  }).then(function(r){ return r.json(); }).then(function(data){
+  window.MVMediaQuota.upload(camFile, resourceType).then(function(data){
     var b = document.getElementById('upload-banner');
     if(b) b.remove();
     if(data.secure_url){
       state.mediaUrl = data.secure_url;
       state.mediaType = camCapturedType;
+      state.mediaBytes = camFile.size;
+      state.mediaOwnerUid = state.user && state.user.uid;
+      state.mediaPublicId = data.public_id || data.publicId || null;
       var prev = document.getElementById('media-prev');
       var prevVid = document.getElementById('prev-vid');
       var prevImg = document.getElementById('prev-img');
@@ -6771,20 +6763,17 @@ function postCarousel() {
   btn.disabled = true; btn.textContent = 'Uploading...';
   var caption = document.getElementById('carousel-caption').value.trim();
 
-// Upload all files to Cloudinary
+// Upload each file through the quota-authorized media path.
+  var uploadedItems = [];
   var uploads = carouselMedia.map(function(file) {
-    var fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset','ml_default');
-    var endpoint = file.type.startsWith('video')
-      ? 'https://api.cloudinary.com/v1_1/dk4svvssf/video/upload'
-      : 'https://api.cloudinary.com/v1_1/dk4svvssf/image/upload';
-    return fetch(endpoint, { method:'POST', body:fd })
-      .then(function(r){return r.json();})
-      .then(function(d){return { url:d.secure_url, type:file.type.startsWith('video')?'video':'image' };});
+    var type = file.type.startsWith('video') ? 'video' : 'image';
+    return window.MVMediaQuota.upload(file, type).then(function(d){
+      var item = { url:d.secure_url, type:type, resourceType:type, ownerUid:state.user.uid, bytes:file.size, publicId:d.public_id || d.publicId || null, reservationId:d.reservationId || null }; uploadedItems.push(item); return item;
+    });
   });
 
-  Promise.all(uploads).then(function(mediaItems) {
+  Promise.all(uploads).then(function(items) {
+    mediaItems = items;
     return db.collection('sparks').add({
       text: caption,
       authorId: state.user.uid,
@@ -6797,6 +6786,7 @@ function postCarousel() {
       isCarousel:true,
       carouselMedia: mediaItems,
       mediaUrl: mediaItems[0].url, mediaType: mediaItems[0].type,
+      mediaOwnerUid: state.user.uid, mediaBytes: mediaItems[0].bytes, mediaPublicId: mediaItems[0].publicId || null,
       likes:[], saved:[], commentCount:0, reposts:0,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -6807,6 +6797,7 @@ function postCarousel() {
     btn.disabled=false; btn.textContent='Post Carousel';
     showToast('📸 Carousel posted!');
   }).catch(function(e) {
+    Promise.all(uploadedItems.map(function(item){ return releaseMediaReservation(item); })).catch(function() {});
     carouselUploading=false;
     btn.disabled=false; btn.textContent='Post Carousel';
     showToast('Upload failed: '+e.message);
@@ -7388,18 +7379,13 @@ document.getElementById('btn-upload-reel').addEventListener('click',function(){
     if(!file.type.startsWith('video/')){ showToast('Please pick a video file'); return; }
     if(file.size > 200*1024*1024){ showToast('File too large (max 200MB)'); return; }
     showToast('⏫ Uploading reel...');
-    var fd=new FormData();
-    fd.append('file',file);
-    fd.append('upload_preset','ml_default');
-    fetch('https://api.cloudinary.com/v1_1/'+CLOUD_NAME+'/video/upload',{method:'POST',body:fd})
-      .then(function(r){return r.json();})
-      .then(function(result){
-        var r=result;
-        if(!r.secure_url){ showToast('Upload failed — check Cloudinary preset'); return; }
-      db.collection('sparks').add({text:'',authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color||COLORS[0],isPremium:state.profile.isPremium||false,category:'fun',likes:[],saved:[],commentCount:0,mediaUrl:r.secure_url,mediaType:'video',createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
+    window.MVMediaQuota.upload(file, 'video')
+      .then(function(r){
+        if(!r.secure_url){ showToast('Upload failed'); return; }
+      db.collection('sparks').add({text:'',authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color||COLORS[0],isPremium:state.profile.isPremium||false,category:'fun',likes:[],saved:[],commentCount:0,mediaUrl:r.secure_url,mediaType:'video',mediaOwnerUid:state.user.uid,mediaBytes:file.size,mediaPublicId:r.public_id || r.publicId || null,createdAt:firebase.firestore.FieldValue.serverTimestamp()}).then(function(){
         showToast('Reel uploaded! 🎥'); loadReels();
         db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)});
-      });
+      }).catch(function(e){ releaseMediaReservation(r); throw e; });
     })
     .catch(function(){ showToast('Upload failed. Check your connection.'); });
   };
@@ -9139,22 +9125,20 @@ function stopVoiceRecord() {
   document.getElementById('vr-rec-btn').style.background = 'var(--green2)';
 }
 
+function releaseMediaReservation(uploadResult) {
+  if (uploadResult && uploadResult.reservationId && window.MVMediaQuota && window.MVMediaQuota.release) {
+    return window.MVMediaQuota.release(uploadResult.reservationId, uploadResult.publicId || uploadResult.public_id, uploadResult.resourceType || uploadResult.type).catch(function () {});
+  }
+  return Promise.resolve();
+}
 function sendVoiceReply() {
   if (!window._voiceBlob || !_voiceSparkId) { showToast('No voice note recorded'); return; }
   var btn = document.getElementById('vr-send-btn');
   btn.disabled = true; btn.textContent = 'Uploading…';
 
-// Upload to Cloudinary
-  var fd = new FormData();
-  fd.append('file', window._voiceBlob, 'voice-reply.webm');
-  fd.append('upload_preset', 'ml_default');
-  fd.append('resource_type', 'video'); // Cloudinary uses video for audio
-
-  fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/video/upload', {
-    method: 'POST', body: fd
-  }).then(function(r){ return r.json(); }).then(function(res) {
-    if (!res.secure_url) { showToast('Upload failed'); btn.disabled=false; btn.textContent='Send Voice Reply'; return; }
-
+// Upload through the quota-authorized media path; Cloudinary uses video for audio.
+  var voiceFile = new File([window._voiceBlob], 'voice-reply.webm', { type: 'audio/webm' });
+  window.MVMediaQuota.upload(voiceFile, 'video').then(function(res) {
 // Save as comment with voice type
     db.collection('sparks').doc(_voiceSparkId).collection('comments').add({
       authorId:    state.user.uid,
@@ -9163,6 +9147,9 @@ function sendVoiceReply() {
       authorColor: state.profile.color  || COLORS[0],
       text:        '🎙 Voice reply',
       voiceUrl:    res.secure_url,
+      mediaOwnerUid: state.user.uid,
+      mediaBytes: voiceFile.size,
+      mediaPublicId: res.public_id || res.publicId || null,
       isVoice:     true,
       duration:    _voiceSecs,
       createdAt:   firebase.firestore.FieldValue.serverTimestamp()
@@ -9189,8 +9176,8 @@ function sendVoiceReply() {
       window._voiceBlob = null;
 // Reload comments if open
       if (state.currentSparkId === _voiceSparkId) openComments(_voiceSparkId);
-    }).catch(function(){ showToast('Error saving voice reply'); btn.disabled=false; btn.textContent='Send Voice Reply'; });
-  }).catch(function(){ showToast('Upload failed'); btn.disabled=false; btn.textContent='Send Voice Reply'; });
+    }).catch(function(){ releaseMediaReservation(res); showToast('Error saving voice reply'); btn.disabled=false; btn.textContent='Send Voice Reply'; });
+  }).catch(function(e){ if(e && e.reservationId) releaseMediaReservation(e); showToast('Upload failed'); btn.disabled=false; btn.textContent='Send Voice Reply'; });
 }
 
 // REAL-TIME UPDATES (already powered by Firebase onSnapshot)
@@ -10994,7 +10981,7 @@ function uploadCustomThumbnail(){
 // Task 3: Anti-malware scan
       var scanResult = scanFileForMalware(file);
       if(!scanResult.safe){ showToast('🛡️ ' + scanResult.reason); return; }
-      if(file.size > 209715200){ showToast('File too large! Max 200MB'); return; }
+      if(file.size > 100*1024*1024){ showToast('File too large! Max 100MB'); return; }
       var isVideo = file.type.startsWith('video');
       var thumbDataUrl = null;
 // Task 1: Show thumbnail picker for videos
@@ -11006,17 +10993,13 @@ function uploadCustomThumbnail(){
       uploadBanner.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:var(--green);color:var(--cream);text-align:center;padding:10px;font-size:13px;font-weight:700;z-index:9999;font-family:DM Sans,sans-serif';
       uploadBanner.textContent = '⏳ Uploading media... Please wait.';
       document.body.appendChild(uploadBanner);
-      var formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', 'ml_default');
-      formData.append('cloud_name', CLOUD_NAME);
       try{
         var resourceType = isVideo ? 'video' : 'image';
-        var resp = await fetch('https://api.cloudinary.com/v1_1/' + CLOUD_NAME + '/' + resourceType + '/upload', { method:'POST', body:formData });
-        var data = await resp.json();
+        if (!window.MVMediaQuota) throw new Error('Media quota service unavailable');
+        var data = await window.MVMediaQuota.upload(file, resourceType);
         if(document.getElementById('upload-banner')) document.body.removeChild(uploadBanner);
         if(data.error){ showToast('Upload failed: ' + data.error.message); return; }
-        pendingMedia = { url: data.secure_url, type: resourceType, thumbnail: thumbDataUrl };
+        pendingMedia = { url: data.secure_url, type: resourceType, bytes: file.size, ownerUid: state.user.uid, publicId: data.public_id || data.publicId || null, thumbnail: thumbDataUrl };
         if(resourceType === 'image'){
           document.getElementById('prev-img').src = data.secure_url;
           document.getElementById('prev-img').style.display = 'block';
@@ -11062,12 +11045,8 @@ function openShortsUpload(){
 // Show thumbnail picker
     var thumbDataUrl = await openThumbPicker(file, true);
     showToast('⏫ Uploading short…');
-    var fd = new FormData();
-    fd.append('file', file);
-    fd.append('upload_preset', 'ml_default');
     try {
-      var resp = await fetch('https://api.cloudinary.com/v1_1/'+CLOUD_NAME+'/video/upload', {method:'POST', body:fd});
-      var r = await resp.json();
+      var r = await window.MVMediaQuota.upload(file, 'video');
       if(!r.secure_url){ showToast('Upload failed'); return; }
       await db.collection('sparks').add({
         text: '', authorId: state.user.uid, authorName: state.profile.name,
@@ -11075,6 +11054,7 @@ function openShortsUpload(){
         isPremium: state.profile.isPremium||false, isShort: true,
         category: 'fun', likes: [], saved: [], commentCount: 0,
         mediaUrl: r.secure_url, mediaType: 'video',
+        mediaOwnerUid: state.user.uid, mediaBytes: file.size, mediaPublicId: r.public_id || r.publicId || null,
         thumbnailUrl: thumbDataUrl || null,
         duration: Math.round(duration),
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -11082,7 +11062,7 @@ function openShortsUpload(){
       db.collection('users').doc(state.user.uid).update({sparksCount:firebase.firestore.FieldValue.increment(1)});
       showToast('🎬 Short uploaded!');
       loadReels();
-    } catch(e){ showToast('Upload failed: ' + e.message); }
+    } catch(e){ releaseMediaReservation(r); showToast('Upload failed: ' + e.message); }
   };
   fileInp.click();
 }

@@ -29,7 +29,7 @@ service cloud.firestore {
     // A brand-new profile may not start out premium, verified, rich or admin.
     function safeNewUser(d) {
       return !d.keys().hasAny(['role', 'isAdmin', 'admin', 'wallet', 'balance', 'banned', 'disabled',
-                               'isVerified', 'premiumRef', 'premiumSince', 'verifiedSince', 'referralCount'])
+                               'isVerified', 'premiumRef', 'premiumSince', 'verifiedSince', 'referralCount', 'mediaUsageBytes', 'mediaReservedBytes', 'mediaStorageEntitlement', 'mediaStorageSince', 'mediaStorageRef', 'mediaStorageProvider'])
         && (!('isPremium' in d) || d.isPremium == false)
         && (!('plan' in d) || d.plan == 'free')
         && (!('earnings' in d) || d.earnings == 0)
@@ -46,7 +46,7 @@ service cloud.firestore {
           'disabled', 'disabledAt', 'disabledReason', 'referralCount',
           // Paid features — only the backend (Firebase Admin) may grant these.
           'isPremium', 'plan', 'premiumRef', 'premiumProvider', 'premiumSince', 'premiumActivatedCrypto',
-          'isVerified', 'verifiedSince', 'verifiedRef', 'tips'
+          'isVerified', 'verifiedSince', 'verifiedRef', 'tips', 'mediaUsageBytes', 'mediaReservedBytes', 'mediaStorageEntitlement', 'mediaStorageSince', 'mediaStorageRef', 'mediaStorageProvider'
         ]);
       allow delete: if false;
     }
@@ -55,13 +55,16 @@ service cloud.firestore {
       // Matches what the app writes (authorId, mediaUrl, mediaType, sound, …). Older posts may use uid.
       function sparkOwner(d) { return d.get('authorId', null) == request.auth.uid || d.get('uid', null) == request.auth.uid; }
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && sparkOwner(request.resource.data);
+      allow create: if isSignedIn() && sparkOwner(request.resource.data)
+        && (request.resource.data.get('mediaUrl', '') == '' || (request.resource.data.get('mediaOwnerUid', '') == request.auth.uid && request.resource.data.get('mediaBytes', 0) is int));
       // Owner edits anything; everyone else may only touch engagement counters/lists.
       allow update: if isSignedIn() && (sparkOwner(resource.data)
         || request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'likes', 'saved', 'commentCount', 'reposts', 'viewCount', 'tags', 'reactions', 'poll', 'giftCount', 'shares']));
       allow delete: if isSignedIn() && sparkOwner(resource.data);
     }
+    match /media_uploads/{docId} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
+    match /media_reservations/{docId} { allow read: if isSignedIn() && resource.data.uid == request.auth.uid; allow write: if false; }
     // ── comments ───────────────────────────────────────────────────────────
     match /comments/{commentId} {
       allow read: if isSignedIn();
@@ -253,7 +256,8 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid
         && request.resource.data.expiresAt is timestamp
-        && request.resource.data.expiresAt <= request.time + duration.value(49, 'h');
+        && request.resource.data.expiresAt <= request.time + duration.value(49, 'h')
+        && (!request.resource.data.get('media', {}).keys().hasAny(['url']) || request.resource.data.media.get('ownerUid', request.auth.uid) == request.auth.uid);
       // Owner can edit; any signed-in viewer may ONLY add themselves to seenBy.
       allow update: if isSignedIn() && (resource.data.uid == request.auth.uid
         || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seenBy'])

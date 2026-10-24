@@ -73,16 +73,10 @@
   function uploadPhoto(file) {
     if (!file || !/^image\/(jpeg|png|webp|gif|heic|heif)$/i.test(file.type)) return Promise.reject(new Error('Choose a JPG, PNG, WEBP or GIF photo.'));
     if (file.size > MAX_IMG) return Promise.reject(new Error('Photo too large (max 10 MB).'));
-    var fd = new FormData();
-    fd.append('file', file); fd.append('upload_preset', 'ml_default'); fd.append('folder', 'stories');
-    fd.append('tags', 'mindvora_story');
-    var cloud = (typeof CLOUD_NAME !== 'undefined' && CLOUD_NAME) || 'dk4svvssf';
-    return fetch('https://api.cloudinary.com/v1_1/' + cloud + '/image/upload', { method: 'POST', body: fd })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        if (!d || d.error || !d.secure_url) throw new Error((d && d.error && d.error.message) || 'Upload failed');
-        return { url: d.secure_url, type: 'image', publicId: d.public_id || '', width: d.width || 0, height: d.height || 0 };
-      });
+    if (!window.MVMediaQuota) return Promise.reject(new Error('Media quota service unavailable'));
+    return window.MVMediaQuota.upload(file, 'image').then(function (d) {
+      return { url: d.secure_url, type: 'image', publicId: d.public_id || '', width: d.width || 0, height: d.height || 0, ownerUid: state.user.uid, bytes: file.size };
+    });
   }
 
   // ── composer ────────────────────────────────────────────────────────
@@ -133,7 +127,9 @@
     if (!text && !compFile) { toast('Add text or a photo.'); return; }
     var chosen = pendingStoryMusic, btn = $('mv-sc-post');
     posting = true; btn.disabled = true; btn.textContent = compFile ? 'Uploading photo…' : 'Posting…';
+    var postedMedia = null;
     (compFile ? uploadPhoto(compFile) : Promise.resolve(null)).then(function (media) {
+      postedMedia = media;
       var doc = {
         text: text, uid: state.user.uid, authorId: state.user.uid,
         authorName: state.profile.name || '', authorHandle: state.profile.handle || '', authorColor: state.profile.color || '',
@@ -149,6 +145,7 @@
       toast('Story posted' + (chosen ? ' with 🎵 ' + chosen.name : '') + '! 48h ⏱');
       closeComposer(); if (typeof loadStories === 'function') loadStories();
     }).catch(function (e) {
+      if (postedMedia && postedMedia.reservationId && window.MVMediaQuota) MVMediaQuota.release(postedMedia.reservationId, postedMedia.publicId || postedMedia.public_id, 'image').catch(function () {});
       console.warn('[story] post failed', e); toast('⚠️ Story not posted: ' + ((e && e.message) || 'try again'));
     }).then(function () { posting = false; btn.disabled = false; btn.textContent = 'Post story'; });
   }

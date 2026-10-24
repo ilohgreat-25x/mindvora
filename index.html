@@ -503,7 +503,7 @@
           <button class="f-pill" data-cat="fun" id="cat-fun">🎉 Fun</button>
           <button class="f-pill" data-cat="thoughts" id="cat-thoughts">💭 Thoughts</button>
           <button class="f-pill" data-cat="news" id="cat-news">🌍 News</button>
-          <button class="media-btn" id="btn-media" title="Attach media">📎</button>
+          <button class="media-btn" id="btn-media" title="Attach media">📎</button><span id="media-quota-status" style="font-size:10px;color:var(--muted);margin-left:4px" aria-live="polite"></span>
           <button class="media-btn" id="btn-camera" title="Take photo or video">📷</button>
           <button class="media-btn" id="btn-story-music" title="Add music to story" onclick="openMusicPicker()">🎵</button>
           <button class="media-btn" id="btn-poll" title="Create poll">📊</button>
@@ -4106,6 +4106,7 @@
   //   Paste your real site key below (leave blank to disable captcha).
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
+<script src="media-quota.js"></script>
 <script src="script.js?v=15"></script>
 <script src="fixes.js?v=7"></script>
 <script src="calls.js?v=19"></script>
