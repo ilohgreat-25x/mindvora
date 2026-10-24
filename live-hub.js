@@ -88,6 +88,17 @@
       '<div style="font-size:12px;font-weight:600;margin-top:4px;line-height:1.25">' + esc(a.title) + '</div>' +
       '<div style="font-size:11px;opacity:.6">' + esc(a.year || '') + (a.score ? ' · ★ ' + esc(a.score) + '%' : '') + (a.watch && a.watch.length ? ' · ▶ ' + a.watch.length : '') + '</div></button>';
   }
+  function animeEmbed(url) {
+    try {
+      var u = new URL(String(url || ''));
+      var host = u.hostname.toLowerCase().replace(/^www\./, '');
+      if (host === 'youtube.com' || host === 'youtube-nocookie.com' || host === 'youtu.be') {
+        var id = host === 'youtu.be' ? u.pathname.slice(1) : u.searchParams.get('v');
+        if (id && /^[\w-]{11}$/.test(id)) return 'https://www.youtube.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0';
+      }
+    } catch (e) {}
+    return '';
+  }
   function loadAnime(m) {
     var body = m.querySelector('[data-body]'), seq = ++aniSeq;
     body.innerHTML = msg('🎬', 'Loading anime movies…');
@@ -104,12 +115,18 @@
     var d = panel('mv-anime-detail', '🎬 Anime movie'); open(d);
     var body = d.querySelector('[data-body]'); d.querySelector('[data-tools]').innerHTML = '';
     function render(x) {
+      var playable = (x.watch || []).map(function (w) { return { link: w, embed: animeEmbed(w.url) }; }).filter(function (w) { return !!w.embed; })[0];
+      var player = playable
+        ? '<div style="margin-top:10px;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 4px 18px rgba(0,0,0,.35)">' +
+            '<div style="position:relative;padding-top:56.25%"><iframe src="' + safeUrl(playable.embed) + '" title="' + esc(x.title) + ' official player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>' +
+            '<div style="padding:8px 10px;font-size:11px;color:#fff;background:#111">▶ Playing from ' + esc(playable.link.site) + ' · <a href="' + safeUrl(playable.link.url) + '" target="_blank" rel="noopener noreferrer" style="color:#86efac">Open official page ↗</a></div></div>'
+        : '<div style="margin-top:10px;padding:14px;border-radius:12px;background:var(--deep,#111);border:1px solid var(--border,rgba(255,255,255,.1));font-size:12px;line-height:1.5"><b>In-app playback is not available for this title.</b><br><span style="opacity:.7">The official service does not allow its player to be embedded inside Mindvora. Choose an official service below; it will open in a new tab.</span></div>';
       var links = (x.watch || []).length
         ? x.watch.map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:12px;margin-top:8px;border-radius:10px;background:var(--green,#16a34a);color:#fff;font-weight:700;text-decoration:none">▶ Watch on ' + esc(w.site) + ' ↗</a>'; }).join('')
         : '<p style="opacity:.7">No official streaming service is listed for this title yet.</p>';
       body.innerHTML = (x.banner ? '<img src="' + safeUrl(x.banner) + '" alt="" style="width:100%;max-height:160px;object-fit:cover;border-radius:10px;margin-top:8px">' : '') +
         '<h2 style="margin:12px 0 4px">' + esc(x.title) + '</h2><div style="font-size:12px;opacity:.7">' + esc([x.year, x.durationMin ? x.durationMin + ' min' : '', (x.genres || []).join(', ')].filter(Boolean).join(' · ')) + '</div>' +
-        '<p style="font-size:14px;line-height:1.5">' + esc(x.description) + '</p>' + links +
+        player + '<p style="font-size:14px;line-height:1.5">' + esc(x.description) + '</p>' + links +
         '<p style="font-size:11px;opacity:.55;margin-top:14px">Links open the official service (subscription and regional availability apply). Info: <a href="' + safeUrl(x.info) + '" target="_blank" rel="noopener noreferrer" style="color:inherit">' + esc(x.source) + '</a></p>';
     }
     render(a);
