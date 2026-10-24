@@ -12,7 +12,7 @@
 body.light-mode {
   --bg:#f9fafb;--card:#ffffff;--deep:#f3f4f6;
   --moon:#111827;--muted:#6b7280;
-  --border:rgba(0,0,0,.1);--cream:#111827;
+  --white:#111827;--border:rgba(0,0,0,.1);--cream:#111827;
   --cream2:#374151;--creamdim:rgba(0,0,0,.05);
 }
 body.light-mode .s-av{color:#000 !important;font-weight:800;text-shadow:none}
@@ -3086,3 +3086,29 @@ input:-webkit-autofill:active,
 /* Advanced Search: always-readable typed text */
 #adv-search-inp,body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}
 #adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important}
+
+/* ── LIGHT-MODE READABILITY FIXES ──
+   Only correct pale text on light app surfaces. Dark auth, media, call,
+   camera, story-viewer, and video-overlay surfaces intentionally retain
+   their white controls. */
+body.light .s-btn.saved,body.light-mode .s-btn.saved{color:#14532d!important}
+body.light .sv-av,body.light-mode .sv-av{color:#0a1f0e!important;text-shadow:none}
+body.light .m-err,body.light-mode .m-err{color:#991b1b!important}
+body.light .btn-reject,body.light-mode .btn-reject{color:#991b1b!important}
+body.light .sa-title,body.light-mode .sa-title{color:#991b1b!important}
+body.light .sa-title.warn,body.light-mode .sa-title.warn{color:#92400e!important}
+body.light .sa-title.info,body.light-mode .sa-title.info{color:#1d4ed8!important}
+body.light .scan-badge.danger,body.light-mode .scan-badge.danger{color:#991b1b!important}
+body.light .scan-badge.scanning,body.light-mode .scan-badge.scanning{color:#92400e!important}
+body.light .mar-status.pending,body.light-mode .mar-status.pending{color:#92400e!important}
+body.light .mar-status.free,body.light-mode .mar-status.free{color:#075985!important}
+body.light .arc-type.free,body.light-mode .arc-type.free{color:#075985!important}
+body.light .react-btn.liked,body.light-mode .react-btn.liked{color:#b91c1c!important}
+body.light .react-btn.loved,body.light-mode .react-btn.loved{color:#9d174d!important}
+body.light .react-btn.cared,body.light-mode .react-btn.cared{color:#92400e!important}
+body.light .react-btn.disliked,body.light-mode .react-btn.disliked{color:#475569!important}
+body.light #referral-disabled-banner,body.light-mode #referral-disabled-banner{color:#991b1b!important}
+body.light #wd-panel-crypto > div[style*="color:#fbbf24"],body.light-mode #wd-panel-crypto > div[style*="color:#fbbf24"]{color:#92400e!important}
+body.light #mv-story-comp > div,body.light-mode #mv-story-comp > div{background:#fff!important;color:#0f2318!important}
+body.light #mv-story-comp #mv-sc-text,body.light-mode #mv-story-comp #mv-sc-text{background:#f3f4f6!important;color:#0f2318!important;-webkit-text-fill-color:#0f2318!important;border-color:rgba(15,35,24,.2)!important}
+body.light #mv-story-comp #mv-sc-mus,body.light-mode #mv-story-comp #mv-sc-mus,body.light #mv-story-comp #mv-sc-x,body.light-mode #mv-story-comp #mv-sc-x{color:#0f2318!important}
