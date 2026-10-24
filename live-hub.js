@@ -62,27 +62,7 @@
       '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
       '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
       '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><img src="' + safeUrl(m.away && m.away.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.away && m.away.name) + '</span><b>' + score(m.away && m.away.score) + '</b></div>' +
-      '<div style="margin-top:8px;font-size:11px;color:var(--green,#22c55e)">Open event source</div></button>';
-  }
-  function playSportsSource(m, s) {
-    var player = m.querySelector('[data-sport-player]'); if (!player) return;
-    player.style.display = 'block';
-    player.innerHTML = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><b style="flex:1">' + esc(s.name) + '</b><button type="button" data-close-player style="background:none;border:0;color:inherit;font-size:18px;cursor:pointer">✕</button></div>' +
-      (s.embed ? '<div style="position:relative;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden"><iframe src="' + safeUrl(s.embed) + '" title="' + esc(s.name) + ' official live player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div><div style="font-size:11px;opacity:.65;margin-top:6px">Official YouTube live source · ' + esc(s.title || s.name) + '</div>' : '<div style="padding:14px;border-radius:10px;background:var(--deep,#111);font-size:12px;line-height:1.5">No official live YouTube stream is available from this source right now. Mindvora will show the player here automatically when the verified channel goes live.</div>') +
-      '<div style="margin-top:7px;font-size:11px"><a href="' + safeUrl(s.channel) + '" target="_blank" rel="noopener noreferrer" style="color:#86efac">Open official channel ↗</a> · <a href="' + safeUrl(s.site) + '" target="_blank" rel="noopener noreferrer" style="color:#86efac">Official site ↗</a></div>';
-    player.querySelector('[data-close-player]').onclick = function () { player.style.display = 'none'; player.innerHTML = ''; };
-    player.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-  function renderOfficialSources(m, sources) {
-    var box = m.querySelector('[data-sport-sources]'); if (!box) return;
-    m._sportSources = {}; sources.forEach(function (s) { m._sportSources[s.id] = s; });
-    box.innerHTML = '<div style="font-size:11px;font-weight:700;opacity:.8;margin-bottom:5px">Official live YouTube sources</div>' +
-      (sources.length ? sources.map(function (s) { return '<button type="button" data-source-id="' + esc(s.id) + '" style="display:inline-flex;align-items:center;gap:5px;margin:3px 5px 3px 0;padding:6px 9px;border-radius:14px;border:1px solid ' + (s.live ? '#22c55e' : 'var(--border,rgba(255,255,255,.15))') + ';background:' + (s.live ? 'rgba(34,197,94,.12)' : 'transparent') + ';color:inherit;font-size:11px;cursor:pointer">' + (s.live ? '● ' : '') + esc(s.name) + '</button>'; }).join('') : '<span style="font-size:11px;opacity:.65">No verified source is registered for this category.</span>');
-    box.querySelectorAll('[data-source-id]').forEach(function (b) { b.onclick = function () { playSportsSource(m, m._sportSources[b.getAttribute('data-source-id')]); }; });
-  }
-  function loadOfficialSources(m) {
-    var box = m.querySelector('[data-sport-sources]'); if (box) box.innerHTML = '<span style="font-size:11px;opacity:.65">Checking official live channels…</span>';
-    getJSON('/api/sports/live-sources?category=' + encodeURIComponent(selectedSport)).then(function (d) { if (m.style.display !== 'none') renderOfficialSources(m, d.sources || []); }).catch(function () { if (box) box.innerHTML = '<span style="font-size:11px;opacity:.65">Official live sources are temporarily unavailable.</span>'; });
+      '<div style="margin-top:8px;font-size:11px;color:var(--green,#22c55e)">▶ Tap to play inside Mindvora</div></button>';
   }
   function playSportsEvent(m, e) {
     var player = m.querySelector('[data-sport-player]'); if (!player) return;
@@ -103,7 +83,7 @@
       if (!d.events.length) { body.innerHTML = msg('📅', 'No events on this day', 'Try another sport or date.'); return; }
       var head = d.live ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700">' + d.live + ' live now</div>' : '';
       m._sportEvents = {}; d.events.forEach(function (e) { m._sportEvents[e.id] = e; });
-      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Official live YouTube channels appear above when available. Event cards show source metadata and never invent a stream URL.</p>';
+      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Tap an event to play an official YouTube stream inside Mindvora when the source provides one. Other events keep their official watch links inside this panel.</p>';
       body.querySelectorAll('[data-event-id]').forEach(function (b) { b.onclick = function () { playSportsEvent(m, m._sportEvents[b.getAttribute('data-event-id')]); }; });
     }).catch(function (e) { if (!quiet) body.innerHTML = msg('⚠️', 'Sports are unavailable right now', e.message); });
   }
@@ -111,16 +91,16 @@
     var m = panel('mv-sports', '🏟️ Live Sports');
     sportDate = dstr(0);
     var tools = m.querySelector('[data-tools]');
-    if (!m.querySelector('[data-sport-player]')) { tools.insertAdjacentHTML('beforebegin', '<div data-sport-player style="display:none;margin:10px 12px 0;padding:10px;border-radius:12px;background:var(--card,#171717)"></div><div data-sport-sources style="padding:8px 12px 0"></div>'); }
+    if (!m.querySelector('[data-sport-player]')) { tools.insertAdjacentHTML('beforebegin', '<div data-sport-player style="display:none;margin:10px 12px 0;padding:10px;border-radius:12px;background:var(--card,#171717)"></div>'); }
     tools.innerHTML = '<select data-sport style="padding:7px 10px;border-radius:10px;border:1px solid var(--border,rgba(255,255,255,.15));background:var(--bg2,#111);color:inherit;font-size:13px;margin-bottom:8px;width:100%">' + sportCatalog.map(function (s) { return '<option value="' + esc(s.id) + '"' + (s.id === selectedSport ? ' selected' : '') + '>' + esc(s.name) + '</option>'; }).join('') + '</select>' + [[-1, 'Yesterday'], [0, 'Today'], [1, 'Tomorrow']].map(function (x) {
       return '<button type="button" data-d="' + dstr(x[0]) + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (x[0] === 0 ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + x[1] + '</button>'; }).join('');
-    tools.querySelector('[data-sport]').onchange = function () { selectedSport = this.value; loadSports(m); loadOfficialSources(m); };
+    tools.querySelector('[data-sport]').onchange = function () { selectedSport = this.value; loadSports(m); };
     tools.querySelectorAll('button').forEach(function (b) {
       b.onclick = function () { sportDate = b.getAttribute('data-d'); tools.querySelectorAll('button').forEach(function (o) { o.style.background = o === b ? 'var(--green,#16a34a)' : 'transparent'; }); loadSports(m); };
     });
-    open(m); loadSports(m); loadOfficialSources(m);
+    open(m); loadSports(m);
     clearInterval(sportTimer);
-    sportTimer = setInterval(function () { if (!document.hidden && m.style.display !== 'none') { loadSports(m, true); loadOfficialSources(m); } }, 60000);
+    sportTimer = setInterval(function () { if (!document.hidden && m.style.display !== 'none') loadSports(m, true); }, 60000);
     m._onClose = function () { clearInterval(sportTimer); sportTimer = null; };
   };
   window.openLiveFootball = window.openLiveSports;
@@ -165,7 +145,7 @@
         ? '<div style="margin-top:10px;border-radius:12px;overflow:hidden;background:#000;box-shadow:0 4px 18px rgba(0,0,0,.35)">' +
             '<div style="position:relative;padding-top:56.25%"><iframe src="' + safeUrl(playable.embed) + '" title="' + esc(x.title) + ' official player" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>' +
             '<div style="padding:8px 10px;font-size:11px;color:#fff;background:#111">▶ Playing from ' + esc(playable.link.site) + ' · <a href="' + safeUrl(playable.link.url) + '" target="_blank" rel="noopener noreferrer" style="color:#86efac">Open official page ↗</a></div></div>'
-        : '<div style="margin-top:10px;padding:14px;border-radius:12px;background:var(--deep,#111);border:1px solid var(--border,rgba(255,255,255,.1));font-size:12px;line-height:1.5"><b>No verified embeddable official YouTube video is attached to this title.</b><br><span style="opacity:.7">Mindvora will play the title here only when an official source provides a YouTube video that permits embedding. Licensed-service pages are listed below without pretending they are in-app players.</span></div>';
+        : '<div style="margin-top:10px;padding:14px;border-radius:12px;background:var(--deep,#111);border:1px solid var(--border,rgba(255,255,255,.1));font-size:12px;line-height:1.5"><b>In-app playback is not available for this title.</b><br><span style="opacity:.7">The official service does not allow its player to be embedded inside Mindvora. Choose an official service below; it will open in a new tab.</span></div>';
       var links = (x.watch || []).length
         ? x.watch.map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:block;padding:12px;margin-top:8px;border-radius:10px;background:var(--green,#16a34a);color:#fff;font-weight:700;text-decoration:none">▶ Watch on ' + esc(w.site) + ' ↗</a>'; }).join('')
         : '<p style="opacity:.7">No official streaming service is listed for this title yet.</p>';
