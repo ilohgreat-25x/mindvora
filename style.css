@@ -3112,3 +3112,4 @@ body.light #wd-panel-crypto > div[style*="color:#fbbf24"],body.light-mode #wd-pa
 body.light #mv-story-comp > div,body.light-mode #mv-story-comp > div{background:#fff!important;color:#0f2318!important}
 body.light #mv-story-comp #mv-sc-text,body.light-mode #mv-story-comp #mv-sc-text{background:#f3f4f6!important;color:#0f2318!important;-webkit-text-fill-color:#0f2318!important;border-color:rgba(15,35,24,.2)!important}
 body.light #mv-story-comp #mv-sc-mus,body.light-mode #mv-story-comp #mv-sc-mus,body.light #mv-story-comp #mv-sc-x,body.light-mode #mv-story-comp #mv-sc-x{color:#0f2318!important}
+body.light #mv-news-live [data-now],body.light-mode #mv-news-live [data-now]{color:#fff!important}

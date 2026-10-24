@@ -20,7 +20,7 @@
   function panel(id, title) {
     var m = document.getElementById(id); if (m) return m;
     m = document.createElement('div'); m.id = id;
-    m.style.cssText = 'position:fixed;inset:0;z-index:99980;background:var(--bg,#0b0b0b);color:var(--text,#fff);display:none;flex-direction:column;font-family:inherit';
+    m.style.cssText = 'position:fixed;inset:0;z-index:99980;background:var(--bg,#0b0b0b);color:var(--white,#fff);display:none;flex-direction:column;font-family:inherit';
     m.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border,rgba(255,255,255,.1))">' +
       '<button type="button" data-x style="background:none;border:0;color:inherit;font-size:20px;cursor:pointer">←</button>' +
       '<b style="flex:1;font-size:16px">' + esc(title) + '</b><span data-meta style="font-size:11px;opacity:.6"></span></div>' +
@@ -49,6 +49,28 @@
   function dstr(off) { var d = new Date(Date.now() + off * 86400000); return d.toISOString().slice(0, 10); }
   function statusLabel(m) { return m.live ? '<span style="color:#ef4444;font-weight:700">● LIVE</span>' : esc(m.statusLabel || new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
   function score(v) { return v == null ? '–' : esc(v); }
+  function sportScheduleLinks() {
+    var links = {
+      soccer: [['Premier League', 'https://www.premierleague.com/fixtures'], ['UEFA', 'https://www.uefa.com/uefachampionsleague/fixtures/'], ['SuperSport', 'https://supersport.com/football/']],
+      'american-football': [['NFL', 'https://www.nfl.com/schedules/'], ['NFL+', 'https://www.nfl.com/plus/']], basketball: [['NBA', 'https://www.nba.com/games'], ['WNBA', 'https://www.wnba.com/schedule']],
+      baseball: [['MLB', 'https://www.mlb.com/schedule'], ['MLB.TV', 'https://www.mlb.com/live-stream-games']], cricket: [['ICC', 'https://www.icc-cricket.com/fixtures-results'], ['ICC.tv', 'https://www.icc.tv/']],
+      cycling: [['UCI', 'https://www.uci.org/calendar'], ['UCI YouTube', 'https://www.youtube.com/@ucichannel']], golf: [['PGA TOUR', 'https://www.pgatour.com/schedule'], ['LPGA', 'https://www.lpga.com/tournaments']],
+      hockey: [['NHL', 'https://www.nhl.com/schedule'], ['NHL Watch', 'https://www.nhl.com/subscribe']], rugby: [['World Rugby', 'https://www.world.rugby/fixtures'], ['World Rugby Watch', 'https://www.world.rugby/watch']],
+      tennis: [['ATP', 'https://www.atptour.com/en/scores/current'], ['WTA', 'https://www.wtatennis.com/scores']], mma: [['UFC', 'https://www.ufc.com/events'], ['UFC Watch', 'https://www.ufc.com/watch']],
+      boxing: [['Top Rank', 'https://www.toprank.com/events/'], ['WBC', 'https://wbcboxing.com/']], wrestling: [['WWE', 'https://www.wwe.com/schedule'], ['AEW', 'https://www.allelitewrestling.com/events']],
+      karate: [['World Karate Federation', 'https://www.wkf.net/'], ['WKF YouTube', 'https://www.youtube.com/@WKF.Official']], judo: [['IJF', 'https://www.ijf.org/calendar'], ['IJF YouTube', 'https://www.youtube.com/@Judo']],
+      taekwondo: [['World Taekwondo', 'https://worldtaekwondo.org/competition/'], ['WT YouTube', 'https://www.youtube.com/@WorldTaekwondo']], kickboxing: [['GLORY', 'https://glorykickboxing.com/events'], ['ONE Championship', 'https://www.onefc.com/events/']],
+      'muay-thai': [['ONE Championship', 'https://www.onefc.com/events/'], ['WBC MuayThai', 'https://www.wbcmuaythai.com/']], 'brazilian-jiu-jitsu': [['IBJJF', 'https://ibjjf.com/championships'], ['UAE Jiu-Jitsu', 'https://uaejjf.com/']],
+      sumo: [['Japan Sumo Association', 'https://www.sumo.or.jp/EnHonbasho/'], ['NHK Sumo', 'https://www3.nhk.or.jp/nhkworld/en/tv/sumo/']], fencing: [['FIE', 'https://fie.org/competitions'], ['FIE YouTube', 'https://www.youtube.com/@FIEvideo']],
+      motorsport: [['Formula 1', 'https://www.formula1.com/en/racing/2026'], ['NASCAR', 'https://www.nascar.com/schedule/']]
+    };
+    return links[selectedSport] || [];
+  }
+  function emptySportsMessage() {
+    var name = (sportCatalog.filter(function (s) { return s.id === selectedSport; })[0] || {}).name || 'This sport';
+    var links = sportScheduleLinks().map(function (x) { return '<a href="' + safeUrl(x[1]) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 6px 0 0;color:inherit;text-decoration:underline">' + esc(x[0]) + ' ↗</a>'; }).join('');
+    return msg('📅', name + ' has no scoreboard events returned for this date', 'Use an official schedule or watch page below; events vary by competition calendar and region.') + '<div style="text-align:center;padding:0 10px 25px">' + links + '</div>';
+  }
   function eventCard(m) {
     var links = (m.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:7px 8px 0 0;color:#86efac;font-size:11px">▶ ' + esc(w.name) + ' ↗</a>'; }).join('');
     return '<div style="display:block;width:100%;text-align:left;color:inherit;background:none;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px">' +
@@ -62,7 +84,7 @@
     if (!quiet) body.innerHTML = msg('🏟️', 'Loading ' + (sportCatalog.filter(function (s) { return s.id === selectedSport; })[0] || {}).name + '…');
     getJSON('/api/sports/events?sport=' + encodeURIComponent(selectedSport) + '&date=' + sportDate).then(function (d) {
       meta.textContent = 'Updated ' + new Date(d.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (d.stale ? ' (delayed)' : '');
-      if (!d.events.length) { body.innerHTML = msg('📅', 'No events on this day', 'Try another sport or date.'); return; }
+      if (!d.events.length) { body.innerHTML = emptySportsMessage(); return; }
       var head = d.live ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700">' + d.live + ' live now</div>' : '';
       m._sportEvents = {}; d.events.forEach(function (e) { m._sportEvents[e.id] = e; });
       body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Choose an official broadcaster or competition link above to watch the live event. The link opens in a new tab.</p>';

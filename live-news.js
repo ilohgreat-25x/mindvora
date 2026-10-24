@@ -42,7 +42,7 @@
   function panel() {
     var m = document.getElementById('mv-news-live'); if (m) return m;
     m = document.createElement('div'); m.id = 'mv-news-live';
-    m.style.cssText = 'position:fixed;inset:0;z-index:99980;background:var(--bg,#0b0b0b);color:var(--text,#fff);display:none;flex-direction:column;font-family:inherit';
+    m.style.cssText = 'position:fixed;inset:0;z-index:99980;background:var(--bg,#0b0b0b);color:var(--white,#fff);display:none;flex-direction:column;font-family:inherit';
     m.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border,rgba(255,255,255,.1))">' +
       '<button type="button" data-x style="background:none;border:0;color:inherit;font-size:20px;cursor:pointer">←</button>' +
       '<b style="flex:1;font-size:16px">📰 Live News</b><span style="font-size:11px;color:#ef4444;font-weight:700">● LIVE</span></div>' +
