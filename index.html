@@ -3830,6 +3830,7 @@
         <button class="f-pill" onclick="switchAdminTab('approved',this)">✅ Approved</button>
         <button class="f-pill" onclick="switchAdminTab('rejected',this)">❌ Rejected</button>
         <button class="f-pill" onclick="switchAdminTab('overview',this)">📊 Overview</button>
+        <button class="f-pill" type="button" data-bug-watch-tab="1" onclick="switchAdminTab('bug-watch',this)">🐞 Bug Watch</button>
         
       </div>
 
@@ -3883,6 +3884,16 @@
           <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">Recent Ad Activity</div>
           <div id="ov-activity" style="font-size:12px;color:var(--moon);line-height:2"></div>
         </div>
+      </div>
+      <div id="admin-bug-watch" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px">
+          <div>
+            <div style="font-size:12px;color:var(--muted)" id="bug-watch-summary">Bug reports awaiting owner review</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:3px">Review sanitized reports before queueing an isolated repair.</div>
+          </div>
+          <button class="f-pill active" type="button" onclick="window.MVBugWatch && window.MVBugWatch.load()">🔄 Refresh</button>
+        </div>
+        <div id="bug-watch-list"><div style="text-align:center;padding:30px;color:var(--muted)">Select Bug Watch to load reports.</div></div>
       </div>
     </div>
   </div>
@@ -4077,6 +4088,7 @@
 
 <!-- SETTINGS -->
     <div class="drawer-section-title">Settings</div>
+    <button class="drawer-item" onclick="openSettings();closeDrawer()">⚙️ Settings</button>
     <button class="drawer-item" onclick="openLanguage();closeDrawer()">🌐 Language</button>
     <button class="drawer-item" onclick="toggleAccessibility();closeDrawer()">♿ Accessibility</button>
     <button class="drawer-item" onclick="openSupportModal();closeDrawer()">📧 Contact Support</button>
@@ -4108,6 +4120,8 @@
 </script>
 <script src="media-quota.js"></script>
 <script src="script.js?v=15"></script>
+<script src="settings.js?v=1"></script>
+<script src="bug-monitor.js?v=1"></script>
 <script src="fixes.js?v=7"></script>
 <script src="calls.js?v=19"></script>
 <script src="app-update.js?v=7"></script>

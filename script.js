@@ -3265,7 +3265,7 @@ function loadConversations(){ if(!state.user) return; db.collection('dms').where
 var dmTimer; document.getElementById('dm-search').addEventListener('input',function(){ clearTimeout(dmTimer); var q=this.value.trim().toLowerCase(); if(!q){ loadConversations(); return; } dmTimer=setTimeout(function(){ db.collection('users').orderBy('name').startAt(q).endAt(q+'\uf8ff').limit(10).get().then(function(snap){ var list=document.getElementById('dm-list'); list.innerHTML=''; snap.docs.forEach(function(d){ var u=d.data(); if(u.id===state.user.uid) return; var row=document.createElement('div'); row.className='dm-row'; row.innerHTML='<div class="dm-av" style="background:'+(u.color||COLORS[0])+'">'+esc((u.name||'U').charAt(0))+'</div><div><div class="dm-nm">'+esc(u.name||'User')+'</div><div class="dm-pv">@'+esc(u.handle||'')+'</div></div>'; row.addEventListener('click',function(){ openChat([state.user.uid,u.id].sort().join('_'),u.id,u.name,u.color); }); list.appendChild(row); }); if(!snap.docs.length) list.innerHTML='<div style="padding:16px;text-align:center;font-size:12px;color:var(--muted)">No users found</div>'; }); },400); });
 function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForScam(dmId, otherId);
 // Mark all unread messages from other user as read
-  if(state.user) {
+  if(state.user && (!window.MVSettings || window.MVSettings.get('seenMark') !== false)) {
     db.collection('dms').doc(dmId).collection('messages')
       .where('fromId','==',otherId)
       .where('read','==',false)
@@ -3286,15 +3286,15 @@ function openChat(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForS
         '<button class="act-btn" data-action="edit-msg" data-dmid="'+dmId+'" data-msgid="'+d.id+'" data-text="'+safeText+'">✏️ Edit</button>' +
         '<button class="act-btn del" data-action="del-msg" data-dmid="'+dmId+'" data-msgid="'+d.id+'">🗑 Delete</button>' +
       '</div>' : '';
-// Read receipts — show ticks on sender's messages
+// SeenMark read receipts — show ticks on sender's messages when enabled
     var readReceipt = '';
-    if (mine) {
+    if (mine && (!window.MVSettings || window.MVSettings.get('seenMark') !== false)) {
       if (m.read) {
-// Double blue tick — message was read
-        readReceipt = '<span style="color:#22c55e;font-size:11px;margin-left:4px" title="Read">✓✓</span>';
+// Double green tick — message was read
+        readReceipt = '<span style="color:#22c55e;font-size:11px;margin-left:4px" title="SeenMark: Read">✓✓</span>';
       } else {
 // Single grey tick — sent but not read
-        readReceipt = '<span style="color:var(--muted);font-size:11px;margin-left:4px" title="Sent">✓</span>';
+        readReceipt = '<span style="color:var(--muted);font-size:11px;margin-left:4px" title="SeenMark: Sent">✓</span>';
       }
     }
     var quote = (m.replyTo && m.replyTo.id) ? '<div class="mv-quote" data-to="'+esc(m.replyTo.id)+'"><b>'+esc(m.replyTo.name||'')+'</b> '+esc(m.replyTo.text||'')+'</div>' : '';
