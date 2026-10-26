@@ -1659,8 +1659,9 @@ var CLOUD_NAME   = 'dk4svvssf';
 //              we never blow a small source video up past its own size.
 function optimizeVideoUrl(url, targetWidthPx) {
   if (!url || url.indexOf('/video/upload/') === -1) return url; // not a Cloudinary video URL — leave untouched
-  var w = Math.max(1, Math.round(targetWidthPx || 720));
-  return url.replace('/video/upload/', '/video/upload/q_auto,f_auto,w_' + w + ',c_limit/');
+  var saver = window.MVSettings && window.MVSettings.get && window.MVSettings.get('dataSaver');
+  var w = Math.max(1, Math.round(targetWidthPx || 720) * (saver ? 0.72 : 1));
+  return url.replace('/video/upload/', '/video/upload/q_' + (saver ? 'auto:eco' : 'auto') + ',f_auto,w_' + w + ',c_limit/');
 }
 var state = { user:null,profile:null,sparks:[],filter:'all',plan:null,tipTarget:null,network:'MTN',selectedPkg:{size:'500MB',dur:'1 Day',price:0.10},currentSparkId:null,sparksUnsub:null,notifsUnsub:null };
 
@@ -7115,6 +7116,7 @@ if('IntersectionObserver' in window) {
       if(!vid.dataset || !vid.dataset.vid) return;
       applySmartBlur(vid);
       if(entry.isIntersecting && entry.intersectionRatio > 0.6) {
+        if(window.MVSettings && window.MVSettings.get && window.MVSettings.get('autoplay') === false) return;
 // Only autoplay if no other video is playing
         var anyPlaying = Array.from(document.querySelectorAll('.sk-media-main')).some(function(v){ return !v.paused; });
         if(!anyPlaying) {

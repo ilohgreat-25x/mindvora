@@ -14,6 +14,7 @@
   function other(dmId) { var u = me(); return String(dmId || '').split('_').filter(function (x) { return x && x !== u; })[0] || null; }
   function h(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
   function toastMsg(t) { if (typeof showToast === 'function') showToast(t); }
+  function pref(name, fallback) { return window.MVSettings && typeof MVSettings.get === 'function' ? MVSettings.get(name) : fallback; }
 
   // ── instant messages ────────────────────────────────────────────────
   var origSend = window.sendMsg;
@@ -49,10 +50,12 @@
   var lastTypingSent = {}, stopTimers = {}, hideTimers = {};
   function typingStop(dmId) {
     clearTimeout(stopTimers[dmId]);
+    if (!pref('typingIndicator', true)) { lastTypingSent[dmId] = 0; return; }
     if (lastTypingSent[dmId]) { lastTypingSent[dmId] = 0; var o = other(dmId); if (o) send({ type: 'RT_TYPING', to: o, dmId: dmId, stop: true }); }
   }
   document.addEventListener('input', function (e) {
     var t = e.target; if (!t || !t.id || t.id.indexOf('ci-') !== 0) return;
+    if (!pref('typingIndicator', true)) return;
     var dmId = t.id.slice(3), o = other(dmId); if (!o || !me()) return;
     if (!t.value.trim()) { typingStop(dmId); return; }
     var now = Date.now();
@@ -73,6 +76,7 @@
     return tag;
   }
   function showTyping(m) {
+    if (!pref('typingIndicator', true)) return;
     var tag = headerFor(m.dmId);
     if (!tag) return;
     tag.dataset.typing = '1'; tag.textContent = (m.name || 'They') + ' is typing…'; tag.style.color = '#2ecc71';
@@ -88,12 +92,14 @@
   var watched = null;
   function checkOpenChat() {
     var box = document.querySelector('[id^="cm-"]'); var dmId = box ? box.id.slice(3) : null;
+    if (!pref('onlineVisibility', true)) { watched = null; return; }
     if (dmId && dmId !== watched) { watched = dmId; var o = other(dmId); if (o) send({ type: 'RT_PRESENCE', uids: [o], dmId: dmId }); }
     if (!dmId) watched = null;
   }
   new MutationObserver(function () { checkOpenChat(); }).observe(document.documentElement, { childList: true, subtree: true });
-  setInterval(function () { if (watched) { var o = other(watched); if (o) send({ type: 'RT_PRESENCE', uids: [o], dmId: watched }); } }, 30000);
+  setInterval(function () { if (pref('onlineVisibility', true) && watched) { var o = other(watched); if (o) send({ type: 'RT_PRESENCE', uids: [o], dmId: watched }); } }, 30000);
   function showPresence(m) {
+    if (!pref('onlineVisibility', true)) return;
     if (!m.dmId) return; var o = other(m.dmId); var tag = headerFor(m.dmId); if (!tag || !o) return;
     tag.dataset.presence = m.online && m.online[o] ? '● Online' : '';
     if (!tag.dataset.typing) { tag.textContent = tag.dataset.presence; tag.style.color = ''; }
@@ -102,6 +108,7 @@
   // ── live notifications (likes, follows, comments, tips, mentions…) ──
   var ICON = { like: '❤️', comment: '💬', follow: '➕', tip: '💝', gift: '🎁', repost: '🔁', share: '🔁', save: '🔖', mention: '📣', referral: '🎉', live: '🔴', missed_call: '📵' };
   function showNotif(m) {
+    if (!pref('notifications', true) || (m.ntype === 'dm' && !pref('messageNotifications', true))) return;
     if (m.ntype === 'dm' || m.ntype === 'call') return; // messages/calls have their own live display
     var native = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
     if (!native && window.Notification && Notification.permission === 'granted') { var d0 = document.getElementById('nd'); if (d0) d0.style.display = 'block'; return; } // browser push already shows a toast

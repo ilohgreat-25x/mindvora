@@ -3115,6 +3115,8 @@ body.light #mv-story-comp #mv-sc-mus,body.light-mode #mv-story-comp #mv-sc-mus,b
 body.light #mv-news-live [data-now],body.light-mode #mv-news-live [data-now]{color:#fff!important}
 body.light #mv-sports [data-sport],body.light-mode #mv-sports [data-sport]{background:#fff!important;color:#000!important}
 body.light #mv-sports [data-sport] option,body.light-mode #mv-sports [data-sport] option{background:#fff!important;color:#000!important}
+body.light #mv-sports .mv-sports-link,body.light-mode #mv-sports .mv-sports-link{color:#000!important}
+body:not(.light):not(.light-mode) #mv-sports .mv-sports-link{color:#fff!important}
 
 /* Dynamic Settings modal */
 .mv-settings-overlay{position:fixed;inset:0;z-index:10050;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.72);backdrop-filter:blur(5px)}
@@ -3123,6 +3125,7 @@ body.light #mv-sports [data-sport] option,body.light-mode #mv-sports [data-sport
 .mv-settings-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border,rgba(255,255,255,.1))}
 .mv-settings-head h2{margin:0;font-size:19px;font-family:'DM Serif Display',serif}
 .mv-settings-close{border:0;background:none;color:var(--muted,#9ca3af);font-size:20px;cursor:pointer;padding:3px 6px}
+.mv-settings-help{font-size:11px;line-height:1.55;color:var(--muted);margin:0 0 10px}
 .mv-settings-body{overflow-y:auto;padding:16px 20px 22px}
 .mv-settings-section{padding:4px 0 16px;border-bottom:1px solid var(--border,rgba(255,255,255,.1))}.mv-settings-section+.mv-settings-section{padding-top:16px}.mv-settings-section:last-child{border-bottom:0;padding-bottom:0}
 .mv-settings-section h3{margin:0 0 9px;color:var(--green3,#4ade80);font-size:11px;letter-spacing:.12em;text-transform:uppercase}

@@ -68,11 +68,11 @@
   }
   function emptySportsMessage() {
     var name = (sportCatalog.filter(function (s) { return s.id === selectedSport; })[0] || {}).name || 'This sport';
-    var links = sportScheduleLinks().map(function (x) { return '<a href="' + safeUrl(x[1]) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 6px 0 0;color:inherit;text-decoration:underline">' + esc(x[0]) + ' ↗</a>'; }).join('');
+    var links = sportScheduleLinks().map(function (x) { return '<a class="mv-sports-link" href="' + safeUrl(x[1]) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 6px 0 0;text-decoration:underline">' + esc(x[0]) + ' ↗</a>'; }).join('');
     return msg('📅', name + ' has no scoreboard events returned for this date', 'Use an official schedule or watch page below; events vary by competition calendar and region.') + '<div style="text-align:center;padding:0 10px 25px">' + links + '</div>';
   }
   function eventCard(m) {
-    var links = (m.watch || []).map(function (w) { return '<a href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:7px 8px 0 0;color:#86efac;font-size:11px">▶ ' + esc(w.name) + ' ↗</a>'; }).join('');
+    var links = (m.watch || []).map(function (w) { return '<a class="mv-sports-link" href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:7px 8px 0 0;font-size:11px">▶ ' + esc(w.name) + ' ↗</a>'; }).join('');
     return '<div style="display:block;width:100%;text-align:left;color:inherit;background:none;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px">' +
       '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
       '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
