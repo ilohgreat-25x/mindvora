@@ -14,11 +14,13 @@
     messageNotifications: true,
     soundNotifications: true,
     autoplay: true,
-    dataSaver: false
+    dataSaver: false,
+    autoLock: '5m'
   };
   var prefs = loadPrefs();
   var chatUnlocked = false;
   var pendingChat = null;
+  var autoLockTimer = null;
   var originalOpenChat = window.openChat;
 
   function loadPrefs() {
@@ -52,6 +54,33 @@
     prefs[key] = !!value;
     if (key === 'chatLock' && !value) chatUnlocked = false;
     savePrefs(); applyPrefs(); renderSettings();
+  }
+  var AUTO_LOCK_OPTIONS = [
+    { value: 'immediate', label: 'Immediately' },
+    { value: '1m', label: '1 minute' },
+    { value: '3m', label: '3 minutes' },
+    { value: '5m', label: '5 minutes' },
+    { value: '2h', label: '2 hours' },
+    { value: '4h', label: '4 hours' },
+    { value: '1d', label: '1 day' }
+  ];
+  function autoLockMs() { return ({ '1m': 60000, '3m': 180000, '5m': 300000, '2h': 7200000, '4h': 14400000, '1d': 86400000 })[prefs.autoLock] || 0; }
+  function lockChats(reason) {
+    if (!prefs.chatLock) return;
+    chatUnlocked = false;
+    clearTimeout(autoLockTimer); autoLockTimer = null;
+    if (reason && typeof window.showToast === 'function') window.showToast('🔒 Chats locked automatically.');
+  }
+  function scheduleAutoLock() {
+    clearTimeout(autoLockTimer); autoLockTimer = null;
+    if (!prefs.chatLock || !chatUnlocked) return;
+    var ms = autoLockMs();
+    if (ms > 0) autoLockTimer = setTimeout(function () { lockChats(true); }, ms);
+  }
+  function recordActivity() { if (prefs.chatLock && chatUnlocked && autoLockMs() > 0) scheduleAutoLock(); }
+  function setAutoLock(value) {
+    if (!AUTO_LOCK_OPTIONS.some(function (option) { return option.value === value; })) value = '5m';
+    prefs.autoLock = value; savePrefs(); applyPrefs(); renderSettings(); scheduleAutoLock();
   }
   function wrapPreferenceGate(name, gate) {
     var fn = window[name];
@@ -99,12 +128,15 @@
       settingRow('dataSaver', 'Data saver', 'Reduce media data usage.') + '</section>' +
       '<section class="mv-settings-section mv-settings-actions"><h3>Chat Lock controls</h3>' +
       '<p class="mv-settings-help">Set a PIN/password first. If fingerprint, Face ID, Touch ID, or another supported device biometric is available, Mindvora will then offer it for faster unlock. A mismatch or cancellation always falls back to your PIN/password.</p>' +
+      '<label class="mv-settings-select"><span><strong>Automatically lock chats</strong><small>Lock after inactivity or when the app is backgrounded.</small></span><select data-auto-lock>' + AUTO_LOCK_OPTIONS.map(function (option) { return '<option value="' + option.value + '"' + (prefs.autoLock === option.value ? ' selected' : '') + '>' + option.label + '</option>'; }).join('') + '</select></label>' +
       '<button type="button" class="mv-settings-btn" data-action="pin">' + (hasPin() ? 'Change PIN/password' : 'Set PIN/password') + '</button>' +
       '<button type="button" class="mv-settings-btn" data-action="biometric">' + (hasCredential() ? 'Re-register biometric' : 'Enable device biometric') + '</button>' +
       (hasCredential() ? '<button type="button" class="mv-settings-btn" data-action="remove-biometric">Remove biometric</button>' : '') +
       '<button type="button" class="mv-settings-btn" data-action="lock">Lock chats now</button>' +
       '<button type="button" class="mv-settings-btn danger" data-action="reset">Logout / reset settings</button></section>';
     body.querySelectorAll('[data-pref]').forEach(function (input) { input.addEventListener('change', function () { setPreference(input.getAttribute('data-pref'), input.checked); }); });
+    var autoLockSelect = body.querySelector('[data-auto-lock]');
+    if (autoLockSelect) autoLockSelect.addEventListener('change', function () { setAutoLock(autoLockSelect.value); });
     body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') { chatUnlocked = false; toast('🔒 Chats locked'); } if (action === 'reset') resetSettings(); }); });
   }
   window.openSettings = function () { renderSettings(); ensureModal().classList.add('open'); };
@@ -135,9 +167,9 @@
     var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     return navigator.credentials.get({ publicKey: { challenge: challenge, allowCredentials: [{ type: 'public-key', id: base64ToBytes(localStorage.getItem(CRED_KEY)) }], userVerification: 'required', timeout: 60000 } }).then(function () { chatUnlocked = true; return true; });
   }
-  function unlockChat() { if (!hasPin()) { toast('Set a PIN/password in Settings before opening locked chats.'); return Promise.resolve(false); } return (hasCredential() ? unlockWithBiometric().catch(function () { toast('Biometric verification failed. Enter your PIN/password.'); return unlockWithPin(); }) : unlockWithPin()); }
-  function resetSettings() { if (!confirm('Reset Chat Lock and local Mindvora preferences on this device?')) return; localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(PIN_KEY); localStorage.removeItem(CRED_KEY); prefs = Object.assign({}, defaults); chatUnlocked = false; applyPrefs(); renderSettings(); toast('Settings reset.'); }
-  window.MVSettings = { get: getPref, set: setPreference, lock: function () { chatUnlocked = false; }, unlock: unlockChat, apply: applyPrefs };
+  function unlockChat() { if (!hasPin()) { toast('Set a PIN/password in Settings before opening locked chats.'); return Promise.resolve(false); } return (hasCredential() ? unlockWithBiometric().catch(function () { toast('Biometric verification failed. Enter your PIN/password.'); return unlockWithPin(); }) : unlockWithPin()).then(function (ok) { if (ok) scheduleAutoLock(); return ok; }); }
+  function resetSettings() { if (!confirm('Reset Chat Lock and local Mindvora preferences on this device?')) return; localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(PIN_KEY); localStorage.removeItem(CRED_KEY); prefs = Object.assign({}, defaults); chatUnlocked = false; clearTimeout(autoLockTimer); autoLockTimer = null; applyPrefs(); renderSettings(); toast('Settings reset.'); }
+  window.MVSettings = { get: getPref, set: setPreference, lock: function () { lockChats(false); }, unlock: unlockChat, apply: applyPrefs };
 
   if (typeof originalOpenChat === 'function') {
     window.openChat = function () {
@@ -147,5 +179,9 @@
       unlockChat().then(function (ok) { if (ok && pendingChat) { var call = pendingChat; pendingChat = null; originalOpenChat.apply(window, call); } });
     };
   }
+  ['click', 'keydown', 'touchstart', 'scroll'].forEach(function (eventName) { document.addEventListener(eventName, recordActivity, { passive: true, capture: true }); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && prefs.chatLock) { if (prefs.autoLock === 'immediate') lockChats(true); else scheduleAutoLock(); } else if (!document.hidden) recordActivity(); });
+  window.addEventListener('blur', function () { if (prefs.chatLock && prefs.autoLock === 'immediate') lockChats(true); });
+  window.addEventListener('pagehide', function () { if (prefs.chatLock) lockChats(false); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installPreferenceHooks); else installPreferenceHooks();
 }());
