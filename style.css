@@ -2324,7 +2324,7 @@ img, video { max-width: 100%; height: auto; }
 /* Mindvora logo on form */
 #auth-screen .auth-logo-sm span {
   font-size: 40px !important;
-  animation: mindvora-colors 6s linear infinite !important;
+  animation: mv-shared-wordmark 12s ease-in-out infinite !important;
   filter: drop-shadow(0 0 16px rgba(34,197,94,.6)) !important;
 }
 
@@ -2442,8 +2442,8 @@ img, video { max-width: 100%; height: auto; }
 
 /* Showcase brand text */
 #auth-screen .showcase-brand span:first-child {
-  color: #22c55e !important;
-  text-shadow: 0 0 20px rgba(34,197,94,.5) !important;
+  color: #22c55e;
+  text-shadow: 0 0 20px rgba(34,197,94,.5);
 }
 
 /* Mobile: stack vertically */
@@ -3186,7 +3186,166 @@ body.light-mode{background-image:radial-gradient(ellipse 70% 55% at 50% -15%,rgb
 }
 #auth-screen{background:radial-gradient(ellipse 75% 55% at 50% -10%,rgba(79,227,255,.16),transparent 64%),radial-gradient(ellipse 55% 50% at 100% 100%,rgba(136,120,255,.12),transparent 70%),var(--deep)}
 .auth-box{background:linear-gradient(145deg,rgba(16,33,57,.96),rgba(8,21,37,.96));border-color:rgba(157,190,226,.2);box-shadow:0 28px 100px rgba(0,0,0,.52)}
-.auth-logo,.tb-logo{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark 12s ease-in-out infinite!important;color:#d8ff67!important}
+.auth-logo,.tb-logo{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark 12s ease-in-out infinite!important;color:#d8ff67}
 .tb-logo{font-size:32px!important;line-height:1.1}
 body.light-mode #auth-screen{background:radial-gradient(ellipse 75% 55% at 50% -10%,rgba(79,227,255,.18),transparent 64%),linear-gradient(135deg,#f6f9fc,#eaf1f7)}
 body.light-mode .auth-box{background:rgba(255,255,255,.9);border-color:rgba(19,54,86,.16);box-shadow:0 24px 70px rgba(28,58,88,.14)}
+/* Keep authentication chrome on the app's navy palette and share one animated wordmark. */
+#auth-screen{background:var(--bg)!important;background-image:radial-gradient(ellipse 70% 55% at 50% -15%,rgba(79,227,255,.13),transparent 65%),radial-gradient(ellipse 45% 45% at 100% 65%,rgba(136,120,255,.1),transparent 70%)!important;color:var(--white)}
+#auth-screen::before{background:radial-gradient(ellipse 70% 55% at 50% -15%,rgba(79,227,255,.13),transparent 65%),radial-gradient(ellipse 45% 45% at 100% 65%,rgba(136,120,255,.1),transparent 70%)!important}
+#auth-screen .auth-showcase,#auth-screen .auth-showcase-right,#auth-screen .auth-right{background:transparent!important}
+#auth-screen .auth-right{border-left-color:var(--border)!important;border-right-color:var(--border)!important}
+.auth-logo-sm>span,.showcase-brand>span:first-child,.tb-logo,.drawer-header-logo{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark 12s ease-in-out infinite!important;color:#d8ff67}
+.drawer-header-logo{font-size:28px!important;line-height:1.2}
+#auth-screen .btn-social-option{margin-top:8px}
+
+
+/* Final accessibility and App Lock layer: presentation only; feature flows stay unchanged. */
+:root{--muted:#a8b7ca}
+body.light,body.light-mode{
+  --bg:#fbf4eb;--card:#fffaf3;--deep:#f2e5d6;
+  --green:#874a30;--green2:#ae6038;--green3:#874a30;
+  --cream:#211915;--cream2:#382a21;--creamdim:rgba(135,74,48,.09);
+  --white:#211915;--moon:#40342d;--muted:#62564d;
+  --border:rgba(76,52,36,.18);--borderhi:rgba(135,74,48,.48);--cdim:rgba(135,74,48,.09);
+  --mv-ink:#211915;--mv-cyan:#0e6678;--mv-coral:#9a3f29;--mv-violet:#574276;
+  color:var(--white)!important;background-color:var(--bg)!important;
+  background-image:linear-gradient(135deg,#fbf4eb,#f2e4d4)!important
+}
+body.light::before,body.light-mode::before{opacity:.2;background-image:linear-gradient(rgba(76,52,36,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(76,52,36,.045) 1px,transparent 1px)}
+body.light .topbar,body.light-mode .topbar,body.light .sidebar,body.light-mode .sidebar{background:rgba(255,250,243,.94)!important;color:var(--white)!important;border-color:var(--border)!important}
+body.light .user-card,body.light-mode .user-card,body.light .compose-box,body.light-mode .compose-box,body.light .spark-card,body.light-mode .spark-card{background:var(--card)!important;color:var(--white)!important;border-color:var(--border)!important}
+body.light .modal-box,body.light-mode .modal-box,body.light .mv-settings-modal,body.light-mode .mv-settings-modal,body.light .dm-wrap,body.light-mode .dm-wrap{background:var(--card)!important;color:var(--white)!important;border-color:var(--border)!important}
+body.light .drawer,body.light-mode .drawer{background:linear-gradient(180deg,#fffaf3,#f2e5d6)!important;color:var(--white)!important}
+body.light .nav-item,body.light-mode .nav-item,body.light .drawer-item,body.light-mode .drawer-item,body.light .nav-item.active,body.light-mode .nav-item.active{color:var(--white)!important}
+body.light .nav-item.active,body.light-mode .nav-item.active{background:rgba(135,74,48,.13)!important;border-color:rgba(135,74,48,.25)!important;box-shadow:inset 3px 0 var(--green3)!important}
+body.light .drawer-section-title,body.light-mode .drawer-section-title{color:#77452f!important}
+body.light .tb-pill,body.light-mode .tb-pill,body.light .f-pill.active,body.light-mode .f-pill.active,body.light .btn-spark,body.light-mode .btn-spark{background:linear-gradient(120deg,#a45635,#bd7146)!important;border-color:transparent!important;color:#fff!important}
+body.light .f-pill,body.light-mode .f-pill,body.light .media-btn,body.light-mode .media-btn,body.light .s-btn,body.light-mode .s-btn{color:#44372f!important}
+body.light input,body.light textarea,body.light select,body.light-mode input,body.light-mode textarea,body.light-mode select{color:#211915}
+body.light input::placeholder,body.light textarea::placeholder,body.light-mode input::placeholder,body.light-mode textarea::placeholder{color:#71645a;opacity:1}
+body.light #auth-screen,body.light-mode #auth-screen{background:linear-gradient(135deg,#fbf4eb,#f0e0ce)!important;color:var(--white)!important}
+body.light #auth-screen::before,body.light-mode #auth-screen::before{background:radial-gradient(ellipse 70% 55% at 50% -15%,rgba(177,106,65,.15),transparent 65%),radial-gradient(ellipse 45% 45% at 100% 65%,rgba(130,86,111,.1),transparent 70%)!important}
+body.light .auth-box,body.light-mode .auth-box{background:rgba(255,250,243,.96)!important;border-color:rgba(76,52,36,.2)!important;box-shadow:0 24px 70px rgba(78,51,32,.15)!important;color:var(--white)!important}
+body.light .auth-box :is(h1,h2,h3,p,label,small),body.light-mode .auth-box :is(h1,h2,h3,p,label,small){color:var(--white)}
+
+/* Light-theme Mindvora wordmarks use saturated, readable jewel tones. */
+@keyframes mv-shared-wordmark-light{
+  0%,100%{color:#874a30;text-shadow:0 0 12px rgba(135,74,48,.12)}
+  25%{color:#0e6678;text-shadow:0 0 12px rgba(14,102,120,.12)}
+  50%{color:#9a3152;text-shadow:0 0 12px rgba(154,49,82,.12)}
+  75%{color:#574276;text-shadow:0 0 12px rgba(87,66,118,.12)}
+}
+body.light .auth-logo,body.light-mode .auth-logo,body.light .auth-logo-sm>span,body.light-mode .auth-logo-sm>span,body.light .showcase-brand>span:first-child,body.light-mode .showcase-brand>span:first-child,body.light .tb-logo,body.light-mode .tb-logo,body.light .drawer-header-logo,body.light-mode .drawer-header-logo{animation:mv-shared-wordmark-light 12s ease-in-out infinite!important;color:#874a30}
+
+/* High-contrast, readable content across Games and direct Messages. */
+#modal-games .game-card{background:var(--card)!important;color:var(--white)!important;border-color:var(--borderhi)!important}
+#modal-games .game-card div[style*="color:var(--muted)"],#modal-games div[style*="color:var(--muted)"]{color:var(--muted)!important;font-size:12px!important;line-height:1.5}
+#game-container{background:var(--bg)!important;color:var(--white)!important}
+#game-container #game-content{color:var(--white)}
+#game-container #tg-passage{color:var(--moon)!important;background:var(--card)!important;font-size:14px!important;line-height:1.75!important}
+#game-container #tg-inp{color:var(--white)!important;background:var(--card)!important;border-color:var(--borderhi)!important}
+#game-container [style*="font-size:10px"],#game-container [style*="font-size:11px"]{font-size:12px!important;line-height:1.5}
+.dm-nm{color:var(--white)!important}.dm-pv,.msg-t,.dm-es{color:var(--muted)!important}
+.msg:not(.mine) .msg-bub{background:var(--deep)!important;color:var(--moon)!important}
+.msg.mine .msg-bub,.aria-msg.user .aria-bub{background:linear-gradient(135deg,#0e6678,#155e75)!important;color:#fff!important}
+.msg.mine .msg-t{color:#f3f4f6!important}
+body.light .msg.mine .msg-bub,body.light-mode .msg.mine .msg-bub,body.light .aria-msg.user .aria-bub,body.light-mode .aria-msg.user .aria-bub{background:linear-gradient(135deg,#874a30,#a95936)!important;color:#fff!important}
+body.light .msg.mine .msg-t,body.light-mode .msg.mine .msg-t{color:#fff!important}
+
+/* Live News, Sports and Anime: remove dimmed metadata and use theme-aware surfaces. */
+#mv-news-live,#mv-sports,#mv-news-live [data-now],#mv-sports .sports-hub,#mv-anime,#mv-anime-detail{background-color:var(--bg)!important;color:var(--white)!important}
+#mv-news-live [data-now]{background:var(--deep)!important;color:var(--white)!important;border-top:1px solid var(--border)}
+#mv-news-live [data-now] a{color:inherit!important;opacity:1!important}
+#mv-news-live [data-body] [style*="opacity"],#mv-sports [data-body] [style*="opacity"],#mv-anime [data-body] [style*="opacity"],#mv-anime-detail [data-body] [style*="opacity"]{opacity:1!important;color:var(--muted)!important}
+#mv-news-live [data-body] button,#mv-sports [data-body] > div,#mv-anime [data-body] button{color:var(--white)!important;border-color:var(--border)!important}
+#mv-news-live select,#mv-sports select,#mv-anime input{background:var(--card)!important;color:var(--white)!important;border-color:var(--borderhi)!important}
+#mv-news-live option,#mv-sports option{background:var(--card)!important;color:var(--white)!important}
+#mv-sports .mv-sports-link{color:var(--mv-cyan)!important;font-weight:600}
+#mv-anime [data-body] a,#mv-anime-detail [data-body] a{background:#0e6678!important;color:#fff!important}
+body.light #mv-news-live [style*="var(--green"],body.light-mode #mv-news-live [style*="var(--green"],body.light #mv-sports [style*="var(--green"],body.light-mode #mv-sports [style*="var(--green"],body.light #mv-anime [style*="var(--green"],body.light-mode #mv-anime [style*="var(--green"]{background:#874a30!important;color:#fff!important}
+body.light #mv-sports .mv-sports-link,body.light-mode #mv-sports .mv-sports-link{color:#713e2a!important}
+body.light #mv-anime [data-body] a,body.light-mode #mv-anime [data-body] a,body.light #mv-anime-detail [data-body] a,body.light-mode #mv-anime-detail [data-body] a{background:#874a30!important;color:#fff!important}
+
+/* App Lock is an opaque, keyboard-inaccessible-to-the-app gate, not a chat lock. */
+body.mv-app-locked #app-screen{visibility:hidden!important;pointer-events:none!important}
+.mv-startup-lock{position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:22px!important;overflow:auto!important;background:var(--bg)!important;color:var(--white)!important;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);touch-action:none}
+.mv-startup-lock-card{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:min(100%,390px);padding:30px 24px;text-align:left;border:1px solid var(--borderhi);border-radius:22px;background:var(--card);color:var(--white);box-shadow:0 24px 80px rgba(0,0,0,.32)}
+.mv-startup-lock-icon{text-align:center;font-size:42px;margin-bottom:2px}.mv-startup-lock-card h2{text-align:center;font-size:22px;margin:0 0 2px;color:var(--white)}
+.mv-startup-lock-card p{color:var(--muted);font-size:13px;line-height:1.55;margin:0 0 4px;text-align:center}
+.mv-lock-label{font-size:12px;font-weight:700;color:var(--white)}
+.mv-startup-lock-card input[data-lock-pin]{width:100%;padding:12px 13px;border:1px solid var(--borderhi);border-radius:10px;background:var(--deep);color:var(--white);font-size:16px;outline:none}
+.mv-startup-lock-card input[data-lock-pin]:focus{border-color:var(--mv-cyan);box-shadow:0 0 0 3px rgba(79,227,255,.2)}
+#mv-lock-error{min-height:18px;color:#c2413b;font-size:12px;line-height:1.4}
+.mv-startup-lock-card .mv-settings-btn{width:100%;min-height:42px;border-color:var(--borderhi);background:var(--mv-cyan);color:#07111f;font-size:14px}
+.mv-startup-lock-card .mv-settings-btn:hover{filter:brightness(1.08)}
+.mv-lock-signout{align-self:center;margin-top:3px;border:0;background:transparent;color:var(--muted);font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+body.light .mv-startup-lock-card .mv-settings-btn,body.light-mode .mv-startup-lock-card .mv-settings-btn{background:#874a30;color:#fff}
+
+/* Override earlier dark panel gradients when the warm light theme is active. */
+body.light #mv-news-live,body.light-mode #mv-news-live,body.light #mv-sports,body.light-mode #mv-sports,body.light #mv-anime,body.light-mode #mv-anime,body.light #mv-anime-detail,body.light-mode #mv-anime-detail,body.light .live-hub,body.light-mode .live-hub,body.light .sports-hub,body.light-mode .sports-hub{background:linear-gradient(145deg,#fffaf3,#f2e5d6)!important;color:#211915!important;border-color:rgba(76,52,36,.18)!important}
+body.light #mv-news-live [data-body] button,body.light-mode #mv-news-live [data-body] button,body.light #mv-sports [data-body] > div,body.light-mode #mv-sports [data-body] > div,body.light #mv-anime [data-body] button,body.light-mode #mv-anime [data-body] button{background-color:rgba(255,250,243,.9)!important;color:#211915!important}
+body.light #mv-news-live [data-now],body.light-mode #mv-news-live [data-now]{background:#f2e5d6!important;color:#211915!important}
+
+/* Warm the remaining legacy form surfaces and lift small supporting copy. */
+body.light .fi,body.light-mode .fi,body.light .m-input,body.light-mode .m-input,body.light .chat-inp,body.light-mode .chat-inp,body.light .dm-search,body.light-mode .dm-search{background:var(--card)!important;color:var(--white)!important;border-color:var(--borderhi)!important}
+body.light #mv-story-comp > div,body.light-mode #mv-story-comp > div{background:var(--card)!important;color:var(--white)!important}
+body.light #mv-story-comp #mv-sc-text,body.light-mode #mv-story-comp #mv-sc-text{background:var(--deep)!important;color:var(--white)!important;-webkit-text-fill-color:var(--white)!important;border-color:var(--border)!important}
+body.light .sk-body,body.light-mode .sk-body{color:var(--white)!important}
+body.light .sk-time,body.light-mode .sk-time,body.light .sk-cat,body.light-mode .sk-cat,body.light .s-name,body.light-mode .s-name{color:var(--muted)!important;font-size:11px}
+body.light .bug-watch-card,body.light-mode .bug-watch-card{background:var(--card)!important;color:var(--white)!important;border-color:var(--border)!important}
+body.light .bug-watch-card-head strong,body.light-mode .bug-watch-card-head strong,body.light .bug-watch-card-body,body.light-mode .bug-watch-card-body{color:var(--white)!important}
+body.light .bug-watch-card-head span,body.light-mode .bug-watch-card-head span{color:#8f3428!important}
+body.light .bug-watch-accepted,body.light-mode .bug-watch-accepted{color:#6f442e!important}
+.dm-pv{font-size:12px}.msg-t{font-size:10px}
+.chat-send{background:linear-gradient(135deg,#0e6678,#155e75)!important;color:#fff!important}
+body.light .chat-send,body.light-mode .chat-send{background:linear-gradient(135deg,#874a30,#a95936)!important;color:#fff!important}
+
+body.light .mv-settings-btn,body.light-mode .mv-settings-btn{border-color:rgba(135,74,48,.3)!important;background:rgba(135,74,48,.09)!important;color:#713e2a!important}
+body.light .mv-settings-btn:hover,body.light-mode .mv-settings-btn:hover{background:#874a30!important;color:#fff!important}
+body.light .mv-settings-btn.danger,body.light-mode .mv-settings-btn.danger{border-color:rgba(159,18,57,.32)!important;background:rgba(159,18,57,.08)!important;color:#9f1239!important}
+
+/* Authentication screen: higher-specificity light-theme overrides for the existing form and showcase panels. */
+body.light #auth-screen,body.light-mode #auth-screen{--bg:#fbf4eb;--card:#fffaf3;--deep:#f2e5d6;--green:#874a30;--green2:#a95936;--green3:#713e2a;--cream:#211915;--cream2:#382a21;--white:#211915;--moon:#40342d;--muted:#62564d;--border:rgba(76,52,36,.18);--borderhi:rgba(135,74,48,.48);--cdim:rgba(135,74,48,.09);background:linear-gradient(135deg,#fbf4eb,#f2e5d6)!important;color:#211915!important}
+body.light #auth-screen .auth-right,body.light-mode #auth-screen .auth-right,body.light #auth-screen .auth-showcase,body.light-mode #auth-screen .auth-showcase,body.light #auth-screen .auth-showcase-right,body.light-mode #auth-screen .auth-showcase-right{background:transparent!important;color:#211915!important}
+body.light #auth-screen .auth-box,body.light-mode #auth-screen .auth-box{background:rgba(255,250,243,.97)!important;border:1px solid rgba(76,52,36,.2)!important;box-shadow:0 24px 70px rgba(78,51,32,.15)!important;color:#211915!important}
+body.light #auth-screen .auth-tabs,body.light-mode #auth-screen .auth-tabs{background:#f2e5d6!important;border:1px solid rgba(76,52,36,.12)!important}
+body.light #auth-screen .auth-tab,body.light-mode #auth-screen .auth-tab{color:#62564d!important}
+body.light #auth-screen .auth-tab.active,body.light-mode #auth-screen .auth-tab.active{background:linear-gradient(135deg,#874a30,#a95936)!important;color:#fff!important}
+body.light #auth-screen .fg label,body.light-mode #auth-screen .fg label{color:#62564d!important}
+body.light #auth-screen .fi,body.light-mode #auth-screen .fi{background:#fffaf3!important;color:#211915!important;-webkit-text-fill-color:#211915!important;border-color:rgba(135,74,48,.3)!important}
+body.light #auth-screen .fi::placeholder,body.light-mode #auth-screen .fi::placeholder{color:#71645a!important;-webkit-text-fill-color:#71645a!important}
+body.light #auth-screen .eye-btn,body.light-mode #auth-screen .eye-btn{color:#62564d!important}
+body.light #auth-screen .btn-auth,body.light-mode #auth-screen .btn-auth{background:linear-gradient(135deg,#874a30,#a95936)!important;color:#fff!important}
+body.light #auth-screen .btn-google,body.light-mode #auth-screen .btn-google{background:#fffaf3!important;border-color:rgba(76,52,36,.2)!important;color:#211915!important}
+body.light #auth-screen .auth-box button[onclick="doForgotPassword()"],body.light-mode #auth-screen .auth-box button[onclick="doForgotPassword()"]{color:#713e2a!important}
+body.light #auth-screen .auth-panel div[style*="height:1px"],body.light-mode #auth-screen .auth-panel div[style*="height:1px"]{background:rgba(76,52,36,.2)!important}
+body.light #auth-screen .auth-panel span[style*="font-size:11px"],body.light-mode #auth-screen .auth-panel span[style*="font-size:11px"]{color:#62564d!important}
+body.light #auth-screen .auth-right>div[style*="font-size:11px"],body.light-mode #auth-screen .auth-right>div[style*="font-size:11px"]{color:#62564d!important}
+body.light #auth-screen .slide-bg,body.light-mode #auth-screen .slide-bg{background:linear-gradient(135deg,#fbf4eb,#f2e5d6)!important}
+body.light #auth-screen .slide-bubble,body.light-mode #auth-screen .slide-bubble{background:radial-gradient(circle,rgba(135,74,48,.13),transparent)!important;opacity:.5!important}
+body.light #auth-screen .float-card,body.light-mode #auth-screen .float-card,body.light #auth-screen .avatar-grid,body.light-mode #auth-screen .avatar-grid{background:rgba(255,250,243,.92)!important;border-color:rgba(76,52,36,.18)!important;box-shadow:0 10px 30px rgba(78,51,32,.12)}
+body.light #auth-screen .fc-name,body.light-mode #auth-screen .fc-name,body.light #auth-screen .fc-text,body.light-mode #auth-screen .fc-text,body.light #auth-screen .fc-heart,body.light-mode #auth-screen .fc-heart,body.light #auth-screen .slide-title,body.light-mode #auth-screen .slide-title,body.light #auth-screen .slide-desc,body.light-mode #auth-screen .slide-desc{color:#211915!important}
+body.light #auth-screen .slide-tag,body.light-mode #auth-screen .slide-tag{color:#713e2a!important}
+body.light #auth-screen .stat-pill,body.light-mode #auth-screen .stat-pill{background:rgba(135,74,48,.09)!important;border-color:rgba(135,74,48,.25)!important;color:#713e2a!important}
+body.light #auth-screen .dot,body.light-mode #auth-screen .dot{background:rgba(135,74,48,.22)!important;border-color:rgba(135,74,48,.35)!important}
+body.light #auth-screen .dot.active,body.light-mode #auth-screen .dot.active{background:#874a30!important;border-color:#874a30!important}
+body.light #auth-screen .showcase-brand span:last-child,body.light-mode #auth-screen .showcase-brand span:last-child{color:#62564d!important}
+body.light #auth-screen .a-err,body.light-mode #auth-screen .a-err{color:#9f1239!important}
+
+/* Warm light treatment for the original showcase overlay and its legacy feature cards. */
+body.light #auth-screen .auth-showcase::before,body.light-mode #auth-screen .auth-showcase::before,body.light #auth-screen .auth-showcase::after,body.light-mode #auth-screen .auth-showcase::after,body.light #auth-screen .auth-showcase-right::before,body.light-mode #auth-screen .auth-showcase-right::before,body.light #auth-screen .auth-showcase-right::after,body.light-mode #auth-screen .auth-showcase-right::after{background:radial-gradient(circle,rgba(135,74,48,.08),transparent 70%)!important;opacity:.45!important}
+body.light #auth-screen .slide-text,body.light-mode #auth-screen .slide-text{background:linear-gradient(to top,rgba(255,250,243,.97) 0%,rgba(255,250,243,.8) 58%,transparent 100%)!important}
+body.light #auth-screen .earn-showcase,body.light-mode #auth-screen .earn-showcase,body.light #auth-screen .post-showcase,body.light-mode #auth-screen .post-showcase,body.light #auth-screen .feat-pill,body.light-mode #auth-screen .feat-pill{background:rgba(255,250,243,.95)!important;border-color:rgba(135,74,48,.24)!important;color:#211915!important;box-shadow:0 10px 30px rgba(78,51,32,.12)!important}
+body.light #auth-screen .ps-item,body.light-mode #auth-screen .ps-item{background:rgba(255,250,243,.9)!important;border-color:rgba(76,52,36,.15)!important;color:#211915!important}
+body.light #auth-screen .ps-active,body.light-mode #auth-screen .ps-active{background:rgba(135,74,48,.09)!important;border-color:rgba(135,74,48,.28)!important}
+body.light #auth-screen .es-header,body.light-mode #auth-screen .es-header,body.light #auth-screen .es-amount,body.light-mode #auth-screen .es-amount,body.light #auth-screen .ps-label,body.light-mode #auth-screen .ps-label{color:#211915!important}
+body.light #auth-screen .es-sub,body.light-mode #auth-screen .es-sub,body.light #auth-screen .ps-sub,body.light-mode #auth-screen .ps-sub,body.light #auth-screen .ps-views,body.light-mode #auth-screen .ps-views{color:#62564d!important}
+body.light #auth-screen .es-bar,body.light-mode #auth-screen .es-bar{background:rgba(135,74,48,.24)!important;box-shadow:none!important}
+body.light #auth-screen .es-bar:last-child,body.light-mode #auth-screen .es-bar:last-child{background:#874a30!important;box-shadow:none!important}
+body.light #auth-screen .feat-pill,body.light-mode #auth-screen .feat-pill{background:rgba(255,250,243,.96)!important;color:#713e2a!important}
+body.light #auth-screen .slide-tag,body.light-mode #auth-screen .slide-tag{background:rgba(135,74,48,.09)!important;border-color:rgba(135,74,48,.24)!important;color:#713e2a!important}
+body.light #auth-screen .slide-title em,body.light-mode #auth-screen .slide-title em{background:linear-gradient(135deg,#874a30,#0e6678)!important;-webkit-background-clip:text!important;background-clip:text!important;-webkit-text-fill-color:transparent!important;color:#713e2a!important;text-shadow:none!important}
+body.light #auth-screen .auth-logo-sm span,body.light-mode #auth-screen .auth-logo-sm span{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark-light 12s ease-in-out infinite!important;color:#874a30;filter:none!important}
+body.light #auth-screen .showcase-brand span:first-child,body.light-mode #auth-screen .showcase-brand span:first-child{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark-light 12s ease-in-out infinite!important;color:#874a30;text-shadow:none!important}
+body.light #auth-screen .showcase-brand span:last-child,body.light-mode #auth-screen .showcase-brand span:last-child{color:#62564d!important}

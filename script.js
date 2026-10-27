@@ -2385,11 +2385,11 @@ auth.onAuthStateChanged(function(user){
           return;
         }
 // Check if email is verified (for new users)
-        if(snap.data().emailVerified === false && mvIsGoogleUser(user)){
+        if(snap.data().emailVerified === false && mvIsFederatedOAuthUser(user)){
           db.collection('users').doc(user.uid).update({emailVerified:true}).catch(function(){});
           state.profile.emailVerified = true;
         }
-        if(snap.data().emailVerified === false && !mvIsGoogleUser(user)){
+        if(snap.data().emailVerified === false && !mvIsFederatedOAuthUser(user)){
           console.log('[Mindvora] Email not verified, sending code before showing OTP screen');
 // Send the code FIRST — only show the OTP entry screen if it actually
 // succeeds. Previously showOTPScreen() ran unconditionally beforehand and
@@ -2413,14 +2413,15 @@ auth.onAuthStateChanged(function(user){
       } else {
         console.log('[Mindvora] New user profile created in Firestore');
         var color=COLORS[Math.floor(Math.random()*COLORS.length)];
-        var _isG = mvIsGoogleUser(user);
+        var _socialProvider = mvFederatedProviderName(user);
+        var _isSocial = !!_socialProvider;
         var _em = user.email || '';
-        state.profile={id:user.uid,name:user.displayName||_em.split('@')[0]||'Mindvora User',handle:(user.displayName||_em.split('@')[0]||'user').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20),email:_em,avatar:user.photoURL||'',provider:_isG?'google':'email',color:color,plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0,emailVerified:_isG};
+        state.profile={id:user.uid,name:user.displayName||_em.split('@')[0]||'Mindvora User',handle:(user.displayName||_em.split('@')[0]||'user').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20),email:_em,avatar:user.photoURL||'',provider:_socialProvider||'email',color:color,plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0,emailVerified:_isSocial};
       checkAdminAccess();
       checkPendingAds();
-        if (_isG) {
-          // Google verified the email already: save profile (no overwrite) and open the app.
-          mvEnsureGoogleProfile(user).catch(function(e){ console.error('[Mindvora] profile save', e); });
+        if (_isSocial) {
+          // Trusted OAuth providers verify the account email; save the profile and open the app.
+          mvEnsureFederatedProfile(user, _socialProvider).catch(function(e){ console.error('[Mindvora] profile save', e); });
           mountApp();
           return;
         }
@@ -2552,8 +2553,8 @@ function mountApp(){
 document.getElementById('btn-out').addEventListener('click',function(){ if(state.sparksUnsub) state.sparksUnsub(); auth.signOut(); });
 
 var isLight=false;
-try{ isLight=localStorage.getItem('mv_theme')==='light'; if(isLight){ document.body.classList.add('light'); document.getElementById('theme-btn').textContent='☀️'; } }catch(e){}
-document.getElementById('theme-btn').addEventListener('click',function(){ isLight=!isLight; document.body.classList.toggle('light',isLight); this.textContent=isLight?'☀️':'🌙'; try{ localStorage.setItem('mv_theme',isLight?'light':'dark'); }catch(e){} showToast(isLight?'☀️ Light mode':'🌙 Dark mode'); });
+try{ isLight=localStorage.getItem('mv_theme')==='light'; if(isLight){ document.body.classList.add('light','light-mode'); document.getElementById('theme-btn').textContent='☀️'; } }catch(e){}
+document.getElementById('theme-btn').addEventListener('click',function(){ isLight=!isLight; document.body.classList.toggle('light',isLight); document.body.classList.toggle('light-mode',isLight); this.textContent=isLight?'☀️':'🌙'; try{ localStorage.setItem('mv_theme',isLight?'light':'dark'); }catch(e){} showToast(isLight?'☀️ Light mode':'🌙 Dark mode'); });
 
 function updateStats(){
   if(!state.profile) return;
@@ -10333,27 +10334,38 @@ function mvIsInAppBrowser() {
   var ua = navigator.userAgent || '';
   return /FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|; wv\)|WhatsApp/i.test(ua) && !mvIsNativeApp();
 }
+function mvFederatedProviderName(user) {
+  var provider = user && (user.providerData || []).find(function(p){
+    return p && ['google.com','apple.com','microsoft.com'].indexOf(p.providerId) !== -1;
+  });
+  if (!provider) return '';
+  return provider.providerId === 'google.com' ? 'google' : (provider.providerId === 'apple.com' ? 'apple' : 'microsoft');
+}
+function mvIsFederatedOAuthUser(user) {
+  return !!mvFederatedProviderName(user);
+}
 function mvIsGoogleUser(user) {
-  return !!(user && (user.providerData || []).some(function(p){ return p && p.providerId === 'google.com'; }));
+  return mvFederatedProviderName(user) === 'google';
 }
 // Creates the profile once, only with fields the Firestore rules allow on create.
-function mvEnsureGoogleProfile(user) {
+function mvEnsureFederatedProfile(user, providerName) {
   var ref = db.collection('users').doc(user.uid);
   return ref.get().then(function(snap) {
     if (snap.exists) {
-      // Google already verified this email — never send a Google user to the email-code screen.
+      // These OAuth providers verify their account email; don't send users to the email-code screen.
       if (snap.data().emailVerified === false) return ref.update({ emailVerified: true }).catch(function(){});
       return;
     }
-    var base = (user.displayName || (user.email || 'user').split('@')[0]);
+    var providerData = (user.providerData || []).find(function(p){ return p && p.providerId === (providerName === 'google' ? 'google.com' : providerName + '.com'); });
+    var base = (user.displayName || (providerData && providerData.displayName) || (user.email || 'user').split('@')[0]);
     var handle = base.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9_]/g, '').slice(0, 20) || ('user' + user.uid.slice(0, 6));
     return ref.set({
       id: user.uid,
-      name: user.displayName || 'Mindvora User',
+      name: user.displayName || (providerData && providerData.displayName) || 'Mindvora User',
       handle: handle,
       email: user.email || '',
-      avatar: user.photoURL || '',
-      provider: 'google',
+      avatar: user.photoURL || (providerData && providerData.photoURL) || '',
+      provider: providerName,
       plan: 'free', isPremium: false, earnings: 0, tips: 0,
       sparksCount: 0, followers: 0,
       emailVerified: true,
@@ -10361,6 +10373,9 @@ function mvEnsureGoogleProfile(user) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
   });
+}
+function mvEnsureGoogleProfile(user) {
+  return mvEnsureFederatedProfile(user, 'google');
 }
 function mvAfterGoogle(result) {
   if (!result || !result.user) return;
@@ -10424,6 +10439,82 @@ function signInWithGoogle() {
   auth.getRedirectResult().then(mvAfterGoogle).catch(function(err){
     window._mvGoogleSigningIn = false;
     mvShowAuthError(mvAuthErrorText(err));
+  });
+})();
+
+function mvOAuthProvider(providerId) {
+  var provider = new firebase.auth.OAuthProvider(providerId);
+  if (providerId === 'apple.com') {
+    provider.addScope('email');
+    provider.addScope('name');
+  } else if (providerId === 'microsoft.com') {
+    provider.setCustomParameters({ prompt: 'select_account', tenant: 'common' });
+  }
+  return provider;
+}
+function mvOAuthLabel(providerId) {
+  return providerId === 'apple.com' ? 'Apple' : (providerId === 'microsoft.com' ? 'Microsoft' : 'account');
+}
+function mvOAuthErrorText(err, providerId) {
+  var code = (err && err.code) || '';
+  var label = mvOAuthLabel(providerId);
+  if (code === 'auth/operation-not-allowed') return label + ' sign-in is not enabled yet. Ask the app owner to enable it in Firebase Authentication.';
+  if (code === 'auth/unauthorized-domain') return 'This website is not authorized for sign-in yet. Ask the app owner to add its domain in Firebase Authentication settings.';
+  if (code === 'auth/account-exists-with-different-credential') return 'A Mindvora account already uses this email. Sign in with the method you already use, then contact support to connect another method.';
+  if (code === 'auth/network-request-failed') return 'No internet connection, or the connection was blocked. Please try again.';
+  if (code === 'auth/user-disabled') return 'This account has been suspended. Contact support.';
+  return label + ' sign-in failed' + (code ? ' (' + code + ')' : '') + '. Please try again.';
+}
+function mvAfterFederatedOAuth(result, providerId) {
+  if (!result || !result.user) return;
+  var providerName = mvFederatedProviderName(result.user) || (providerId === 'apple.com' ? 'apple' : 'microsoft');
+  return mvEnsureFederatedProfile(result.user, providerName).then(function() {
+    showToast('Signed in with ' + mvOAuthLabel(providerId) + '!');
+  }).catch(function(err) {
+    console.error('[Mindvora] Federated profile save failed:', err);
+    mvShowAuthError(mvOAuthErrorText(err, providerId));
+  });
+}
+function signInWithOAuth(providerId) {
+  if (providerId !== 'apple.com' && providerId !== 'microsoft.com') return;
+  var provider = mvOAuthProvider(providerId);
+  if (mvIsInAppBrowser()) {
+    mvShowAuthError(mvOAuthLabel(providerId) + ' sign-in may not work inside this in-app browser. Open Mindvora in Safari or Chrome and try again.');
+    return;
+  }
+  if (mvIsNativeApp()) {
+    try { sessionStorage.setItem('mv_oauth_redirect', providerId); } catch (e) {}
+    auth.signInWithRedirect(provider).catch(function(err) {
+      try { sessionStorage.removeItem('mv_oauth_redirect'); } catch (e) {}
+      mvShowAuthError(mvOAuthErrorText(err, providerId));
+    });
+    return;
+  }
+  auth.signInWithPopup(provider).then(function(result) {
+    return mvAfterFederatedOAuth(result, providerId);
+  }).catch(function(err) {
+    var code = err && err.code;
+    if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return;
+    if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+      try { sessionStorage.setItem('mv_oauth_redirect', providerId); } catch (e) {}
+      auth.signInWithRedirect(provider).catch(function(redirectError) {
+        try { sessionStorage.removeItem('mv_oauth_redirect'); } catch (e) {}
+        mvShowAuthError(mvOAuthErrorText(redirectError, providerId));
+      });
+      return;
+    }
+    console.error('[Mindvora] ' + mvOAuthLabel(providerId) + ' sign-in error:', code, err && err.message);
+    mvShowAuthError(mvOAuthErrorText(err, providerId));
+  });
+}
+(function(){
+  var providerId = '';
+  try { providerId = sessionStorage.getItem('mv_oauth_redirect') || ''; sessionStorage.removeItem('mv_oauth_redirect'); } catch (e) {}
+  if (!providerId || typeof auth === 'undefined') return;
+  auth.getRedirectResult().then(function(result) {
+    if (result && result.user) return mvAfterFederatedOAuth(result, providerId);
+  }).catch(function(err) {
+    mvShowAuthError(mvOAuthErrorText(err, providerId));
   });
 })();
 
