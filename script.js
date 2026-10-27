@@ -2361,9 +2361,9 @@ auth.onAuthStateChanged(function(user){
     var _mountTimeout = setTimeout(function(){
       if(!_mountFired){
         _mountFired = true;
-        if(!state.profile) state.profile={name:user.displayName||user.email.split('@')[0],handle:(user.email||'user').split('@')[0],color:COLORS[0],plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0};
+        if(!state.profile) state.profile={name:user.displayName||(user.email||'Mindvora User').split('@')[0],handle:(user.email||('member'+user.uid.slice(0,8))).split('@')[0],color:COLORS[0],plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0};
 // Skip email verification for existing users
-        if(state.profile && state.profile.emailVerified) {
+        if(state.profile && (state.profile.emailVerified || mvIsVerifiedPhoneUser(user))) {
           mountApp();
         }
       }
@@ -2389,7 +2389,7 @@ auth.onAuthStateChanged(function(user){
           db.collection('users').doc(user.uid).update({emailVerified:true}).catch(function(){});
           state.profile.emailVerified = true;
         }
-        if(snap.data().emailVerified === false && !mvIsFederatedOAuthUser(user)){
+        if(snap.data().emailVerified === false && !mvIsFederatedOAuthUser(user) && !mvIsVerifiedPhoneUser(user)){
           console.log('[Mindvora] Email not verified, sending code before showing OTP screen');
 // Send the code FIRST — only show the OTP entry screen if it actually
 // succeeds. Previously showOTPScreen() ran unconditionally beforehand and
@@ -2404,7 +2404,7 @@ auth.onAuthStateChanged(function(user){
           });
           return;
         }
-        console.log('[Mindvora] Email verified, proceeding to mount app');
+        console.log('[Mindvora] Verified sign-in method, proceeding to mount app');
         mountApp();
         checkAdminAccess();
         checkPendingAds();
@@ -2425,6 +2425,22 @@ auth.onAuthStateChanged(function(user){
           mountApp();
           return;
         }
+        if (mvIsVerifiedPhoneUser(user)) {
+          var _phoneDraft = window._mvPhoneSignupDraft || {};
+          state.profile.name = _phoneDraft.name || user.displayName || ('Mindvora User');
+          state.profile.handle = _phoneDraft.handle || ('member' + user.uid.slice(0,8)).toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,20);
+          state.profile.provider = 'phone';
+          mvEnsurePhoneProfile(user, _phoneDraft).then(function(profile){
+            if (profile) state.profile = profile;
+            window._mvPhoneSignupDraft = null;
+            mountApp();
+          }).catch(function(error){
+            console.error('[Mindvora] Phone profile save failed:', error);
+            showToast('Phone verified, but your profile could not be saved. Check your connection and sign in again.');
+            auth.signOut();
+          });
+          return;
+        }
         db.collection('users').doc(user.uid).set(state.profile);
         showOTPScreen(user.email);
         return;
@@ -2442,7 +2458,7 @@ auth.onAuthStateChanged(function(user){
       clearTimeout(_mountTimeout);
       _mountFired = true;
       console.error('[Mindvora] Firestore error during profile fetch:', err);
-      state.profile={name:user.displayName||user.email,handle:(user.email||'user').split('@')[0],color:COLORS[0],plan:'free'};
+      state.profile={name:user.displayName||user.email||'Mindvora User',handle:(user.email||('member'+user.uid.slice(0,8))).split('@')[0],color:COLORS[0],plan:'free'};
       console.log('[Mindvora] Using fallback profile, calling mountApp()');
       mountApp();
     });
@@ -2565,7 +2581,8 @@ function updateStats(){
   document.getElementById('e-rev').textContent='$'+((state.profile.earnings||0).toFixed(2));
 }
 
-function loadSparks(){ if(state.sparksUnsub) state.sparksUnsub(); state.sparksUnsub=db.collection('sparks').orderBy('createdAt','desc').limit(50).onSnapshot(function(snap){ state.sparks=snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }); renderFeed(); },function(){ showToast('Error loading feed'); }); }
+var feedSessionOrder = Object.create(null);
+function loadSparks(){ if(state.sparksUnsub) state.sparksUnsub(); state.sparksUnsub=db.collection('sparks').orderBy('createdAt','desc').limit(50).onSnapshot(function(snap){ state.sparks=snap.docs.map(function(d){ return Object.assign({id:d.id},d.data()); }); state.sparks.forEach(function(s){ if(!Object.prototype.hasOwnProperty.call(feedSessionOrder,s.id)) feedSessionOrder[s.id]=Math.random(); }); state.sparks.sort(function(a,b){ return feedSessionOrder[a.id]-feedSessionOrder[b.id]; }); renderFeed(); },function(){ showToast('Error loading feed'); }); }
 function renderFeed(){
   var fc = document.getElementById('feed-cont');
   var q  = ((document.getElementById('search-inp')||{}).value||'').trim().toLowerCase();
@@ -3810,7 +3827,7 @@ function checkAdminAccess(){
 // Admin nav click
 document.getElementById('nav-admin').addEventListener('click', function(){
 // Security: verify ownership before opening admin panel
-  if(!state || !state.user || state.user.email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()){
+  if(!state || !state.user || !state.user.email || state.user.email.toLowerCase().trim() !== ADMIN_EMAIL.toLowerCase().trim()){
     showToast('⛔ Access denied.');
     return;
   }
@@ -10346,6 +10363,148 @@ function mvIsFederatedOAuthUser(user) {
 }
 function mvIsGoogleUser(user) {
   return mvFederatedProviderName(user) === 'google';
+}
+function mvIsVerifiedPhoneUser(user) {
+  return !!(user && user.phoneNumber && (user.providerData || []).some(function(p){ return p && p.providerId === 'phone'; }));
+}
+function mvEnsurePhoneProfile(user, draft) {
+  var ref = db.collection('users').doc(user.uid);
+  draft = draft || {};
+  return ref.get().then(function(snap){
+    if (snap.exists) {
+      var existing = snap.data() || {};
+      var updates = {};
+      if (!existing.provider) updates.provider = 'phone';
+      if (draft.name && (!existing.name || existing.name === 'Mindvora User')) updates.name = draft.name;
+      if (draft.handle && (!existing.handle || existing.handle === 'user')) updates.handle = draft.handle;
+      return Object.keys(updates).length ? ref.update(updates).then(function(){ return Object.assign({}, existing, updates); }) : existing;
+    }
+    var name = draft.name || user.displayName || 'Mindvora User';
+    var defaultHandle = user.displayName ? user.displayName.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20) : ('member' + user.uid.slice(0,8));
+    var handle = String(draft.handle || defaultHandle).toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,20);
+    if (handle.length < 3) handle = 'user' + user.uid.slice(0,6);
+    var profile = {
+      id: user.uid, name: name, handle: handle, email: user.email || '',
+      avatar: user.photoURL || '', provider: 'phone',
+      plan: 'free', isPremium: false, earnings: 0, tips: 0,
+      sparksCount: 0, followers: 0, emailVerified: !!(user.email && user.emailVerified),
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    return ref.set(profile).then(function(){ return profile; });
+  });
+}
+function togglePhoneAuth(mode) {
+  var box = document.getElementById(mode === 'reg' ? 'phone-register-box' : 'phone-login-box');
+  if (!box) return;
+  var opening = box.style.display === 'none' || !box.style.display;
+  box.style.display = opening ? 'block' : 'none';
+  if (opening) {
+    var input = document.getElementById(mode === 'reg' ? 'r-phone' : 'li-phone');
+    if (input) input.focus();
+  }
+}
+function mvPhoneErrorText(err) {
+  var code = err && err.code || '';
+  var messages = {
+    'auth/invalid-phone-number': 'Enter a valid phone number in international format, such as +2348000000000.',
+    'auth/missing-phone-number': 'Enter your phone number, including the country code.',
+    'auth/invalid-verification-code': 'That SMS code is incorrect. Check it and try again.',
+    'auth/code-expired': 'That SMS code expired. Request a new code and try again.',
+    'auth/too-many-requests': 'Too many attempts. Wait a while before trying again.',
+    'auth/quota-exceeded': 'SMS sending is temporarily unavailable because this Firebase project reached its quota.',
+    'auth/operation-not-allowed': 'Phone sign-in is not enabled yet. Enable Phone in Firebase Authentication sign-in providers.',
+    'auth/unauthorized-domain': 'This app domain is not authorized for phone sign-in. Add ' + window.location.hostname + ' in Firebase Authentication settings.',
+    'auth/captcha-check-failed': 'The reCAPTCHA check did not pass. Refresh the challenge and try again.',
+    'auth/invalid-app-credential': 'Firebase could not verify reCAPTCHA. Check the authorized domain and try again.',
+    'auth/network-request-failed': 'Network error. Check your connection and try again.'
+  };
+  return messages[code] || ('Phone sign-in failed' + (code ? ' (' + code + ')' : '') + '. Please try again.');
+}
+function mvNormalizePhone(value) {
+  var phone = String(value || '').trim().replace(/[\s().-]/g, '');
+  return /^\+[1-9]\d{7,14}$/.test(phone) ? phone : '';
+}
+function mvResetPhoneVerifier(containerId) {
+  if (window._mvPhoneVerifier) {
+    try { window._mvPhoneVerifier.clear(); } catch (e) {}
+    window._mvPhoneVerifier = null;
+  }
+  var container = document.getElementById(containerId);
+  if (container) container.innerHTML = '';
+}
+function sendPhoneCode(mode) {
+  if (mode !== 'login' && mode !== 'reg') return;
+  var isSignup = mode === 'reg';
+  var numberField = document.getElementById(isSignup ? 'r-phone' : 'li-phone');
+  var errorEl = document.getElementById(isSignup ? 'phone-register-err' : 'phone-login-err');
+  var sendBtn = document.getElementById(isSignup ? 'btn-phone-reg-send' : 'btn-phone-login-send');
+  var verifyWrap = document.getElementById(isSignup ? 'phone-register-code-wrap' : 'phone-login-code-wrap');
+  var containerId = isSignup ? 'phone-register-recaptcha' : 'phone-login-recaptcha';
+  var number = mvNormalizePhone(numberField && numberField.value);
+  if (errorEl) errorEl.textContent = '';
+  if (!number) { if (errorEl) errorEl.textContent = 'Enter a valid number in international format, e.g. +2348000000000.'; return; }
+  var draft = null;
+  if (isSignup) {
+    var nameInput = document.getElementById('r-name');
+    var handleInput = document.getElementById('r-handle');
+    var name = nameInput ? nameInput.value.trim() : '';
+    var handle = handleInput ? handleInput.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 20) : '';
+    if (!name || handle.length < 3) { if (errorEl) errorEl.textContent = 'For phone sign-up, enter your full name and a username of at least 3 characters above.'; return; }
+    draft = { name: name.slice(0, 80), handle: handle };
+    window._mvPhoneSignupDraft = draft;
+  } else {
+    window._mvPhoneSignupDraft = null;
+  }
+  window._mvPhoneAuthMode = mode;
+  window._mvPhoneConfirmationResult = null;
+  if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending SMS code…'; }
+  mvResetPhoneVerifier(containerId);
+  try {
+    window._mvPhoneVerifier = new firebase.auth.RecaptchaVerifier(containerId, {
+      size: 'normal',
+      'expired-callback': function(){ if (errorEl) errorEl.textContent = 'The reCAPTCHA expired. Complete it again before requesting a code.'; }
+    });
+  } catch (err) {
+    if (errorEl) errorEl.textContent = mvPhoneErrorText(err);
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send SMS code →'; }
+    return;
+  }
+  auth.signInWithPhoneNumber(number, window._mvPhoneVerifier).then(function(confirmation){
+    window._mvPhoneConfirmationResult = confirmation;
+    if (verifyWrap) verifyWrap.style.display = 'block';
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Resend SMS code'; }
+    if (errorEl) errorEl.textContent = 'Code sent to ' + number + '. Enter the 6-digit code above.';
+    var codeInput = document.getElementById(isSignup ? 'r-phone-code' : 'li-phone-code');
+    if (codeInput) codeInput.focus();
+  }).catch(function(err){
+    console.warn('[Mindvora] Phone SMS request failed:', err && err.code);
+    if (errorEl) errorEl.textContent = mvPhoneErrorText(err);
+    mvResetPhoneVerifier(containerId);
+    if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send SMS code →'; }
+  });
+}
+function confirmPhoneCode(mode) {
+  if (mode !== 'login' && mode !== 'reg') return;
+  var isSignup = mode === 'reg';
+  var input = document.getElementById(isSignup ? 'r-phone-code' : 'li-phone-code');
+  var errorEl = document.getElementById(isSignup ? 'phone-register-err' : 'phone-login-err');
+  var button = document.getElementById(isSignup ? 'btn-phone-reg-confirm' : 'btn-phone-login-confirm');
+  var code = String(input && input.value || '').trim();
+  if (errorEl) errorEl.textContent = '';
+  if (!window._mvPhoneConfirmationResult) { if (errorEl) errorEl.textContent = 'Request an SMS code first.'; return; }
+  if (!/^\d{6}$/.test(code)) { if (errorEl) errorEl.textContent = 'Enter the 6-digit code from the SMS.'; return; }
+  if (button) { button.disabled = true; button.textContent = 'Verifying…'; }
+  window._mvPhoneConfirmationResult.confirm(code).then(function(result){
+    var draft = isSignup ? (window._mvPhoneSignupDraft || {}) : {};
+    if (isSignup && draft.name && result.user && result.user.updateProfile) return result.user.updateProfile({ displayName: draft.name });
+  }).then(function(){
+    showToast(isSignup ? 'Phone verified. Your account is ready.' : 'Phone verified. Welcome back!');
+  }).catch(function(err){
+    if (errorEl) errorEl.textContent = mvPhoneErrorText(err);
+  }).then(function(){
+    if (button) { button.disabled = false; button.textContent = isSignup ? 'Verify and create account →' : 'Verify and sign in →'; }
+  });
 }
 // Creates the profile once, only with fields the Firestore rules allow on create.
 function mvEnsureFederatedProfile(user, providerName) {

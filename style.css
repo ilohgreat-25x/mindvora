@@ -3358,3 +3358,21 @@ body:not(.light):not(.light-mode) #auth-screen .slide-text{background:linear-gra
 /* Keep the same animated multi-colour wordmark on login, the top bar, and the slide-out menu. */
 .auth-logo,.auth-logo-sm>span,.showcase-brand>span:first-child,.tb-logo,.drawer-header-logo{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark 12s ease-in-out infinite!important}
 body.light .auth-logo,body.light-mode .auth-logo,body.light .auth-logo-sm>span,body.light-mode .auth-logo-sm>span,body.light .showcase-brand>span:first-child,body.light-mode .showcase-brand>span:first-child,body.light .tb-logo,body.light-mode .tb-logo,body.light .drawer-header-logo,body.light-mode .drawer-header-logo{animation:mv-shared-wordmark-light 12s ease-in-out infinite!important}
+
+/* Warm-brown story-add ring in light mode; preserve the existing dark-mode accent. */
+body.light .s-add,body.light-mode .s-add{border:2px dashed rgba(135,74,48,.55)!important;background:linear-gradient(135deg,rgba(135,74,48,.12),rgba(169,89,54,.06))!important;color:#874a30!important;box-shadow:0 0 22px rgba(135,74,48,.12)!important}
+body.light .s-add:hover,body.light-mode .s-add:hover{border-color:#874a30!important;background:rgba(135,74,48,.14)!important}
+
+
+/* Phone sign-in and SMS verification controls. */
+.phone-auth-box{margin:12px 0 4px;padding:14px;border:1px solid rgba(79,227,255,.22);border-radius:14px;background:rgba(7,17,31,.72);color:var(--white)}
+.phone-auth-box .fg{margin-bottom:12px}
+.phone-auth-box .phone-auth-note{font-size:11px;line-height:1.55;color:var(--muted);margin:0 0 12px}
+.phone-auth-box #phone-login-recaptcha,.phone-auth-box #phone-register-recaptcha{min-height:0;margin:8px 0;max-width:100%;overflow:hidden}
+.phone-auth-box #phone-login-recaptcha iframe,.phone-auth-box #phone-register-recaptcha iframe{max-width:100%}
+.phone-auth-box .phone-send-btn,.phone-auth-box .phone-code-wrap .btn-auth{width:100%;margin-top:8px}
+.phone-auth-box .phone-code-wrap{margin-top:12px}
+.phone-auth-box .a-err{min-height:0;margin-top:8px}
+body.light .phone-auth-box,body.light-mode .phone-auth-box{background:#fffaf3!important;border-color:rgba(135,74,48,.24)!important;color:#211915!important}
+body.light .phone-auth-box .phone-auth-note,body.light-mode .phone-auth-box .phone-auth-note{color:#62564d!important}
+body.light .phone-auth-box .fi,body.light-mode .phone-auth-box .fi{background:#fff!important;border-color:rgba(76,52,36,.24)!important;color:#211915!important}
