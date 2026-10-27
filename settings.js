@@ -19,13 +19,15 @@
   };
   var prefs = loadPrefs();
   var chatUnlocked = false;
-  var pendingChat = null;
   var autoLockTimer = null;
   var startupLockShown = false;
-  var originalOpenChat = window.openChat;
 
   function loadPrefs() {
-    try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || '{}')); }
+    try {
+      var stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || '{}');
+      if (typeof stored.appLock === 'undefined' && stored.chatLock === true) stored.appLock = true;
+      return Object.assign({}, defaults, stored);
+    }
     catch (e) { return Object.assign({}, defaults); }
   }
   function savePrefs() {
@@ -51,9 +53,9 @@
     dispatchSettingsChange();
   }
   function setPreference(key, value) {
-    if (key === 'chatLock' && value && !hasPin()) { setOrChangePin(true); return; }
+    if (key === 'appLock' && value && !hasPin()) { setOrChangePin(true); return; }
     prefs[key] = !!value;
-    if (key === 'chatLock' && !value) chatUnlocked = false;
+    if (key === 'appLock' && !value) { chatUnlocked = false; clearTimeout(autoLockTimer); autoLockTimer = null; }
     savePrefs(); applyPrefs(); renderSettings();
   }
   var AUTO_LOCK_OPTIONS = [
@@ -67,18 +69,18 @@
   ];
   function autoLockMs() { return ({ '1m': 60000, '3m': 180000, '5m': 300000, '2h': 7200000, '4h': 14400000, '1d': 86400000 })[prefs.autoLock] || 0; }
   function lockChats(reason) {
-    if (!prefs.chatLock) return;
+    if (!prefs.appLock) return;
     chatUnlocked = false;
     clearTimeout(autoLockTimer); autoLockTimer = null;
-    if (reason && typeof window.showToast === 'function') window.showToast('🔒 Chats locked automatically.');
+    if (reason && typeof window.showToast === 'function') window.showToast('🔒 App locked automatically.');
   }
   function scheduleAutoLock() {
     clearTimeout(autoLockTimer); autoLockTimer = null;
-    if (!prefs.chatLock || !chatUnlocked) return;
+    if (!prefs.appLock || !chatUnlocked) return;
     var ms = autoLockMs();
     if (ms > 0) autoLockTimer = setTimeout(function () { lockChats(true); }, ms);
   }
-  function recordActivity() { if (prefs.chatLock && chatUnlocked && autoLockMs() > 0) scheduleAutoLock(); }
+  function recordActivity() { if (prefs.appLock && chatUnlocked && autoLockMs() > 0) scheduleAutoLock(); }
   function setAutoLock(value) {
     if (!AUTO_LOCK_OPTIONS.some(function (option) { return option.value === value; })) value = '5m';
     prefs.autoLock = value; savePrefs(); applyPrefs(); renderSettings(); scheduleAutoLock();
@@ -116,7 +118,7 @@
   function renderSettings() {
     var body = ensureModal().querySelector('#mv-settings-body');
     body.innerHTML = '<section class="mv-settings-section"><h3>Privacy & presence</h3>' +
-      settingRow('chatLock', 'App Lock', 'Require a PIN/password or supported device biometric when Mindvora opens and before private chats open.') +
+      settingRow('appLock', 'App Lock', 'Require a PIN/password or supported device biometric when Mindvora opens. Private-message locking is controlled separately by Lock Chat in each conversation.') +
       settingRow('seenMark', 'SeenMark', 'Show read receipts and mark incoming messages as read when a chat opens.') +
       settingRow('onlineVisibility', 'Online visibility', 'Let other people see when you are online.') +
       settingRow('typingIndicator', 'Typing indicator', 'Show typing activity in conversations.') + '</section>' +
@@ -128,8 +130,8 @@
       settingRow('autoplay', 'Autoplay', 'Automatically play supported media.') +
       settingRow('dataSaver', 'Data saver', 'Reduce media data usage.') + '</section>' +
       '<section class="mv-settings-section mv-settings-actions"><h3>App Lock controls</h3>' +
-      '<p class="mv-settings-help">App Lock protects the full app after inactivity and when Mindvora is reopened. It also keeps private-message chats locked. Set a PIN/password first; if fingerprint, Face ID, Touch ID, or another supported device biometric is available, Mindvora will offer it for faster unlock. A mismatch or cancellation always falls back to your PIN/password.</p>' +
-      '<label class="mv-settings-select"><span><strong>Automatically lock chats</strong><small>Lock after inactivity or when the app is backgrounded.</small></span><select data-auto-lock>' + AUTO_LOCK_OPTIONS.map(function (option) { return '<option value="' + option.value + '"' + (prefs.autoLock === option.value ? ' selected' : '') + '>' + option.label + '</option>'; }).join('') + '</select></label>' +
+      '<p class="mv-settings-help">App Lock protects the full app after inactivity and when Mindvora is reopened. To protect one private conversation, use that conversation’s menu and choose Lock Chat. Set a PIN/password first; if fingerprint, Face ID, Touch ID, or another supported device biometric is available, Mindvora will offer it for faster unlock. A mismatch or cancellation always falls back to your PIN/password.</p>' +
+      '<label class="mv-settings-select"><span><strong>Automatically lock app</strong><small>Lock the whole app after inactivity or when it is backgrounded.</small></span><select data-auto-lock>' + AUTO_LOCK_OPTIONS.map(function (option) { return '<option value="' + option.value + '"' + (prefs.autoLock === option.value ? ' selected' : '') + '>' + option.label + '</option>'; }).join('') + '</select></label>' +
       '<button type="button" class="mv-settings-btn" data-action="pin">' + (hasPin() ? 'Change PIN/password' : 'Set PIN/password') + '</button>' +
       '<button type="button" class="mv-settings-btn" data-action="biometric">' + (hasCredential() ? 'Re-register biometric' : 'Enable device biometric') + '</button>' +
       (hasCredential() ? '<button type="button" class="mv-settings-btn" data-action="remove-biometric">Remove biometric</button>' : '') +
@@ -138,7 +140,7 @@
     body.querySelectorAll('[data-pref]').forEach(function (input) { input.addEventListener('change', function () { setPreference(input.getAttribute('data-pref'), input.checked); }); });
     var autoLockSelect = body.querySelector('[data-auto-lock]');
     if (autoLockSelect) autoLockSelect.addEventListener('change', function () { setAutoLock(autoLockSelect.value); });
-    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') { lockChats(false); toast('🔒 App Lock enabled. Private chats are locked too.'); } if (action === 'reset') resetSettings(); }); });
+    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') { lockChats(false); toast('🔒 App Lock enabled.'); } if (action === 'reset') resetSettings(); }); });
   }
   window.openSettings = function () { renderSettings(); ensureModal().classList.add('open'); };
   window.closeSettings = function () { var modal = document.getElementById('modal-settings'); if (modal) modal.classList.remove('open'); };
@@ -146,8 +148,8 @@
   function setOrChangePin(fromToggle) {
     var pin = prompt(hasPin() ? 'Enter a new PIN/password:' : 'Create a PIN/password (4–12 digits or 6–64 characters):');
     var valid = /^\d{4,12}$/.test(pin || '') || ((pin || '').length >= 6 && (pin || '').length <= 64);
-    if (!valid) { if (pin !== null) toast('Use a 4–12 digit PIN or a 6–64 character password.'); if (fromToggle) { prefs.chatLock = false; savePrefs(); renderSettings(); } return; }
-    hashPin(pin).then(function (hash) { localStorage.setItem(PIN_KEY, hash); localStorage.removeItem(CRED_KEY); prefs.chatLock = true; savePrefs(); chatUnlocked = false; applyPrefs(); renderSettings(); toast('✅ PIN/password saved.'); if (biometricAvailable() && confirm('Enable fingerprint, Face ID, Touch ID, or another device biometric for faster unlock?')) registerBiometric(false, true); }).catch(function () { toast('Unable to save PIN/password on this device.'); });
+    if (!valid) { if (pin !== null) toast('Use a 4–12 digit PIN or a 6–64 character password.'); if (fromToggle) { prefs.appLock = false; savePrefs(); renderSettings(); } return; }
+    hashPin(pin).then(function (hash) { localStorage.setItem(PIN_KEY, hash); localStorage.removeItem(CRED_KEY); prefs.appLock = true; savePrefs(); chatUnlocked = false; applyPrefs(); renderSettings(); toast('✅ PIN/password saved.'); if (biometricAvailable() && confirm('Enable fingerprint, Face ID, Touch ID, or another device biometric for faster unlock?')) registerBiometric(false, true); }).catch(function () { toast('Unable to save PIN/password on this device.'); });
   }
   function registerBiometric(showUnavailable, passwordJustSaved) {
     if (!passwordJustSaved && !hasPin()) { toast('Set a PIN/password first.'); setOrChangePin(true); return; }
@@ -155,7 +157,7 @@
     var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     var userId = new Uint8Array(16); crypto.getRandomValues(userId);
     navigator.credentials.create({ publicKey: { challenge: challenge, rp: { name: 'Mindvora' }, user: { id: userId, name: 'mindvora-user', displayName: 'Mindvora user' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } }).then(function (credential) {
-      localStorage.setItem(CRED_KEY, bytesToBase64(new Uint8Array(credential.rawId))); prefs.chatLock = true; savePrefs(); applyPrefs(); renderSettings(); toast('✅ Device biometric enabled. PIN/password fallback remains available.');
+      localStorage.setItem(CRED_KEY, bytesToBase64(new Uint8Array(credential.rawId))); prefs.appLock = true; savePrefs(); applyPrefs(); renderSettings(); toast('✅ Device biometric enabled. PIN/password fallback remains available.');
     }).catch(function () { toast('Biometric setup was cancelled or unavailable. Your PIN/password still unlocks chats.'); });
   }
   function unlockWithPin() {
@@ -168,7 +170,7 @@
     var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     return navigator.credentials.get({ publicKey: { challenge: challenge, allowCredentials: [{ type: 'public-key', id: base64ToBytes(localStorage.getItem(CRED_KEY)) }], userVerification: 'required', timeout: 60000 } }).then(function () { chatUnlocked = true; return true; });
   }
-  function unlockChat() { if (!hasPin()) { toast('Set a PIN/password in Settings before opening locked chats.'); return Promise.resolve(false); } return (hasCredential() ? unlockWithBiometric().catch(function () { toast('Biometric verification failed. Enter your PIN/password.'); return unlockWithPin(); }) : unlockWithPin()).then(function (ok) { if (ok) scheduleAutoLock(); return ok; }); }
+  function unlockChat() { if (!hasPin()) { toast('Set a PIN/password in Settings before enabling App Lock.'); return Promise.resolve(false); } return (hasCredential() ? unlockWithBiometric().catch(function () { toast('Biometric verification failed. Enter your PIN/password.'); return unlockWithPin(); }) : unlockWithPin()).then(function (ok) { if (ok) scheduleAutoLock(); return ok; }); }
   function appIsVisible() {
     var app = document.getElementById('app-screen');
     var currentUser = false;
@@ -177,7 +179,7 @@
     return !!(app && app.style.display !== 'none' && currentUser);
   }
   function showStartupLock() {
-    if (startupLockShown || !prefs.chatLock || !hasPin() || !appIsVisible()) return;
+    if (startupLockShown || !prefs.appLock || !hasPin() || !appIsVisible()) return;
     startupLockShown = true; chatUnlocked = false;
     var overlay = document.createElement('div'); overlay.id = 'mv-startup-lock'; overlay.className = 'mv-startup-lock';
     overlay.innerHTML = '<div class="mv-startup-lock-card"><div class="mv-startup-lock-icon">🔒</div><h2>Mindvora is locked</h2><p>Unlock with your device biometric or enter your PIN/password to continue.</p><button type="button" class="mv-settings-btn" data-unlock>Unlock Mindvora</button></div>';
@@ -187,7 +189,7 @@
     setTimeout(attempt, 80);
   }
   function watchForStartupLock() {
-    if (!prefs.chatLock || !hasPin()) return;
+    if (!prefs.appLock || !hasPin()) return;
     var timer = setInterval(function () { if (appIsVisible()) { clearInterval(timer); showStartupLock(); } }, 500);
     if (window.firebase && firebase.auth) firebase.auth().onAuthStateChanged(function (user) { if (user && appIsVisible()) showStartupLock(); });
     var app = document.getElementById('app-screen');
@@ -196,18 +198,10 @@
   function resetSettings() { if (!confirm('Reset Chat Lock and local Mindvora preferences on this device?')) return; localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(PIN_KEY); localStorage.removeItem(CRED_KEY); prefs = Object.assign({}, defaults); chatUnlocked = false; clearTimeout(autoLockTimer); autoLockTimer = null; applyPrefs(); renderSettings(); toast('Settings reset.'); }
   window.MVSettings = { get: getPref, set: setPreference, lock: function () { lockChats(false); }, unlock: unlockChat, apply: applyPrefs };
 
-  if (typeof originalOpenChat === 'function') {
-    window.openChat = function () {
-      var args = arguments;
-      if (!prefs.chatLock || chatUnlocked || (!hasPin() && !hasCredential())) return originalOpenChat.apply(window, args);
-      pendingChat = Array.prototype.slice.call(args);
-      unlockChat().then(function (ok) { if (ok && pendingChat) { var call = pendingChat; pendingChat = null; originalOpenChat.apply(window, call); } });
-    };
-  }
   ['click', 'keydown', 'touchstart', 'scroll'].forEach(function (eventName) { document.addEventListener(eventName, recordActivity, { passive: true, capture: true }); });
-  document.addEventListener('visibilitychange', function () { if (document.hidden && prefs.chatLock) { if (prefs.autoLock === 'immediate') lockChats(true); else scheduleAutoLock(); } else if (!document.hidden) recordActivity(); });
-  window.addEventListener('blur', function () { if (prefs.chatLock && prefs.autoLock === 'immediate') lockChats(true); });
-  window.addEventListener('pagehide', function () { if (prefs.chatLock) lockChats(false); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden && prefs.appLock) { if (prefs.autoLock === 'immediate') lockChats(true); else scheduleAutoLock(); } else if (!document.hidden) recordActivity(); });
+  window.addEventListener('blur', function () { if (prefs.appLock && prefs.autoLock === 'immediate') lockChats(true); });
+  window.addEventListener('pagehide', function () { if (prefs.appLock) lockChats(false); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installPreferenceHooks); else installPreferenceHooks();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchForStartupLock); else watchForStartupLock();
 }());
