@@ -3129,6 +3129,9 @@ body:not(.light):not(.light-mode) #mv-sports .mv-sports-link{color:#fff!importan
 .mv-settings-select{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border,rgba(255,255,255,.1))}
 .mv-settings-select span{display:flex;flex-direction:column;gap:3px}.mv-settings-select strong{font-size:12px}.mv-settings-select small{font-size:10px;line-height:1.4;color:var(--muted)}
 .mv-settings-select select{min-width:125px;padding:7px 9px;border:1px solid var(--border,rgba(255,255,255,.15));border-radius:9px;background:var(--deep,#000);color:var(--white,#fff);font-size:11px}
+.mv-startup-lock{position:fixed;inset:0;z-index:10070;display:flex;align-items:center;justify-content:center;padding:22px;background:var(--bg,#000);color:var(--white,#fff)}
+.mv-startup-lock-card{width:min(100%,380px);padding:28px 22px;text-align:center;border:1px solid var(--border,rgba(255,255,255,.14));border-radius:20px;background:var(--card,#0d0d0d);box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.mv-startup-lock-icon{font-size:42px;margin-bottom:10px}.mv-startup-lock-card h2{font-size:20px;margin-bottom:8px}.mv-startup-lock-card p{color:var(--muted);font-size:12px;line-height:1.55;margin-bottom:18px}
 .mv-settings-body{overflow-y:auto;padding:16px 20px 22px}
 .mv-settings-section{padding:4px 0 16px;border-bottom:1px solid var(--border,rgba(255,255,255,.1))}.mv-settings-section+.mv-settings-section{padding-top:16px}.mv-settings-section:last-child{border-bottom:0;padding-bottom:0}
 .mv-settings-section h3{margin:0 0 9px;color:var(--green3,#4ade80);font-size:11px;letter-spacing:.12em;text-transform:uppercase}

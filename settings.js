@@ -21,6 +21,7 @@
   var chatUnlocked = false;
   var pendingChat = null;
   var autoLockTimer = null;
+  var startupLockShown = false;
   var originalOpenChat = window.openChat;
 
   function loadPrefs() {
@@ -168,6 +169,24 @@
     return navigator.credentials.get({ publicKey: { challenge: challenge, allowCredentials: [{ type: 'public-key', id: base64ToBytes(localStorage.getItem(CRED_KEY)) }], userVerification: 'required', timeout: 60000 } }).then(function () { chatUnlocked = true; return true; });
   }
   function unlockChat() { if (!hasPin()) { toast('Set a PIN/password in Settings before opening locked chats.'); return Promise.resolve(false); } return (hasCredential() ? unlockWithBiometric().catch(function () { toast('Biometric verification failed. Enter your PIN/password.'); return unlockWithPin(); }) : unlockWithPin()).then(function (ok) { if (ok) scheduleAutoLock(); return ok; }); }
+  function appIsVisible() {
+    var app = document.getElementById('app-screen');
+    return !!(app && app.style.display !== 'none' && (!window.state || state.user));
+  }
+  function showStartupLock() {
+    if (startupLockShown || !prefs.chatLock || !hasPin() || !appIsVisible()) return;
+    startupLockShown = true; chatUnlocked = false;
+    var overlay = document.createElement('div'); overlay.id = 'mv-startup-lock'; overlay.className = 'mv-startup-lock';
+    overlay.innerHTML = '<div class="mv-startup-lock-card"><div class="mv-startup-lock-icon">🔒</div><h2>Mindvora is locked</h2><p>Unlock with your device biometric or enter your PIN/password to continue.</p><button type="button" class="mv-settings-btn" data-unlock>Unlock Mindvora</button></div>';
+    document.body.appendChild(overlay);
+    function attempt() { overlay.querySelector('[data-unlock]').disabled = true; unlockChat().then(function (ok) { if (ok) { overlay.remove(); } else { overlay.querySelector('[data-unlock]').disabled = false; } }); }
+    overlay.querySelector('[data-unlock]').addEventListener('click', attempt);
+    setTimeout(attempt, 80);
+  }
+  function watchForStartupLock() {
+    if (!prefs.chatLock || !hasPin()) return;
+    var tries = 0; var timer = setInterval(function () { if (appIsVisible()) { clearInterval(timer); showStartupLock(); } else if (++tries > 120) clearInterval(timer); }, 500);
+  }
   function resetSettings() { if (!confirm('Reset Chat Lock and local Mindvora preferences on this device?')) return; localStorage.removeItem(STORAGE_KEY); localStorage.removeItem(PIN_KEY); localStorage.removeItem(CRED_KEY); prefs = Object.assign({}, defaults); chatUnlocked = false; clearTimeout(autoLockTimer); autoLockTimer = null; applyPrefs(); renderSettings(); toast('Settings reset.'); }
   window.MVSettings = { get: getPref, set: setPreference, lock: function () { lockChats(false); }, unlock: unlockChat, apply: applyPrefs };
 
@@ -184,4 +203,5 @@
   window.addEventListener('blur', function () { if (prefs.chatLock && prefs.autoLock === 'immediate') lockChats(true); });
   window.addEventListener('pagehide', function () { if (prefs.chatLock) lockChats(false); });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', installPreferenceHooks); else installPreferenceHooks();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchForStartupLock); else watchForStartupLock();
 }());
