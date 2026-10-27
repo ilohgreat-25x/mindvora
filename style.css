@@ -3176,3 +3176,17 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.14;b
 body.light-mode{--bg:#f2f6fb;--card:#ffffff;--deep:#e8eef6;--green:#6b8f13;--green2:#9bc51e;--green3:#507800;--cream:#0b1728;--cream2:#10243b;--white:#0c1b2d;--moon:#24405d;--muted:#60758e;--border:rgba(19,54,86,.14);--borderhi:rgba(80,120,0,.42);--cdim:rgba(79,140,178,.08);--mv-ink:#fff}
 body.light-mode{background-image:radial-gradient(ellipse 70% 55% at 50% -15%,rgba(79,227,255,.16),transparent 65%),linear-gradient(135deg,#f6f9fc,#eaf1f7)}body.light-mode::before{opacity:.22;background-image:linear-gradient(rgba(19,54,86,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(19,54,86,.045) 1px,transparent 1px)}body.light-mode .topbar,body.light-mode .sidebar{background:rgba(255,255,255,.78)}body.light-mode .spark-card,body.light-mode .compose-box{background:rgba(255,255,255,.86);box-shadow:0 14px 34px rgba(28,58,88,.09)}body.light-mode .modal-box,body.light-mode .mv-settings-modal{background:#fff}body.light-mode .drawer{background:linear-gradient(180deg,#fff,#eef5fa)!important}body.light-mode .nav-item.active{color:#315400;background:rgba(155,197,30,.15)}body.light-mode .f-pill,body.light-mode .media-btn{color:#35516e}body.light-mode .bug-watch-card{background:#fff}.bug-watch-card b{color:var(--green3)}
 @media(max-width:767px){.topbar{height:58px}.feed-col{padding:12px 8px 78px}.spark-card{border-radius:17px}.sidebar{display:none}.compose-box{border-radius:17px}.tb-logo{font-size:23px}.tb-sw{max-width:none}.modal-box{border-radius:22px 22px 0 0!important}}
+
+/* Shared Mindvora wordmark: login and authenticated app use one identity. */
+@keyframes mv-shared-wordmark{
+  0%,100%{color:#d8ff67;text-shadow:0 0 22px rgba(216,255,103,.22)}
+  25%{color:#4fe3ff;text-shadow:0 0 22px rgba(79,227,255,.22)}
+  50%{color:#ff786b;text-shadow:0 0 22px rgba(255,120,107,.2)}
+  75%{color:#8878ff;text-shadow:0 0 22px rgba(136,120,255,.22)}
+}
+#auth-screen{background:radial-gradient(ellipse 75% 55% at 50% -10%,rgba(79,227,255,.16),transparent 64%),radial-gradient(ellipse 55% 50% at 100% 100%,rgba(136,120,255,.12),transparent 70%),var(--deep)}
+.auth-box{background:linear-gradient(145deg,rgba(16,33,57,.96),rgba(8,21,37,.96));border-color:rgba(157,190,226,.2);box-shadow:0 28px 100px rgba(0,0,0,.52)}
+.auth-logo,.tb-logo{font-family:'Great Vibes',cursive!important;animation:mv-shared-wordmark 12s ease-in-out infinite!important;color:#d8ff67!important}
+.tb-logo{font-size:32px!important;line-height:1.1}
+body.light-mode #auth-screen{background:radial-gradient(ellipse 75% 55% at 50% -10%,rgba(79,227,255,.18),transparent 64%),linear-gradient(135deg,#f6f9fc,#eaf1f7)}
+body.light-mode .auth-box{background:rgba(255,255,255,.9);border-color:rgba(19,54,86,.16);box-shadow:0 24px 70px rgba(28,58,88,.14)}
