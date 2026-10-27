@@ -146,10 +146,10 @@
     var pin = prompt(hasPin() ? 'Enter a new PIN/password:' : 'Create a PIN/password (4–12 digits or 6–64 characters):');
     var valid = /^\d{4,12}$/.test(pin || '') || ((pin || '').length >= 6 && (pin || '').length <= 64);
     if (!valid) { if (pin !== null) toast('Use a 4–12 digit PIN or a 6–64 character password.'); if (fromToggle) { prefs.chatLock = false; savePrefs(); renderSettings(); } return; }
-    hashPin(pin).then(function (hash) { localStorage.setItem(PIN_KEY, hash); localStorage.removeItem(CRED_KEY); prefs.chatLock = true; savePrefs(); chatUnlocked = false; applyPrefs(); renderSettings(); toast('✅ PIN/password saved.'); if (biometricAvailable() && confirm('Enable fingerprint, Face ID, Touch ID, or another device biometric for faster unlock?')) registerBiometric(false); }).catch(function () { toast('Unable to save PIN/password on this device.'); });
+    hashPin(pin).then(function (hash) { localStorage.setItem(PIN_KEY, hash); localStorage.removeItem(CRED_KEY); prefs.chatLock = true; savePrefs(); chatUnlocked = false; applyPrefs(); renderSettings(); toast('✅ PIN/password saved.'); if (biometricAvailable() && confirm('Enable fingerprint, Face ID, Touch ID, or another device biometric for faster unlock?')) registerBiometric(false, true); }).catch(function () { toast('Unable to save PIN/password on this device.'); });
   }
-  function registerBiometric(showUnavailable) {
-    if (!hasPin()) { toast('Set a PIN/password first.'); setOrChangePin(true); return; }
+  function registerBiometric(showUnavailable, passwordJustSaved) {
+    if (!passwordJustSaved && !hasPin()) { toast('Set a PIN/password first.'); setOrChangePin(true); return; }
     if (!biometricAvailable()) { if (showUnavailable) toast('No supported device biometric is available. Your PIN/password will unlock chats.'); return; }
     var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
     var userId = new Uint8Array(16); crypto.getRandomValues(userId);
