@@ -128,6 +128,60 @@
   function settingRow(key, label, description) {
     return '<label class="mv-setting-row"><span><strong>' + label + '</strong><small>' + description + '</small></span><input type="checkbox" data-pref="' + key + '" ' + (prefs[key] ? 'checked' : '') + '><span class="mv-switch" aria-hidden="true"></span></label>';
   }
+  function billingDate(value) {
+    var date = value ? new Date(value) : null;
+    return date && !isNaN(date.getTime()) ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'not available';
+  }
+  function renderBillingStatus(data) {
+    var target = document.getElementById('mv-billing-status');
+    if (!target) return;
+    if (!data || !data.status) { target.innerHTML = '<p class="mv-settings-help">Subscription status is temporarily unavailable. Your current billing setting has not been changed.</p>'; return; }
+    try { document.dispatchEvent(new CustomEvent('mv:subscription-status', { detail: data })); } catch (e) {}
+    var sub = data.subscription;
+    var html = '';
+    if (sub && sub.canManage) {
+      var statusText = sub.lastPaymentStatus === 'failed'
+        ? 'Your last renewal payment failed; verify the payment method. Auto-renew remains ' + (sub.autoRenew ? 'on.' : 'off.')
+        : (sub.autoRenew ? 'Auto-renew is on.' : 'Auto-renew is off; no further renewal charge is scheduled.');
+      var paidThrough = sub.currentPeriodEnd ? billingDate(sub.currentPeriodEnd) : 'not available';
+      var amount = sub.amountKobo ? 'NGN ' + (sub.amountKobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' monthly' : 'monthly';
+      html = '<p class="mv-settings-help">' + esc(statusText) + ' ' + esc(sub.planName) + ' · ' + esc(amount) + '. Access is paid through ' + esc(paidThrough) + '.</p>' +
+        '<label class="mv-setting-row mv-billing-toggle"><span><strong>Auto-renew subscription</strong><small>Turn off to stop future Paystack charges. Your current paid access remains until the paid-through date.</small></span><input type="checkbox" data-sub-renewal ' + (sub.autoRenew ? 'checked' : '') + '><span class="mv-switch" aria-hidden="true"></span></label>';
+    } else if (sub && sub.autoRenew) {
+      html = '<p class="mv-settings-help">Paystack reports auto-renew is on, but its cancellation credential is not available to this app yet. No setting has been changed. Contact Mindvora support to prevent future charges.</p>';
+    } else if (data.pending) {
+      html = '<p class="mv-settings-help">Paystack is confirming the first subscription payment. Refresh Settings shortly to see the cancellation control once the subscription is registered.</p>';
+    } else if (data.premium && data.premium.isActive && data.premium.expiresAt) {
+      html = '<p class="mv-settings-help">Premium is active and paid through ' + esc(billingDate(data.premium.expiresAt)) + ', but this purchase is not set to auto-renew. Existing access is unchanged.</p>';
+    } else if (data.premium && data.premium.isActive) {
+      html = '<p class="mv-settings-help">Premium is active on this account and is not enrolled in auto-renew. Existing access is unchanged; no recurring charge will be made.</p>';
+    } else {
+      html = '<p class="mv-settings-help">No auto-renewing Premium subscription is active. To enroll, choose a Premium plan and explicitly select auto-renew at Paystack checkout. Crypto payments remain one-time.</p>' +
+        '<button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
+    }
+    target.innerHTML = html;
+    var toggle = target.querySelector('[data-sub-renewal]');
+    if (toggle) toggle.addEventListener('change', function () {
+      var desired = toggle.checked;
+      toggle.disabled = true;
+      if (typeof window.mvApi !== 'function') { toast('Billing service is unavailable.'); loadSubscriptionBilling(); return; }
+      window.mvApi('/api/pay/subscription/renewal', { enabled: desired }).then(function (result) {
+        if (!result || !result.status) throw new Error((result && result.message) || 'Could not update auto-renew.');
+        renderBillingStatus(result);
+        toast(desired ? 'Auto-renew is on.' : 'Auto-renew is off. You keep access through the paid-through date.');
+      }).catch(function (error) {
+        toast(error.message || 'Could not update auto-renew.');
+        loadSubscriptionBilling();
+      });
+    });
+  }
+  function loadSubscriptionBilling() {
+    var target = document.getElementById('mv-billing-status');
+    if (!target) return;
+    target.innerHTML = '<p class="mv-settings-help">Checking subscription status…</p>';
+    if (typeof window.mvApi !== 'function') { renderBillingStatus(null); return; }
+    window.mvApi('/api/pay/subscription/status').then(renderBillingStatus).catch(function () { renderBillingStatus(null); });
+  }
   function renderSettings() {
     var body = ensureModal().querySelector('#mv-settings-body');
     body.innerHTML = '<section class="mv-settings-section"><h3>Privacy & presence</h3>' +
@@ -135,6 +189,7 @@
       settingRow('seenMark', 'SeenMark', 'Show read receipts and mark incoming messages as read when a chat opens.') +
       settingRow('onlineVisibility', 'Online visibility', 'Let other people see when you are online.') +
       settingRow('typingIndicator', 'Typing indicator', 'Show typing activity in conversations.') + '</section>' +
+      '<section class="mv-settings-section"><h3>Subscription billing</h3><div id="mv-billing-status"><p class="mv-settings-help">Checking subscription status…</p></div></section>' +
       '<section class="mv-settings-section"><h3>Notifications</h3>' +
       settingRow('notifications', 'Notifications', 'Allow Mindvora notifications.') +
       settingRow('messageNotifications', 'Message notifications', 'Notify about new direct messages.') +
@@ -153,7 +208,8 @@
     body.querySelectorAll('[data-pref]').forEach(function (input) { input.addEventListener('change', function () { setPreference(input.getAttribute('data-pref'), input.checked); }); });
     var autoLockSelect = body.querySelector('[data-auto-lock]');
     if (autoLockSelect) autoLockSelect.addEventListener('change', function () { setAutoLock(autoLockSelect.value); });
-    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); }); });
+    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); if (action === 'billing-plans') { closeSettings(); if (typeof window.openModal === 'function') window.openModal('modal-prem'); } }); });
+    loadSubscriptionBilling();
   }
   window.openSettings = function () { renderSettings(); ensureModal().classList.add('open'); };
   window.closeSettings = function () { var modal = document.getElementById('modal-settings'); if (modal) modal.classList.remove('open'); };

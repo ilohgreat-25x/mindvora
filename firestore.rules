@@ -29,7 +29,7 @@ service cloud.firestore {
     // A brand-new profile may not start out premium, verified, rich or admin.
     function safeNewUser(d) {
       return !d.keys().hasAny(['role', 'isAdmin', 'admin', 'wallet', 'balance', 'banned', 'disabled',
-                               'isVerified', 'premiumRef', 'premiumSince', 'verifiedSince', 'referralCount', 'mediaUsageBytes', 'mediaReservedBytes', 'mediaStorageEntitlement', 'mediaStorageSince', 'mediaStorageRef', 'mediaStorageProvider'])
+                               'isVerified', 'premiumRef', 'premiumSince', 'premiumExpiresAt', 'premiumExpiredAt', 'premiumSubscriptionCode', 'verifiedSince', 'referralCount', 'mediaUsageBytes', 'mediaReservedBytes', 'mediaStorageEntitlement', 'mediaStorageSince', 'mediaStorageRef', 'mediaStorageProvider'])
         && (!('isPremium' in d) || d.isPremium == false)
         && (!('plan' in d) || d.plan == 'free')
         && (!('earnings' in d) || d.earnings == 0)
@@ -45,7 +45,7 @@ service cloud.firestore {
           'role', 'isAdmin', 'admin', 'wallet', 'balance', 'earnings', 'banned',
           'disabled', 'disabledAt', 'disabledReason', 'referralCount',
           // Paid features — only the backend (Firebase Admin) may grant these.
-          'isPremium', 'plan', 'premiumRef', 'premiumProvider', 'premiumSince', 'premiumActivatedCrypto',
+          'isPremium', 'plan', 'premiumRef', 'premiumProvider', 'premiumSince', 'premiumExpiresAt', 'premiumExpiredAt', 'premiumSubscriptionCode', 'premiumActivatedCrypto',
           'isVerified', 'verifiedSince', 'verifiedRef', 'tips', 'mediaUsageBytes', 'mediaReservedBytes', 'mediaStorageEntitlement', 'mediaStorageSince', 'mediaStorageRef', 'mediaStorageProvider'
         ]);
       allow delete: if false;
@@ -318,5 +318,12 @@ service cloud.firestore {
         allow create: if isSignedIn() && sub in ['chat', 'viewers', 'reactions', 'answers', 'candidates'];
       }
     }
+    // Recurring billing records contain provider codes and cancellation tokens; backend only.
+    match /billing_plan_codes/{docId} { allow read, write: if false; }
+    match /billing_subscription_intents/{docId} { allow read, write: if false; }
+    match /billing_subscription_checkout_refs/{docId} { allow read, write: if false; }
+    match /billing_subscription_email_locks/{docId} { allow read, write: if false; }
+    match /billing_subscriptions/{docId} { allow read, write: if false; }
+    match /billing_paystack_customers/{docId} { allow read, write: if false; }
   }
 }

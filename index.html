@@ -689,6 +689,15 @@
         <button class="f-pill" id="pay-method-crypto" onclick="switchPayMethod('crypto')" style="flex:1;padding:8px">₿ Crypto</button>
       </div>
       <div id="pay-panel-paystack">
+        <div id="mv-billing-email-wrap" style="display:none;margin-bottom:10px">
+          <label class="m-label" for="mv-billing-email">Billing email for Paystack receipts</label>
+          <input class="m-input" id="mv-billing-email" type="email" autocomplete="email" placeholder="you@example.com">
+        </div>
+        <label id="mv-auto-renew-row" class="mv-setting-row" style="margin:8px 0 10px">
+          <span><strong>Auto-renew monthly</strong><small>Optional. Paystack will charge the listed monthly price in NGN each month until you turn it off in Settings. You keep access through the paid period. Card/Direct Debit only; crypto remains one-time.</small></span>
+          <input type="checkbox" id="mv-auto-renew-consent"><span class="mv-switch" aria-hidden="true"></span>
+        </label>
+        <p class="mv-settings-help" style="margin:0 0 10px">If you leave auto-renew off, this purchase is a one-time 30-day Premium period. The final NGN amount is shown by Paystack before you approve.</p>
         <button class="btn-pay" id="btn-pay" disabled>🔒 Pay with Paystack →</button>
       </div>
       <div id="pay-panel-crypto" style="display:none">
@@ -4158,8 +4167,8 @@
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
 <script src="media-quota.js"></script>
-<script src="script.js?v=17"></script>
-<script src="settings.js?v=1"></script>
+<script src="script.js?v=18"></script>
+<script src="settings.js?v=2"></script>
 <script src="bug-monitor.js?v=2"></script>
 <script src="fixes.js?v=7"></script>
 <script src="calls.js?v=19"></script>

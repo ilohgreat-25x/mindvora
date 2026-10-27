@@ -1728,8 +1728,42 @@ function refreshMyProfile() {
   if (!u) return Promise.resolve();
   return db.collection('users').doc(u.uid).get().then(function(snap) {
     if (snap.exists) state.profile = Object.assign(state.profile || {}, snap.data());
+    if (typeof schedulePremiumExpiry === 'function') schedulePremiumExpiry();
   }).catch(function(){});
 }
+
+var _mvPremiumExpiryTimer = null;
+function applySubscriptionStatus(data) {
+  if (!state.profile || !data || !data.premium) return;
+  state.profile.isPremium = data.premium.isActive === true;
+  state.profile.plan = data.premium.plan || (state.profile.isPremium ? state.profile.plan : 'free');
+  if (data.premium.expiresAt) state.profile.premiumExpiresAt = new Date(data.premium.expiresAt);
+  var name = document.getElementById('sb-name');
+  if (name) name.innerHTML = esc(state.profile.name || 'Mindvora user') + (state.profile.mood ? ' <span style="font-size:16px" title="' + esc(state.profile.mood.label) + '">' + esc(state.profile.mood.emoji || '') + '</span>' : '') + (state.profile.isPremium ? '<span class="sb-verified">✦ PRO</span>' : '');
+  var widget = document.getElementById('prem-widget');
+  if (widget) widget.style.display = state.profile.isPremium ? 'none' : '';
+  schedulePremiumExpiry();
+}
+function refreshSubscriptionEntitlement() {
+  if (!state.user || !state.profile || typeof mvApi !== 'function') return Promise.resolve();
+  return mvApi('/api/pay/subscription/status').then(function (data) {
+    if (data && data.status) applySubscriptionStatus(data);
+  }).catch(function () { /* Keep the last known entitlement if the backend is temporarily unavailable. */ });
+}
+function schedulePremiumExpiry() {
+  clearTimeout(_mvPremiumExpiryTimer);
+  _mvPremiumExpiryTimer = null;
+  if (!state.profile || state.profile.isPremium !== true || !state.profile.premiumExpiresAt) return;
+  var value = state.profile.premiumExpiresAt;
+  var date = value && typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+  if (!Number.isFinite(date.getTime())) return;
+  var delay = Math.max(1000, date.getTime() - Date.now() + 120000);
+  _mvPremiumExpiryTimer = setTimeout(function () {
+    if (delay > 2147480000) schedulePremiumExpiry();
+    else refreshSubscriptionEntitlement();
+  }, Math.min(delay, 2147480000));
+}
+document.addEventListener('mv:subscription-status', function (event) { applySubscriptionStatus(event.detail); });
 
 // FIX: payments are now CONFIRMED BY THE SERVER, which also grants the
 // feature (premium, badge, tip, gift, airtime, data). The browser no longer
@@ -1752,11 +1786,30 @@ function confirmPaystackPayment(reference) {
   return attempt();
 }
 
+function handleSubscriptionCheckoutReturn(user) {
+  if (!user || window._mvSubscriptionReturnHandled) return;
+  var params;
+  try { params = new URLSearchParams(window.location.search); } catch (_) { return; }
+  var reference = params.get('reference') || params.get('trxref') || '';
+  if (!/^MV-SUB-[\w.-]{3,90}$/.test(reference)) return;
+  window._mvSubscriptionReturnHandled = reference;
+  try {
+    var cleanUrl = new URL(window.location.href);
+    ['reference', 'trxref', 'status'].forEach(function (key) { cleanUrl.searchParams.delete(key); });
+    history.replaceState(null, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+  } catch (_) {}
+  confirmPaystackPayment(reference).then(function (result) {
+    if (result && result.status) showToast('Your Premium payment is confirmed. Manage auto-renew in Settings.');
+  }).catch(function (error) {
+    showToast('⚠️ ' + ((error && error.message) || 'Payment confirmation is still pending. Check Settings shortly.'));
+  });
+}
+
 // Pay with Paystack for a server-priced purpose and let the server fulfil it.
 function payForPurpose(opts) {
   payWithPaystack({
     amount: opts.amountKobo, currency: 'NGN', ref: (opts.refPrefix || 'MV') + '-' + Date.now(),
-    purpose: opts.purpose, params: opts.params || {},
+    purpose: opts.purpose, params: opts.params || {}, billingEmail: opts.billingEmail || '',
     onSuccess: function(r) {
       confirmPaystackPayment(r.reference).then(function(d){ if (opts.success) opts.success(d); })
         .catch(function(e){ showToast('⚠️ ' + e.message); });
@@ -1786,10 +1839,12 @@ function payWithPaystack(opts) {
   if (!state.user) { showToast('Login first'); return; }
   var amount = opts.amount;            // already in kobo (NGN)
   var currency = opts.currency || 'NGN';
+  var billingEmail = (opts.billingEmail || state.user.email || '').trim();
+  if (!billingEmail) { showToast('Enter a billing email before using Paystack.'); return; }
   loadPaystack().then(function() {
     PaystackPop.setup({
       key: window.MV_PAYSTACK_PK || PAYSTACK_KEY,
-      email: state.user.email,
+      email: billingEmail,
       amount: amount,
       currency: currency,
       ref: opts.ref || ('ZP-' + Date.now()),
@@ -1806,7 +1861,7 @@ function payWithPaystack(opts) {
     if (opts.purpose) {
       showToast('Opening secure checkout…');
       mvApi('/api/paystack/initialize', { purpose: opts.purpose, params: opts.params || {},
-        callbackUrl: location.origin + location.pathname }).then(function(d) {
+        billingEmail: billingEmail, callbackUrl: location.origin + location.pathname }).then(function(d) {
         if (d && d.status && d.authorization_url) location.href = d.authorization_url;
         else showToast('❌ ' + ((d && d.message) || 'Payment gateway is unavailable right now.'));
       }).catch(function(){ showToast('Payment gateway is unavailable right now. Please try again.'); });
@@ -2354,6 +2409,7 @@ auth.onAuthStateChanged(function(user){
   console.log('[Mindvora] Auth state changed. User:', user ? 'logged in (UID: '+user.uid+')' : 'logged out');
   if(user){
     state.user=user;
+    handleSubscriptionCheckoutReturn(user);
     window._mvUid = user.uid;
     console.log('[Mindvora] User object set, loading profile from Firestore...');
 // Safety timeout — if Firestore hangs (e.g. offline / rules issue), still mount after 6s
@@ -2464,6 +2520,7 @@ auth.onAuthStateChanged(function(user){
     });
   } else {
     console.log('[Mindvora] User logged out');
+    clearTimeout(_mvPremiumExpiryTimer); _mvPremiumExpiryTimer = null;
     state.user=null; state.profile=null;
     closeDrawer(); // drawer lives outside #app-screen, so it won't auto-hide with it
     var appSc  = document.getElementById('app-screen');
@@ -2501,6 +2558,7 @@ function mountApp(){
   }
   try {
     var p=state.profile,color=p.color||COLORS[0],init=(p.name||'Z').charAt(0).toUpperCase();
+    schedulePremiumExpiry();
     var grad='linear-gradient(135deg,'+color+','+COLORS[1]+')';
     ['tb-av','sb-av','comp-av','cmt-av'].forEach(function(id){
       var el=document.getElementById(id);
@@ -2564,6 +2622,7 @@ function mountApp(){
   try { initPresence(); } catch(e){}
 // Load referral status for owner
   try { if (isAdmin()) { loadReferralStatus(); } } catch(e){}
+  if (state.profile && state.profile.premiumExpiresAt) refreshSubscriptionEntitlement();
 }
 
 document.getElementById('btn-out').addEventListener('click',function(){ if(state.sparksUnsub) state.sparksUnsub(); auth.signOut(); });
@@ -3340,6 +3399,10 @@ function selPlan(id,amount,name){
   state.plan={id:id,amount:amount,name:name};
   document.querySelectorAll('#modal-prem .plan-card').forEach(function(c){ c.classList.toggle('sel', c.id==='pc-'+id); });
   ['btn-pay','btn-pay-crypto'].forEach(function(b){ var el=document.getElementById(b); if(el) el.disabled=false; });
+  var renewRow=document.getElementById('mv-auto-renew-row'),renewBox=document.getElementById('mv-auto-renew-consent');
+  if(renewBox) renewBox.checked=false;
+  if(renewRow) renewRow.style.display=id==='badge'?'none':'flex';
+  if(id==='badge'&&renewBox) renewBox.checked=false;
   var h=document.getElementById('prem-pick-hint'); if(h) h.textContent='Selected: '+name+' — $'+amount+(id==='badge'?' one time':'/month');
 }
 // No plan is pre-selected: every time the Premium window opens, start clean.
@@ -3347,6 +3410,13 @@ function resetPremPlan(){
   state.plan=null;
   document.querySelectorAll('#modal-prem .plan-card').forEach(function(c){ c.classList.remove('sel'); });
   ['btn-pay','btn-pay-crypto'].forEach(function(b){ var el=document.getElementById(b); if(el) el.disabled=true; });
+  var renewBox=document.getElementById('mv-auto-renew-consent'),renewRow=document.getElementById('mv-auto-renew-row');
+  if(renewBox) renewBox.checked=false;
+  if(renewRow) renewRow.style.display='flex';
+  var billingWrap=document.getElementById('mv-billing-email-wrap'),billingInput=document.getElementById('mv-billing-email');
+  var userEmail=state.user&&state.user.email?String(state.user.email):'';
+  if(billingWrap) billingWrap.style.display=userEmail?'none':'block';
+  if(billingInput&&userEmail) billingInput.value=userEmail;
   var h=document.getElementById('prem-pick-hint'); if(h) h.textContent='Tap a plan above to choose it.';
 }
 (function(){
@@ -3359,8 +3429,27 @@ document.getElementById('btn-pay').addEventListener('click',function(){
   if(!state.plan){ showToast('Tap a plan first'); return; }
   var plan = state.plan;
   if(plan.id==='badge'){ buyVerifiedBadge(); return; }
+  var renewBox=document.getElementById('mv-auto-renew-consent');
+  var renew=!!(renewBox&&renewBox.checked);
+  var emailInput=document.getElementById('mv-billing-email');
+  var billingEmail=(state.user.email||(emailInput&&emailInput.value)||'').trim();
+  if(!billingEmail){ showToast('Enter a valid billing email for Paystack.'); if(emailInput) emailInput.focus(); return; }
+  if(renew){
+    var renewButton=this;
+    renewButton.disabled=true;
+    showToast('Opening Paystack monthly subscription checkout…');
+    mvApi('/api/pay/subscription/initialize',{plan:plan.id,billingEmail:billingEmail}).then(function(result){
+      if(result&&result.status&&result.authorization_url){ location.href=result.authorization_url; return; }
+      renewButton.disabled=false;
+      showToast('❌ '+((result&&result.message)||'Could not start auto-renew checkout.'));
+    }).catch(function(error){
+      renewButton.disabled=false;
+      showToast('❌ '+((error&&error.message)||'Could not start auto-renew checkout.'));
+    });
+    return;
+  }
   payForPurpose({
-    amountKobo: usdToNGNKobo(plan.amount), refPrefix: 'ZP', purpose: 'premium', params: { plan: plan.id },
+    amountKobo: usdToNGNKobo(plan.amount), refPrefix: 'ZP', purpose: 'premium', params: { plan: plan.id }, billingEmail: billingEmail,
     success: function(){
       state.profile.isPremium = true;
       closeModal('modal-prem');
@@ -3373,8 +3462,11 @@ document.getElementById('btn-pay').addEventListener('click',function(){
 function buyVerifiedBadge(){
   if(!state.user){ showToast('Please login first'); return; }
   if(state.profile && state.profile.isVerified){ showToast('✅ You already have a Verified Badge!'); return; }
+  var billInput=document.getElementById('mv-billing-email');
+  var billingEmail=(state.user.email||(billInput&&billInput.value)||'').trim();
+  if(!billingEmail){ showToast('Enter a valid billing email for Paystack.'); if(billInput) billInput.focus(); return; }
   payForPurpose({
-    amountKobo: usdToNGNKobo(25), refPrefix: 'ZVB', purpose: 'badge',
+    amountKobo: usdToNGNKobo(25), refPrefix: 'ZVB', purpose: 'badge', billingEmail: billingEmail,
     success: function(){
       state.profile.isVerified = true;
       closeModal('modal-prem');
