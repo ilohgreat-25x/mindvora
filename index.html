@@ -243,7 +243,7 @@
       <button class="btn-google btn-social-option" type="button" onclick="togglePhoneAuth('login')">Continue with phone</button>
       <div class="phone-auth-box" id="phone-login-box" style="display:none">
         <div class="fg"><label for="li-phone">Phone number with country code</label><input class="fi" id="li-phone" type="tel" placeholder="+234 800 000 0000" autocomplete="tel"></div>
-        <div class="phone-auth-note">We’ll text a one-time code. A new number creates a starter account; use Join Mindvora to set your name and username. Standard SMS rates may apply.</div>
+        <div class="phone-auth-note">We’ll text a one-time code. If this number is new to Mindvora, you’ll create a name and username after verification. Standard SMS rates may apply.</div>
         <div id="phone-login-recaptcha"></div>
         <button class="btn-auth phone-send-btn" id="btn-phone-login-send" type="button" onclick="sendPhoneCode('login')">Send SMS code →</button>
         <div class="phone-code-wrap" id="phone-login-code-wrap" style="display:none">
@@ -257,7 +257,7 @@
         <div class="fg"><label>Full Name</label><input class="fi" id="r-name" type="text" placeholder="Your name" autocomplete="name"></div>
         <div class="fg"><label>username</label><input class="fi" id="r-handle" type="text" placeholder="@username"></div>
         <div class="fg"><label>email</label><input class="fi" id="r-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
-        <div class="fg"><label>phone (optional, required for phone sign-up)</label><input class="fi" id="r-phone" type="tel" placeholder="+234 800 000 0000" autocomplete="tel"></div>
+        <div class="fg"><label>phone (only needed for SMS sign-up; not stored on your profile)</label><input class="fi" id="r-phone" type="tel" placeholder="+234 800 000 0000" autocomplete="tel"></div>
         <div class="fg"><label>Password</label>
           <div class="pw-wrap"><input class="fi" id="r-pass" type="password" placeholder="Min. 6 characters" autocomplete="new-password"><button class="eye-btn" type="button" onclick="toggleEye('r-pass','e1')"><span id="e1">👁</span></button></div>
         </div>
@@ -4224,6 +4224,21 @@
 
 <!-- FILE SCAN NOTIFICATION (anti-malware) — Task 3 -->
 <div id="sec-alert-banner" class="sec-alert-banner"></div>
+
+<!-- Required profile creation for new social and phone-auth accounts -->
+<div id="mv-profile-setup" class="mv-profile-setup-overlay" aria-hidden="true">
+  <form id="mv-profile-setup-form" class="mv-profile-setup-card" aria-labelledby="mv-profile-setup-title">
+    <div class="mv-profile-setup-brand">Mindvora</div>
+    <h2 id="mv-profile-setup-title">Create your profile</h2>
+    <p>Choose the name and username people will see on Mindvora. You can update them later in your profile settings.</p>
+    <label for="mv-profile-name">Full name</label>
+    <input id="mv-profile-name" type="text" maxlength="80" autocomplete="name" required>
+    <label for="mv-profile-handle">Username</label>
+    <div class="mv-profile-handle-field"><span>@</span><input id="mv-profile-handle" type="text" maxlength="20" autocomplete="username" autocapitalize="none" required></div>
+    <div id="mv-profile-setup-error" class="mv-profile-setup-error" aria-live="polite"></div>
+    <button id="mv-profile-setup-submit" type="submit">Save profile and continue</button>
+  </form>
+</div>
 
 </body>
 </html>

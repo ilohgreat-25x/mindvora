@@ -132,10 +132,27 @@
     var date = value ? new Date(value) : null;
     return date && !isNaN(date.getTime()) ? date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'not available';
   }
+  function openPremiumPlans() {
+    if (typeof window.closeSettings === 'function') window.closeSettings();
+    var modal = document.getElementById('modal-prem');
+    if (!modal) { toast('Premium plans are unavailable right now.'); return; }
+    try {
+      if (typeof window.openModal === 'function') window.openModal('modal-prem');
+      else modal.classList.add('open');
+    } catch (error) {
+      modal.classList.add('open');
+      console.warn('[Mindvora] Premium modal dispatcher failed; opened directly.', error);
+    }
+  }
   function renderBillingStatus(data) {
     var target = document.getElementById('mv-billing-status');
     if (!target) return;
-    if (!data || !data.status) { target.innerHTML = '<p class="mv-settings-help">Subscription status is temporarily unavailable. Your current billing setting has not been changed.</p>'; return; }
+    if (!data || !data.status) {
+      target.innerHTML = '<p class="mv-settings-help">Subscription status is temporarily unavailable. Your current billing setting has not been changed.</p><button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
+      var unavailablePlans = target.querySelector('[data-action="billing-plans"]');
+      if (unavailablePlans) unavailablePlans.addEventListener('click', openPremiumPlans);
+      return;
+    }
     try { document.dispatchEvent(new CustomEvent('mv:subscription-status', { detail: data })); } catch (e) {}
     var sub = data.subscription;
     var html = '';
@@ -156,10 +173,12 @@
     } else if (data.premium && data.premium.isActive) {
       html = '<p class="mv-settings-help">Premium is active on this account and is not enrolled in auto-renew. Existing access is unchanged; no recurring charge will be made.</p>';
     } else {
-      html = '<p class="mv-settings-help">No auto-renewing Premium subscription is active. To enroll, choose a Premium plan and explicitly select auto-renew at Paystack checkout. Crypto payments remain one-time.</p>' +
-        '<button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
+      html = '<p class="mv-settings-help">No auto-renewing Premium subscription is active. To enroll, choose a Premium plan and explicitly select auto-renew at Paystack checkout. Crypto payments remain one-time.</p>';
     }
+    html += '<button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
     target.innerHTML = html;
+    var plansButton = target.querySelector('[data-action="billing-plans"]');
+    if (plansButton) plansButton.addEventListener('click', openPremiumPlans);
     var toggle = target.querySelector('[data-sub-renewal]');
     if (toggle) toggle.addEventListener('change', function () {
       var desired = toggle.checked;
@@ -208,7 +227,7 @@
     body.querySelectorAll('[data-pref]').forEach(function (input) { input.addEventListener('change', function () { setPreference(input.getAttribute('data-pref'), input.checked); }); });
     var autoLockSelect = body.querySelector('[data-auto-lock]');
     if (autoLockSelect) autoLockSelect.addEventListener('change', function () { setAutoLock(autoLockSelect.value); });
-    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); if (action === 'billing-plans') { closeSettings(); if (typeof window.openModal === 'function') window.openModal('modal-prem'); } }); });
+    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); }); });
     loadSubscriptionBilling();
   }
   window.openSettings = function () { renderSettings(); ensureModal().classList.add('open'); };

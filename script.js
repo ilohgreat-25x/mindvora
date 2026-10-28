@@ -2061,7 +2061,6 @@ function doRegister(){
         name: name,
         handle: handle,
         email: email,
-        phone: phone,
         color: color,
         plan: 'free',
         isPremium: false,
@@ -2069,6 +2068,7 @@ function doRegister(){
         followers: 0,
         earnings: 0,
         tips: 0,
+        profileComplete: true,
         emailVerified: false,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       };
@@ -2440,6 +2440,20 @@ auth.onAuthStateChanged(function(user){
           }, 500);
           return;
         }
+        if (state.profile.profileComplete === false) {
+          mvRequestProfileSetup(user, state.profile).then(function(profile) {
+            state.profile = profile;
+            mountApp();
+            checkAdminAccess();
+            checkPendingAds();
+            setTimeout(checkBirthday, 2000);
+            setTimeout(function(){ initPushNotifications(); listenForIncomingCalls(); }, 3000);
+          }).catch(function(error) {
+            console.error('[Mindvora] Profile setup could not start:', error);
+            showToast('Please complete your profile to continue.');
+          });
+          return;
+        }
 // Check if email is verified (for new users)
         if(snap.data().emailVerified === false && mvIsFederatedOAuthUser(user)){
           db.collection('users').doc(user.uid).update({emailVerified:true}).catch(function(){});
@@ -2473,16 +2487,36 @@ auth.onAuthStateChanged(function(user){
         var _isSocial = !!_socialProvider;
         var _em = user.email || '';
         state.profile={id:user.uid,name:user.displayName||_em.split('@')[0]||'Mindvora User',handle:(user.displayName||_em.split('@')[0]||'user').toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'').slice(0,20),email:_em,avatar:user.photoURL||'',provider:_socialProvider||'email',color:color,plan:'free',isPremium:false,sparksCount:0,followers:0,earnings:0,tips:0,emailVerified:_isSocial};
-      checkAdminAccess();
-      checkPendingAds();
+        checkAdminAccess();
+        checkPendingAds();
         if (_isSocial) {
-          // Trusted OAuth providers verify the account email; save the profile and open the app.
-          mvEnsureFederatedProfile(user, _socialProvider).catch(function(e){ console.error('[Mindvora] profile save', e); });
-          mountApp();
+          // Social accounts need an explicit name/username profile step before first entry.
+          mvEnsureFederatedProfile(user, _socialProvider).then(function(profile) {
+            if (profile) state.profile = profile;
+            return mvRequestProfileSetup(user, state.profile);
+          }).then(function(profile) {
+            state.profile = profile;
+            mountApp();
+          }).catch(function(error) {
+            console.error('[Mindvora] Social profile setup failed:', error);
+            showToast('Your account is signed in. Complete profile setup to continue.');
+          });
           return;
         }
         if (mvIsVerifiedPhoneUser(user)) {
           var _phoneDraft = window._mvPhoneSignupDraft || {};
+          if (!_phoneDraft.name || !_phoneDraft.handle) {
+            var _phoneSetupSeed = Object.assign({}, state.profile, { name: '', handle: '', provider: 'phone' });
+            mvRequestProfileSetup(user, _phoneSetupSeed).then(function(profile) {
+              state.profile = profile;
+              window._mvPhoneSignupDraft = null;
+              mountApp();
+            }).catch(function(error) {
+              console.error('[Mindvora] Phone profile setup failed:', error);
+              showToast('Your phone is verified. Complete profile setup to continue.');
+            });
+            return;
+          }
           state.profile.name = _phoneDraft.name || user.displayName || ('Mindvora User');
           state.profile.handle = _phoneDraft.handle || ('member' + user.uid.slice(0,8)).toLowerCase().replace(/[^a-z0-9_]/g,'').slice(0,20);
           state.profile.provider = 'phone';
@@ -10459,6 +10493,72 @@ function mvIsGoogleUser(user) {
 function mvIsVerifiedPhoneUser(user) {
   return !!(user && user.phoneNumber && (user.providerData || []).some(function(p){ return p && p.providerId === 'phone'; }));
 }
+var mvProfileSetupInProgress = null;
+function mvRequestProfileSetup(user, seed) {
+  if (mvProfileSetupInProgress) return mvProfileSetupInProgress;
+  var overlay = document.getElementById('mv-profile-setup');
+  var form = document.getElementById('mv-profile-setup-form');
+  var nameInput = document.getElementById('mv-profile-name');
+  var handleInput = document.getElementById('mv-profile-handle');
+  var error = document.getElementById('mv-profile-setup-error');
+  var submit = document.getElementById('mv-profile-setup-submit');
+  if (!overlay || !form || !nameInput || !handleInput || !error || !submit) return Promise.reject(new Error('Profile setup is unavailable. Refresh and try again.'));
+  seed = Object.assign({}, seed || state.profile || {});
+  nameInput.value = seed.name && seed.name !== 'Mindvora User' ? seed.name : '';
+  handleInput.value = seed.handle && !/^member[0-9a-z]{6,}$/i.test(seed.handle) ? String(seed.handle).replace(/^@/, '') : '';
+  error.textContent = '';
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  setTimeout(function(){ nameInput.focus(); }, 40);
+  mvProfileSetupInProgress = new Promise(function(resolve) {
+    function onSubmit(event) {
+      event.preventDefault();
+      var name = nameInput.value.trim().replace(/\s+/g, ' ');
+      var handle = handleInput.value.trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_]/g, '').slice(0, 20);
+      if (name.length < 2 || name.length > 80) { error.textContent = 'Enter a name between 2 and 80 characters.'; return; }
+      if (handle.length < 3) { error.textContent = 'Choose a username with at least 3 letters or numbers.'; return; }
+      handleInput.value = handle;
+      error.textContent = '';
+      submit.disabled = true;
+      submit.textContent = 'Saving profile…';
+      var profile = Object.assign({}, seed, {
+        id: user.uid,
+        name: name,
+        handle: handle,
+        email: user.email || seed.email || '',
+        avatar: user.photoURL || seed.avatar || '',
+        provider: seed.provider || mvFederatedProviderName(user) || (mvIsVerifiedPhoneUser(user) ? 'phone' : 'email'),
+        profileComplete: true,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      delete profile.phone;
+      var ref = db.collection('users').doc(user.uid);
+      ref.get().then(function(snap) {
+        if (snap.exists) profile.phone = firebase.firestore.FieldValue.delete();
+        return ref.set(profile, { merge: true });
+      }).then(function() {
+        if (user.updateProfile) user.updateProfile({ displayName: name }).catch(function(){});
+        profile.name = name;
+        profile.handle = handle;
+        profile.profileComplete = true;
+        form.removeEventListener('submit', onSubmit);
+        overlay.classList.remove('open');
+        overlay.setAttribute('aria-hidden', 'true');
+        submit.disabled = false;
+        submit.textContent = 'Save profile and continue';
+        mvProfileSetupInProgress = null;
+        resolve(profile);
+      }).catch(function(writeError) {
+        console.error('[Mindvora] Profile save failed:', writeError);
+        error.textContent = 'Could not save your profile. Check your connection and try again.';
+        submit.disabled = false;
+        submit.textContent = 'Save profile and continue';
+      });
+    }
+    form.addEventListener('submit', onSubmit);
+  });
+  return mvProfileSetupInProgress;
+}
 function mvEnsurePhoneProfile(user, draft) {
   var ref = db.collection('users').doc(user.uid);
   draft = draft || {};
@@ -10480,6 +10580,7 @@ function mvEnsurePhoneProfile(user, draft) {
       avatar: user.photoURL || '', provider: 'phone',
       plan: 'free', isPremium: false, earnings: 0, tips: 0,
       sparksCount: 0, followers: 0, emailVerified: !!(user.email && user.emailVerified),
+      profileComplete: !!(draft.name && draft.handle),
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -10604,8 +10705,9 @@ function mvEnsureFederatedProfile(user, providerName) {
   return ref.get().then(function(snap) {
     if (snap.exists) {
       // These OAuth providers verify their account email; don't send users to the email-code screen.
-      if (snap.data().emailVerified === false) return ref.update({ emailVerified: true }).catch(function(){});
-      return;
+      var existing = snap.data() || {};
+      if (existing.emailVerified === false) return ref.update({ emailVerified: true }).then(function(){ existing.emailVerified = true; return existing; }).catch(function(){ return existing; });
+      return existing;
     }
     var providerData = (user.providerData || []).find(function(p){ return p && p.providerId === (providerName === 'google' ? 'google.com' : providerName + '.com'); });
     var base = (user.displayName || (providerData && providerData.displayName) || (user.email || 'user').split('@')[0]);
@@ -10619,10 +10721,20 @@ function mvEnsureFederatedProfile(user, providerName) {
       provider: providerName,
       plan: 'free', isPremium: false, earnings: 0, tips: 0,
       sparksCount: 0, followers: 0,
+      profileComplete: false,
       emailVerified: true,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    }).then(function(){ return {
+      id: user.uid,
+      name: user.displayName || (providerData && providerData.displayName) || 'Mindvora User',
+      handle: handle,
+      email: user.email || '',
+      avatar: user.photoURL || (providerData && providerData.photoURL) || '',
+      provider: providerName,
+      plan: 'free', isPremium: false, earnings: 0, tips: 0,
+      sparksCount: 0, followers: 0, profileComplete: false, emailVerified: true
+    }; });
   });
 }
 function mvEnsureGoogleProfile(user) {
@@ -10630,13 +10742,10 @@ function mvEnsureGoogleProfile(user) {
 }
 function mvAfterGoogle(result) {
   if (!result || !result.user) return;
-  window._mvGoogleSigningIn = true;
-  return mvEnsureGoogleProfile(result.user).then(function() {
-    showToast('✅ Signed in with Google!');
-  }).catch(function(err) {
-    console.error('[Mindvora] Google profile save failed:', err);
-    mvShowAuthError(mvAuthErrorText(err));
-  }).then(function(){ window._mvGoogleSigningIn = false; });
+  // onAuthStateChanged owns profile creation and onboarding. Avoid a second
+  // profile write here, which could overwrite the user's just-completed form.
+  window._mvGoogleSigningIn = false;
+  showToast('✅ Signed in with Google!');
 }
 function mvGoogleProvider() {
   var provider = new firebase.auth.GoogleAuthProvider();
@@ -10718,13 +10827,8 @@ function mvOAuthErrorText(err, providerId) {
 }
 function mvAfterFederatedOAuth(result, providerId) {
   if (!result || !result.user) return;
-  var providerName = mvFederatedProviderName(result.user) || (providerId === 'apple.com' ? 'apple' : 'microsoft');
-  return mvEnsureFederatedProfile(result.user, providerName).then(function() {
-    showToast('Signed in with ' + mvOAuthLabel(providerId) + '!');
-  }).catch(function(err) {
-    console.error('[Mindvora] Federated profile save failed:', err);
-    mvShowAuthError(mvOAuthErrorText(err, providerId));
-  });
+  // onAuthStateChanged owns profile creation and the required first-run form.
+  showToast('Signed in with ' + mvOAuthLabel(providerId) + '!');
 }
 function signInWithOAuth(providerId) {
   if (providerId !== 'apple.com' && providerId !== 'microsoft.com') return;

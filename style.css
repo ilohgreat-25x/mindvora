@@ -3229,6 +3229,31 @@ body.light #auth-screen::before,body.light-mode #auth-screen::before{background:
 body.light .auth-box,body.light-mode .auth-box{background:rgba(255,250,243,.96)!important;border-color:rgba(76,52,36,.2)!important;box-shadow:0 24px 70px rgba(78,51,32,.15)!important;color:var(--white)!important}
 body.light .auth-box :is(h1,h2,h3,p,label,small),body.light-mode .auth-box :is(h1,h2,h3,p,label,small){color:var(--white)}
 
+/* Required new-account profile setup */
+.mv-profile-setup-overlay{position:fixed;inset:0;z-index:100200;display:none;place-items:center;overflow-y:auto;padding:max(18px,env(safe-area-inset-top)) 16px max(18px,env(safe-area-inset-bottom));background:rgba(3,12,20,.82);backdrop-filter:blur(12px)}
+.mv-profile-setup-overlay.open{display:grid}
+.mv-profile-setup-card{width:min(100%,460px);max-height:calc(100dvh - 36px);overflow-y:auto;padding:28px;border:1px solid rgba(79,227,255,.28);border-radius:22px;background:linear-gradient(155deg,#102139,#0b1826);color:#f7fbff;box-shadow:0 24px 80px rgba(0,0,0,.48)}
+.mv-profile-setup-brand{margin-bottom:12px;color:#55e8f3;font:700 27px 'Great Vibes',cursive}
+.mv-profile-setup-card h2{margin:0 0 8px;font-size:23px;color:#f7fbff}
+.mv-profile-setup-card p{margin:0 0 20px;color:#bed0df;font-size:14px;line-height:1.5}
+.mv-profile-setup-card label{display:block;margin:14px 0 6px;color:#eaf3fa;font-size:13px;font-weight:700}
+.mv-profile-setup-card input{width:100%;min-height:46px;padding:10px 12px;border:1px solid rgba(153,187,212,.32);border-radius:11px;outline:none;background:rgba(4,16,28,.62);color:#fff;font:inherit}
+.mv-profile-setup-card input:focus{border-color:#55e8f3;box-shadow:0 0 0 3px rgba(79,227,255,.14)}
+.mv-profile-handle-field{display:flex;align-items:center;border:1px solid rgba(153,187,212,.32);border-radius:11px;background:rgba(4,16,28,.62)}
+.mv-profile-handle-field span{padding-left:13px;color:#84a3b9}
+.mv-profile-handle-field input{border:0;background:transparent;box-shadow:none!important}
+.mv-profile-setup-error{min-height:20px;margin:8px 0;color:#ffaaa5;font-size:13px}
+.mv-profile-setup-card button{width:100%;min-height:48px;border:0;border-radius:12px;background:linear-gradient(100deg,#43d9e8,#23b7c9);color:#06202a;font:700 15px 'DM Sans',sans-serif;cursor:pointer}
+.mv-profile-setup-card button:disabled{opacity:.62;cursor:wait}
+body.light .mv-profile-setup-overlay,body.light-mode .mv-profile-setup-overlay{background:rgba(49,36,27,.45)}
+body.light .mv-profile-setup-card,body.light-mode .mv-profile-setup-card{background:#fffaf3;border-color:rgba(117,69,43,.25);color:#30241e}
+body.light .mv-profile-setup-card h2,body.light-mode .mv-profile-setup-card h2{color:#30241e}
+body.light .mv-profile-setup-card p,body.light-mode .mv-profile-setup-card p{color:#655349}
+body.light .mv-profile-setup-card label,body.light-mode .mv-profile-setup-card label{color:#49372d}
+body.light .mv-profile-setup-card input,body.light-mode .mv-profile-setup-card input,body.light .mv-profile-setup-card .mv-profile-handle-field,body.light-mode .mv-profile-setup-card .mv-profile-handle-field{background:#fff;color:#30241e}
+body.light .mv-profile-setup-brand,body.light-mode .mv-profile-setup-brand{color:#167b87}
+@media(max-width:480px){.mv-profile-setup-card{padding:22px 18px;border-radius:18px}}
+
 /* Light-theme Mindvora wordmarks use saturated, readable jewel tones. */
 @keyframes mv-shared-wordmark-light{
   0%,100%{color:#874a30;text-shadow:0 0 12px rgba(135,74,48,.12)}
