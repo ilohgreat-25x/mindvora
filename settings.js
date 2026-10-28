@@ -40,10 +40,85 @@
   function hasCredential() { try { return !!localStorage.getItem(CRED_KEY); } catch (e) { return false; } }
   function bytesToBase64(bytes) { var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]); return btoa(s); }
   function base64ToBytes(value) { var s = atob(value), out = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i); return out; }
+  var NATIVE_BIOMETRIC_CREDENTIAL = 'mindvora-native-biometric-v1';
   function hashPin(pin) {
     return crypto.subtle.digest('SHA-256', new TextEncoder().encode(pin)).then(function (digest) { return bytesToBase64(new Uint8Array(digest)); });
   }
-  function biometricAvailable() { return !!(window.PublicKeyCredential && navigator.credentials && navigator.credentials.create && navigator.credentials.get); }
+  function nativeBiometricPlugin() {
+    var cap = window.Capacitor;
+    if (!cap || typeof cap.isNativePlatform !== 'function' || !cap.isNativePlatform() || typeof cap.registerPlugin !== 'function') return null;
+    if (typeof cap.isPluginAvailable === 'function' && !cap.isPluginAvailable('BiometricAuthNative')) return null;
+    try {
+      var bridge = cap.registerPlugin('BiometricAuthNative');
+      if (!bridge) return null;
+      // The plugin’s public authenticate() wrapper lives in its bundled JS module.
+      // Mindvora calls the native bridge directly, whose registered method is internalAuthenticate.
+      return { checkBiometry: bridge.checkBiometry.bind(bridge), authenticate: bridge.internalAuthenticate.bind(bridge) };
+    } catch (e) { return null; }
+  }
+  function biometricLabel(info, native) {
+    if (!native) return 'device biometric or platform authenticator';
+    var platform = window.Capacitor && typeof window.Capacitor.getPlatform === 'function' ? window.Capacitor.getPlatform() : '';
+    var type = Number(info && info.biometryType);
+    if (platform === 'ios' && type === 1) return 'Touch ID';
+    if (platform === 'ios' && type === 2) return 'Face ID';
+    if (platform === 'android' && info && info.isAvailable && info.strongBiometryIsAvailable && type === 3) return 'fingerprint';
+    if (platform === 'android' && info && info.isAvailable) return 'device biometric';
+    return 'device biometric';
+  }
+  function detectBiometricAvailability() {
+    var plugin = nativeBiometricPlugin();
+    if (plugin && typeof plugin.checkBiometry === 'function' && typeof plugin.authenticate === 'function') {
+      return Promise.resolve().then(function () { return plugin.checkBiometry(); }).then(function (info) {
+        info = info || {};
+        return { available: info.isAvailable === true, native: true, plugin: plugin, label: biometricLabel(info, true), reason: info.reason || '' };
+      }).catch(function () {
+        return { available: false, native: true, plugin: plugin, label: 'device biometric', reason: 'Mindvora could not verify biometric availability on this device.' };
+      });
+    }
+    if (!window.isSecureContext) return Promise.resolve({ available: false, native: false, reason: 'Biometric unlock requires a secure HTTPS connection or a supported native app.' });
+    var publicKey = window.PublicKeyCredential;
+    if (!publicKey || !navigator.credentials || typeof navigator.credentials.create !== 'function' || typeof navigator.credentials.get !== 'function' || typeof publicKey.isUserVerifyingPlatformAuthenticatorAvailable !== 'function') {
+      return Promise.resolve({ available: false, native: false, reason: 'This browser does not expose an app-usable biometric or platform authenticator.' });
+    }
+    return Promise.resolve().then(function () { return publicKey.isUserVerifyingPlatformAuthenticatorAvailable(); }).then(function (available) {
+      return { available: available === true, native: false, label: 'device biometric or platform authenticator', reason: available ? '' : 'No enrolled platform authenticator is available to this browser.' };
+    }).catch(function () {
+      return { available: false, native: false, reason: 'Mindvora could not verify biometric availability in this browser.' };
+    });
+  }
+  function biometricAuthOptions() {
+    return { reason: 'Confirm your identity to unlock Mindvora.', cancelTitle: 'Use Mindvora PIN/password', allowDeviceCredential: false, iosFallbackTitle: '', androidTitle: 'Unlock Mindvora', androidSubtitle: 'Confirm your identity', androidConfirmationRequired: false, androidBiometryStrength: 0 };
+  }
+  function biometricUnavailableMessage(result) {
+    return (result.reason || 'No enrolled app-usable biometric is available.') + (result.native ? ' If you expected it to be available, enroll a biometric in your device security settings and reopen this section.' : '') + ' Your Mindvora PIN/password remains available.';
+  }
+  function showBiometricStatus() {
+    var status = document.querySelector('#modal-settings [data-biometric-status]');
+    var button = document.querySelector('#modal-settings [data-action="biometric"]');
+    if (!status || !button) return;
+    if (!hasPin()) {
+      status.textContent = 'Set a Mindvora PIN/password first. Biometrics will be offered only as a quicker unlock method after that.';
+      button.textContent = 'Set PIN/password first';
+      button.disabled = true;
+      return;
+    }
+    status.textContent = 'Checking whether this device has an enrolled biometric authenticator…';
+    button.textContent = 'Checking device…';
+    button.disabled = true;
+    detectBiometricAvailability().then(function (result) {
+      if (!button.isConnected || !status.isConnected) return;
+      if (!result.available) {
+        status.textContent = biometricUnavailableMessage(result);
+        button.textContent = 'Biometric unavailable';
+        button.disabled = true;
+        return;
+      }
+      status.textContent = 'Available: ' + result.label + '. Your device chooses the prompt. Mindvora never receives biometric data; if recognition fails or is cancelled, use your Mindvora PIN/password.';
+      button.textContent = (hasCredential() ? 'Re-register ' : 'Enable ') + result.label;
+      button.disabled = false;
+    });
+  }
   function dispatchSettingsChange() { try { document.dispatchEvent(new CustomEvent('mv:settings-changed', { detail: { prefs: Object.assign({}, prefs) } })); } catch (e) {} }
   function applyPrefs() {
     var root = document.documentElement;
@@ -217,10 +292,11 @@
       settingRow('autoplay', 'Autoplay', 'Automatically play supported media.') +
       settingRow('dataSaver', 'Data saver', 'Reduce media data usage.') + '</section>' +
       '<section class="mv-settings-section mv-settings-actions"><h3>App Lock controls</h3>' +
-      '<p class="mv-settings-help">App Lock covers the whole app after inactivity and whenever Mindvora is reopened. It does not change or lock individual conversations; use Lock Chat in a conversation only when you want that separate feature. Set a PIN/password first. A supported device biometric can be used for quicker unlock; if it is unavailable or cancelled, enter your PIN/password.</p>' +
+      '<p class="mv-settings-help">App Lock covers the whole app after inactivity and whenever Mindvora is reopened. It does not change or lock individual conversations; use Lock Chat in a conversation only when you want that separate feature. Set a PIN/password first, then enable an enrolled device biometric such as fingerprint, Touch ID, or Face ID if available. Your operating system chooses the sensor. Mindvora never receives or stores biometric data; if recognition fails or is cancelled, enter your Mindvora PIN/password.</p>' +
       '<label class="mv-settings-select"><span><strong>Automatically lock app</strong><small>Lock the whole app after inactivity or when it is backgrounded.</small></span><select data-auto-lock>' + AUTO_LOCK_OPTIONS.map(function (option) { return '<option value="' + option.value + '"' + (prefs.autoLock === option.value ? ' selected' : '') + '>' + option.label + '</option>'; }).join('') + '</select></label>' +
       '<button type="button" class="mv-settings-btn" data-action="pin">' + (hasPin() ? 'Change PIN/password' : 'Set PIN/password') + '</button>' +
-      '<button type="button" class="mv-settings-btn" data-action="biometric">' + (hasCredential() ? 'Re-register biometric' : 'Enable device biometric') + '</button>' +
+      '<p class="mv-settings-help" data-biometric-status>Checking whether this device has an enrolled biometric authenticator…</p>' +
+      '<button type="button" class="mv-settings-btn" data-action="biometric" ' + (hasPin() ? '' : 'disabled') + '>' + (hasCredential() ? 'Re-register biometric' : (hasPin() ? 'Checking device…' : 'Set PIN/password first')) + '</button>' +
       (hasCredential() ? '<button type="button" class="mv-settings-btn" data-action="remove-biometric">Remove biometric</button>' : '') +
       '<button type="button" class="mv-settings-btn" data-action="lock">Lock Mindvora now</button>' +
       '<button type="button" class="mv-settings-btn danger" data-action="reset">Logout / reset settings</button></section>';
@@ -229,6 +305,7 @@
     if (autoLockSelect) autoLockSelect.addEventListener('change', function () { setAutoLock(autoLockSelect.value); });
     body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); }); });
     loadSubscriptionBilling();
+    showBiometricStatus();
   }
   window.openSettings = function () { renderSettings(); ensureModal().classList.add('open'); };
   window.closeSettings = function () { var modal = document.getElementById('modal-settings'); if (modal) modal.classList.remove('open'); };
@@ -237,16 +314,34 @@
     var pin = prompt(hasPin() ? 'Enter a new PIN/password:' : 'Create a PIN/password (4–12 digits or 6–64 characters):');
     var valid = /^\d{4,12}$/.test(pin || '') || ((pin || '').length >= 6 && (pin || '').length <= 64);
     if (!valid) { if (pin !== null) toast('Use a 4–12 digit PIN or a 6–64 character password.'); if (fromToggle) { prefs.appLock = false; savePrefs(); renderSettings(); } return; }
-    hashPin(pin).then(function (hash) { localStorage.setItem(PIN_KEY, hash); localStorage.removeItem(CRED_KEY); prefs.appLock = true; savePrefs(); appUnlocked = appIsVisible(); if (appUnlocked) lastActivityAt = Date.now(); applyPrefs(); renderSettings(); scheduleAutoLock(); toast('✅ PIN/password saved.'); if (biometricAvailable() && confirm('Enable fingerprint, Face ID, Touch ID, or another supported device biometric for faster unlock?')) registerBiometric(false, true); }).catch(function () { toast('Unable to save PIN/password on this device.'); });
+    hashPin(pin).then(function (hash) {
+      localStorage.setItem(PIN_KEY, hash); localStorage.removeItem(CRED_KEY); prefs.appLock = true; savePrefs(); appUnlocked = appIsVisible(); if (appUnlocked) lastActivityAt = Date.now(); applyPrefs(); renderSettings(); scheduleAutoLock(); toast('✅ PIN/password saved.');
+      return detectBiometricAvailability().then(function (result) {
+        if (result.available && confirm('Enable ' + result.label + ' for quicker Mindvora unlock? The operating system will ask you to verify it. Your Mindvora PIN/password remains the fallback.')) registerBiometric(false, true, result);
+        else if (!result.available) toast('PIN/password saved. ' + biometricUnavailableMessage(result));
+      });
+    }).catch(function () { toast('Unable to save PIN/password on this device.'); });
   }
-  function registerBiometric(showUnavailable, passwordJustSaved) {
+  function saveBiometricCredential(credential, label) {
+    localStorage.setItem(CRED_KEY, credential); prefs.appLock = true; savePrefs(); appUnlocked = appIsVisible(); if (appUnlocked) lastActivityAt = Date.now(); applyPrefs(); renderSettings(); scheduleAutoLock(); toast('✅ ' + label + ' enabled. If recognition fails or is cancelled, use your Mindvora PIN/password.');
+  }
+  function registerBiometric(showUnavailable, passwordJustSaved, detected) {
     if (!passwordJustSaved && !hasPin()) { toast('Set a PIN/password first.'); setOrChangePin(true); return; }
-    if (!biometricAvailable()) { if (showUnavailable) toast('No supported device biometric is available. Your PIN/password will unlock the app.'); return; }
-    var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
-    var userId = new Uint8Array(16); crypto.getRandomValues(userId);
-    navigator.credentials.create({ publicKey: { challenge: challenge, rp: { name: 'Mindvora' }, user: { id: userId, name: 'mindvora-user', displayName: 'Mindvora user' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } }).then(function (credential) {
-      localStorage.setItem(CRED_KEY, bytesToBase64(new Uint8Array(credential.rawId))); prefs.appLock = true; savePrefs(); appUnlocked = appIsVisible(); if (appUnlocked) lastActivityAt = Date.now(); applyPrefs(); renderSettings(); scheduleAutoLock(); toast('✅ Device biometric enabled. PIN/password fallback remains available.');
-    }).catch(function () { toast('Biometric setup was cancelled or unavailable. Your PIN/password still unlocks the app.'); });
+    Promise.resolve(detected || detectBiometricAvailability()).then(function (result) {
+      if (!result.available) {
+        if (showUnavailable) toast((result.reason || 'No enrolled app-usable biometric is available.') + ' Your PIN/password will unlock the app.');
+        showBiometricStatus();
+        return;
+      }
+      if (result.native) {
+        return result.plugin.authenticate(biometricAuthOptions()).then(function () { saveBiometricCredential(NATIVE_BIOMETRIC_CREDENTIAL, result.label); }).catch(function () { toast('Biometric setup was cancelled or did not match. Your Mindvora PIN/password remains available.'); });
+      }
+      var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
+      var userId = new Uint8Array(16); crypto.getRandomValues(userId);
+      return navigator.credentials.create({ publicKey: { challenge: challenge, rp: { name: 'Mindvora' }, user: { id: userId, name: 'mindvora-user', displayName: 'Mindvora user' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } }).then(function (credential) {
+        saveBiometricCredential(bytesToBase64(new Uint8Array(credential.rawId)), result.label);
+      }).catch(function () { toast('Biometric setup was cancelled or unavailable. Your Mindvora PIN/password still unlocks the app.'); });
+    }).catch(function () { toast('Biometric setup could not start. Your Mindvora PIN/password still unlocks the app.'); });
   }
   function setLockError(message) {
     var error = document.getElementById('mv-lock-error');
@@ -262,9 +357,19 @@
     });
   }
   function unlockWithBiometric() {
-    if (!hasCredential() || !navigator.credentials || !navigator.credentials.get) return Promise.reject(new Error('Biometric unavailable'));
+    if (!hasCredential()) return Promise.reject(new Error('Biometric unavailable'));
+    var credential = localStorage.getItem(CRED_KEY);
+    if (credential === NATIVE_BIOMETRIC_CREDENTIAL) {
+      var plugin = nativeBiometricPlugin();
+      if (!plugin || typeof plugin.checkBiometry !== 'function' || typeof plugin.authenticate !== 'function') return Promise.reject(new Error('Native biometric unavailable'));
+      return plugin.checkBiometry().then(function (info) {
+        if (!info || info.isAvailable !== true) throw new Error('Biometric is no longer available');
+        return plugin.authenticate(biometricAuthOptions());
+      }).then(function () { appUnlocked = true; return true; });
+    }
+    if (!navigator.credentials || !navigator.credentials.get) return Promise.reject(new Error('Platform authenticator unavailable'));
     var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
-    return navigator.credentials.get({ publicKey: { challenge: challenge, allowCredentials: [{ type: 'public-key', id: base64ToBytes(localStorage.getItem(CRED_KEY)) }], userVerification: 'required', timeout: 60000 } }).then(function () { appUnlocked = true; return true; });
+    return navigator.credentials.get({ publicKey: { challenge: challenge, allowCredentials: [{ type: 'public-key', id: base64ToBytes(credential) }], userVerification: 'required', timeout: 60000 } }).then(function () { appUnlocked = true; return true; });
   }
   function unlockApp(method) {
     if (!hasPin()) { setLockError('A PIN or password is required to unlock Mindvora.'); return Promise.resolve(false); }
@@ -302,7 +407,7 @@
       var button = overlay.querySelector(method === 'biometric' ? '[data-biometric]' : '[data-unlock]');
       if (button) button.disabled = true;
       unlockApp(method).then(function (ok) {
-        if (!ok && button) { button.disabled = false; if (method !== 'biometric') overlay.querySelector('[data-lock-pin]').focus(); }
+        if (!ok && button) { button.disabled = false; overlay.querySelector('[data-lock-pin]').focus(); }
       });
     }
     overlay.querySelector('[data-unlock]').addEventListener('click', function () { attempt('pin'); });
