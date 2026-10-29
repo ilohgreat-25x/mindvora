@@ -16,6 +16,7 @@
   function h(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function jsq(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
   var cache = { users: null, sparks: null, at: 0 };
+  var searchRun = 0;
 
   function load() {
     if (cache.users && Date.now() - cache.at < 60000) return Promise.resolve(cache);
@@ -30,13 +31,16 @@
   window.runAdvancedSearch = function () {
     var inp = document.getElementById('adv-search-inp'), results = document.getElementById('adv-search-results');
     if (!inp || !results || !window.db) return;
+    var run = ++searchRun;
     var raw = inp.value.trim(); if (!raw) { results.innerHTML = ''; return; }
     var q = raw.toLowerCase(), tagQ = q.replace(/^#/, '');
     var tab = document.querySelector('#modal-adv-search .search-tab.active');
     var type = tab ? (tab.dataset.type || 'all') : 'all';
     results.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">Searching…</div>';
     load().then(function (c) {
-      if (inp.value.trim().toLowerCase() !== q) return;          // user kept typing
+      var activeTab = document.querySelector('#modal-adv-search .search-tab.active');
+      var activeType = activeTab ? (activeTab.dataset.type || 'all') : 'all';
+      if (run !== searchRun || inp.value.trim().toLowerCase() !== q || activeType !== type) return;
       var out = [];
       if (type === 'all' || type === 'users') c.users.forEach(function (u) {
         var d = u.data || {}, hay = ((d.name || '') + ' ' + (d.handle || '') + ' ' + (d.bio || '')).toLowerCase();
@@ -51,8 +55,11 @@
         var inText = ((d.text || '').toLowerCase().match(/#[\w\u00c0-\uffff]+/g) || []).map(function (x) { return x.slice(1); });
         if (tags.concat(inText).some(function (x) { return x.indexOf(tagQ) === 0; }) && !out.some(function (o) { return o.id === p.id; })) out.push({ t: 'hashtag', id: p.id, d: d });
       });
-      if (!out.length) { results.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted)">No results for "' + h(raw) + '"</div>'; return; }
-      results.innerHTML = out.slice(0, 40).map(function (it) {
+      var tabLabel = { all: 'All', users: 'Users', posts: 'Posts', hashtags: 'Hashtags' }[type] || 'Results';
+      var countText = out.length > 40 ? 'Showing 40 of ' + out.length + ' matches in loaded records' : out.length + (out.length === 1 ? ' match' : ' matches') + ' in loaded records';
+      var countHtml = '<div class="adv-search-result-count" role="status" aria-live="polite" style="padding:8px 12px;font-size:11px;color:var(--muted)">' + h(tabLabel) + ': ' + h(countText) + '</div>';
+      if (!out.length) { results.innerHTML = countHtml + '<div style="text-align:center;padding:20px;color:var(--muted)">No results for "' + h(raw) + '"</div>'; return; }
+      results.innerHTML = countHtml + out.slice(0, 40).map(function (it) {
         var d = it.d;
         if (it.t === 'user') return '<div class="search-result-item" onclick="openProfileModal(\'' + jsq(it.id) + '\')">' +
           '<div style="width:36px;height:36px;border-radius:50%;background:' + h(d.color || 'var(--green)') + ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">' + h((d.name || 'M').charAt(0)) + '</div>' +

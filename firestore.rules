@@ -186,7 +186,7 @@ service cloud.firestore {
       allow delete: if false;
     }
     match /withdrawals/{docId} {
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if false; // Withdrawal records are created only by the backend Admin SDK.
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow update, delete: if false;
     }

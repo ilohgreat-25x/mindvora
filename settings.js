@@ -95,28 +95,33 @@
   }
   function showBiometricStatus() {
     var status = document.querySelector('#modal-settings [data-biometric-status]');
-    var button = document.querySelector('#modal-settings [data-action="biometric"]');
-    if (!status || !button) return;
+    var toggle = document.querySelector('#modal-settings [data-biometric-toggle]');
+    if (!status || !toggle) return;
+    toggle.checked = hasCredential();
     if (!hasPin()) {
       status.textContent = 'Set a Mindvora PIN/password first. Biometrics will be offered only as a quicker unlock method after that.';
-      button.textContent = 'Set PIN/password first';
-      button.disabled = true;
+      toggle.disabled = true;
       return;
     }
     status.textContent = 'Checking whether this device has an enrolled biometric authenticator…';
-    button.textContent = 'Checking device…';
-    button.disabled = true;
+    toggle.disabled = true;
     detectBiometricAvailability().then(function (result) {
-      if (!button.isConnected || !status.isConnected) return;
+      if (!toggle.isConnected || !status.isConnected) return;
+      toggle.checked = hasCredential();
       if (!result.available) {
         status.textContent = biometricUnavailableMessage(result);
-        button.textContent = 'Biometric unavailable';
-        button.disabled = true;
+        // An existing enrollment may still be switched off even if the device
+        // authenticator has since been disabled or become unavailable.
+        toggle.disabled = !hasCredential();
         return;
       }
       status.textContent = 'Available: ' + result.label + '. Your device chooses the prompt. Mindvora never receives biometric data; if recognition fails or is cancelled, use your Mindvora PIN/password.';
-      button.textContent = (hasCredential() ? 'Re-register ' : 'Enable ') + result.label;
-      button.disabled = false;
+      toggle.disabled = false;
+    }).catch(function () {
+      if (!toggle.isConnected || !status.isConnected) return;
+      toggle.checked = hasCredential();
+      toggle.disabled = !hasCredential();
+      status.textContent = 'Mindvora could not check the device biometric right now. Your PIN/password remains available.';
     });
   }
   function dispatchSettingsChange() { try { document.dispatchEvent(new CustomEvent('mv:settings-changed', { detail: { prefs: Object.assign({}, prefs) } })); } catch (e) {} }
@@ -223,32 +228,39 @@
     var target = document.getElementById('mv-billing-status');
     if (!target) return;
     if (!data || !data.status) {
-      target.innerHTML = '<p class="mv-settings-help">Subscription status is temporarily unavailable. Your current billing setting has not been changed.</p><button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
+      target.innerHTML = '<p class="mv-settings-help">Subscription status is temporarily unavailable. No renewal setting has been changed.</p><button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
       var unavailablePlans = target.querySelector('[data-action="billing-plans"]');
       if (unavailablePlans) unavailablePlans.addEventListener('click', openPremiumPlans);
       return;
     }
     try { document.dispatchEvent(new CustomEvent('mv:subscription-status', { detail: data })); } catch (e) {}
-    var sub = data.subscription;
-    var html = '';
-    if (sub && sub.canManage) {
-      var statusText = sub.lastPaymentStatus === 'failed'
-        ? 'Your last renewal payment failed; verify the payment method. Auto-renew remains ' + (sub.autoRenew ? 'on.' : 'off.')
-        : (sub.autoRenew ? 'Auto-renew is on.' : 'Auto-renew is off; no further renewal charge is scheduled.');
-      var paidThrough = sub.currentPeriodEnd ? billingDate(sub.currentPeriodEnd) : 'not available';
-      var amount = sub.amountKobo ? 'NGN ' + (sub.amountKobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' monthly' : 'monthly';
-      html = '<p class="mv-settings-help">' + esc(statusText) + ' ' + esc(sub.planName) + ' · ' + esc(amount) + '. Access is paid through ' + esc(paidThrough) + '.</p>' +
-        '<label class="mv-setting-row mv-billing-toggle"><span><strong>Auto-renew subscription</strong><small>Turn off to stop future Paystack charges. Your current paid access remains until the paid-through date.</small></span><input type="checkbox" data-sub-renewal ' + (sub.autoRenew ? 'checked' : '') + '><span class="mv-switch" aria-hidden="true"></span></label>';
-    } else if (sub && sub.autoRenew) {
-      html = '<p class="mv-settings-help">Paystack reports auto-renew is on, but its cancellation credential is not available to this app yet. No setting has been changed. Contact Mindvora support to prevent future charges.</p>';
+    var subscriptions = Array.isArray(data.subscriptions) ? data.subscriptions : [];
+    if (!subscriptions.length && data.subscription) subscriptions = [data.subscription];
+    var html = '', renewalControlAvailable = subscriptions.some(function (sub) { return sub.canManage || sub.autoRenew; });
+    if (subscriptions.length) {
+      html += '<div class="mv-settings-help">' + subscriptions.map(function (sub) {
+        var name = sub.productName || sub.planName || 'Subscription';
+        var amount = sub.amountKobo ? 'NGN ' + (sub.amountKobo / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' monthly' : 'monthly price unavailable';
+        var date = sub.currentPeriodEnd ? billingDate(sub.currentPeriodEnd) : 'not available';
+        var line = '<strong>' + esc(name) + '</strong>' + (sub.planName && sub.productName ? ' · ' + esc(sub.planName) : '') + ' · ' + esc(amount) + ' · paid through ' + esc(date) + ' · renewal ' + (sub.autoRenew ? 'on' : 'off');
+        if (sub.lastPaymentStatus === 'failed') line += ' <span style="color:#ef4444">(last renewal payment failed; check payment method)</span>';
+        if (sub.autoRenew && !sub.canManage) line += ' <span>(provider management unavailable; contact support to change renewal)</span>';
+        return '<div style="margin:0 0 8px">' + line + '</div>';
+      }).join('') + '</div>';
+      if (data.renewalMixed) html += '<p class="mv-settings-help">Renewal settings currently differ across subscriptions. The master control will request one setting for all manageable subscriptions; provider limitations may prevent a complete change.</p>';
+      if (data.renewalIncomplete) html += '<p class="mv-settings-help" style="color:#b45309"><strong>Action needed:</strong> at least one subscription is renewing but lacks Paystack management credentials. Mindvora cannot guarantee that the master switch can stop it; contact support to cancel that provider subscription.</p>';
+      if (renewalControlAvailable) {
+        var checked = data.masterAutoRenew === true;
+        html += '<label class="mv-setting-row mv-billing-toggle"><span><strong>All subscription renewals</strong><small>One switch controls recurring subscriptions. Turning renewal off keeps paid access through each paid-through date.</small></span><input type="checkbox" data-sub-renewal ' + (checked ? 'checked' : '') + '><span class="mv-switch" aria-hidden="true"></span></label>';
+      } else {
+        html += '<p class="mv-settings-help">No active subscription renewal can currently be managed here.' + (subscriptions.some(function (sub) { return sub.autoRenew; }) ? ' Provider management is unavailable for at least one renewal; contact support.' : '') + '</p>';
+      }
     } else if (data.pending) {
-      html = '<p class="mv-settings-help">Paystack is confirming the first subscription payment. Refresh Settings shortly to see the cancellation control once the subscription is registered.</p>';
-    } else if (data.premium && data.premium.isActive && data.premium.expiresAt) {
-      html = '<p class="mv-settings-help">Premium is active and paid through ' + esc(billingDate(data.premium.expiresAt)) + ', but this purchase is not set to auto-renew. Existing access is unchanged.</p>';
+      html += '<p class="mv-settings-help">A subscription payment is being confirmed. Refresh Settings shortly to see its billing controls.</p>';
     } else if (data.premium && data.premium.isActive) {
-      html = '<p class="mv-settings-help">Premium is active on this account and is not enrolled in auto-renew. Existing access is unchanged; no recurring charge will be made.</p>';
+      html += '<p class="mv-settings-help">Premium access is active' + (data.premium.expiresAt ? ' through ' + esc(billingDate(data.premium.expiresAt)) : '') + ', but no recurring subscription is registered. Existing access is unchanged.</p>';
     } else {
-      html = '<p class="mv-settings-help">No auto-renewing Premium subscription is active. To enroll, choose a Premium plan and explicitly select auto-renew at Paystack checkout. Crypto payments remain one-time.</p>';
+      html += '<p class="mv-settings-help">No paid recurring subscriptions are active. Choose a Premium plan to explore available plans.</p>';
     }
     html += '<button type="button" class="mv-settings-btn" data-action="billing-plans">View Premium plans</button>';
     target.innerHTML = html;
@@ -256,17 +268,20 @@
     if (plansButton) plansButton.addEventListener('click', openPremiumPlans);
     var toggle = target.querySelector('[data-sub-renewal]');
     if (toggle) toggle.addEventListener('change', function () {
-      var desired = toggle.checked;
-      toggle.disabled = true;
+      var desired = toggle.checked; toggle.disabled = true;
       if (typeof window.mvApi !== 'function') { toast('Billing service is unavailable.'); loadSubscriptionBilling(); return; }
       window.mvApi('/api/pay/subscription/renewal', { enabled: desired }).then(function (result) {
-        if (!result || !result.status) throw new Error((result && result.message) || 'Could not update auto-renew.');
+        if (result && result.partial) {
+          var failed = (result.results || []).filter(function (item) { return !item.success; });
+          var reason = failed.length && failed[0].message ? ' ' + failed[0].message : '';
+          toast('Only ' + (result.updated || 0) + ' subscription(s) changed; ' + (result.failed || failed.length) + ' could not be updated.' + reason);
+          loadSubscriptionBilling();
+          return;
+        }
+        if (!result || !result.status) throw new Error((result && result.message) || 'Could not update renewals.');
         renderBillingStatus(result);
-        toast(desired ? 'Auto-renew is on.' : 'Auto-renew is off. You keep access through the paid-through date.');
-      }).catch(function (error) {
-        toast(error.message || 'Could not update auto-renew.');
-        loadSubscriptionBilling();
-      });
+        toast(desired ? 'Subscription renewals enabled.' : 'Subscription renewals turned off. Paid-through access remains.');
+      }).catch(function (error) { toast(error.message || 'Could not update renewals.'); loadSubscriptionBilling(); });
     });
   }
   function loadSubscriptionBilling() {
@@ -296,14 +311,42 @@
       '<label class="mv-settings-select"><span><strong>Automatically lock app</strong><small>Lock the whole app after inactivity or when it is backgrounded.</small></span><select data-auto-lock>' + AUTO_LOCK_OPTIONS.map(function (option) { return '<option value="' + option.value + '"' + (prefs.autoLock === option.value ? ' selected' : '') + '>' + option.label + '</option>'; }).join('') + '</select></label>' +
       '<button type="button" class="mv-settings-btn" data-action="pin">' + (hasPin() ? 'Change PIN/password' : 'Set PIN/password') + '</button>' +
       '<p class="mv-settings-help" data-biometric-status>Checking whether this device has an enrolled biometric authenticator…</p>' +
-      '<button type="button" class="mv-settings-btn" data-action="biometric" ' + (hasPin() ? '' : 'disabled') + '>' + (hasCredential() ? 'Re-register biometric' : (hasPin() ? 'Checking device…' : 'Set PIN/password first')) + '</button>' +
-      (hasCredential() ? '<button type="button" class="mv-settings-btn" data-action="remove-biometric">Remove biometric</button>' : '') +
+      '<label class="mv-setting-row"><span><strong>Use device biometric</strong><small>Enable the enrolled fingerprint, Touch ID, or Face ID prompt detected by your device. You will still need your Mindvora PIN/password as fallback.</small></span><input type="checkbox" data-biometric-toggle ' + (hasCredential() ? 'checked ' : '') + (hasPin() ? '' : 'disabled ') + '><span class="mv-switch" aria-hidden="true"></span></label>' +
       '<button type="button" class="mv-settings-btn" data-action="lock">Lock Mindvora now</button>' +
       '<button type="button" class="mv-settings-btn danger" data-action="reset">Logout / reset settings</button></section>';
     body.querySelectorAll('[data-pref]').forEach(function (input) { input.addEventListener('change', function () { setPreference(input.getAttribute('data-pref'), input.checked); }); });
     var autoLockSelect = body.querySelector('[data-auto-lock]');
     if (autoLockSelect) autoLockSelect.addEventListener('change', function () { setAutoLock(autoLockSelect.value); });
-    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'biometric') registerBiometric(true); if (action === 'remove-biometric') { localStorage.removeItem(CRED_KEY); renderSettings(); toast('Device biometric removed. PIN/password remains enabled.'); } if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); }); });
+    var biometricToggle = body.querySelector('[data-biometric-toggle]');
+    if (biometricToggle) biometricToggle.addEventListener('change', function () {
+      if (biometricToggle.checked) {
+        if (!hasPin()) { biometricToggle.checked = false; toast('Set a PIN/password before enabling device biometrics.'); return; }
+        biometricToggle.disabled = true;
+        registerBiometric(true).then(function (enabled) {
+          if (biometricToggle.isConnected) {
+            biometricToggle.checked = enabled || hasCredential();
+            biometricToggle.disabled = false;
+          }
+          showBiometricStatus();
+        });
+        return;
+      }
+      if (!hasCredential()) { showBiometricStatus(); return; }
+      var pin = prompt('Enter your Mindvora PIN/password to turn off biometric unlock:');
+      if (pin === null) { biometricToggle.checked = true; return; }
+      biometricToggle.disabled = true;
+      unlockWithPin(pin).then(function (valid) {
+        if (!valid) {
+          if (biometricToggle.isConnected) { biometricToggle.checked = true; biometricToggle.disabled = false; }
+          toast('Incorrect PIN/password. Biometric unlock is still enabled.');
+          return;
+        }
+        localStorage.removeItem(CRED_KEY);
+        toast('Device biometric unlock is off. Your Mindvora PIN/password remains enabled.');
+        renderSettings();
+      });
+    });
+    body.querySelectorAll('[data-action]').forEach(function (button) { button.addEventListener('click', function () { var action = button.getAttribute('data-action'); if (action === 'pin') setOrChangePin(false); if (action === 'lock') lockApp(false); if (action === 'reset') resetSettings(); }); });
     loadSubscriptionBilling();
     showBiometricStatus();
   }
@@ -326,22 +369,23 @@
     localStorage.setItem(CRED_KEY, credential); prefs.appLock = true; savePrefs(); appUnlocked = appIsVisible(); if (appUnlocked) lastActivityAt = Date.now(); applyPrefs(); renderSettings(); scheduleAutoLock(); toast('✅ ' + label + ' enabled. If recognition fails or is cancelled, use your Mindvora PIN/password.');
   }
   function registerBiometric(showUnavailable, passwordJustSaved, detected) {
-    if (!passwordJustSaved && !hasPin()) { toast('Set a PIN/password first.'); setOrChangePin(true); return; }
-    Promise.resolve(detected || detectBiometricAvailability()).then(function (result) {
+    if (!passwordJustSaved && !hasPin()) { toast('Set a PIN/password first.'); setOrChangePin(true); return Promise.resolve(false); }
+    return Promise.resolve(detected || detectBiometricAvailability()).then(function (result) {
       if (!result.available) {
         if (showUnavailable) toast((result.reason || 'No enrolled app-usable biometric is available.') + ' Your PIN/password will unlock the app.');
         showBiometricStatus();
-        return;
+        return false;
       }
       if (result.native) {
-        return result.plugin.authenticate(biometricAuthOptions()).then(function () { saveBiometricCredential(NATIVE_BIOMETRIC_CREDENTIAL, result.label); }).catch(function () { toast('Biometric setup was cancelled or did not match. Your Mindvora PIN/password remains available.'); });
+        return result.plugin.authenticate(biometricAuthOptions()).then(function () { saveBiometricCredential(NATIVE_BIOMETRIC_CREDENTIAL, result.label); return true; }).catch(function () { toast('Biometric setup was cancelled or did not match. Your Mindvora PIN/password remains available.'); return false; });
       }
       var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
       var userId = new Uint8Array(16); crypto.getRandomValues(userId);
       return navigator.credentials.create({ publicKey: { challenge: challenge, rp: { name: 'Mindvora' }, user: { id: userId, name: 'mindvora-user', displayName: 'Mindvora user' }, pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }], authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' }, timeout: 60000 } }).then(function (credential) {
         saveBiometricCredential(bytesToBase64(new Uint8Array(credential.rawId)), result.label);
-      }).catch(function () { toast('Biometric setup was cancelled or unavailable. Your Mindvora PIN/password still unlocks the app.'); });
-    }).catch(function () { toast('Biometric setup could not start. Your Mindvora PIN/password still unlocks the app.'); });
+        return true;
+      }).catch(function () { toast('Biometric setup was cancelled or unavailable. Your Mindvora PIN/password still unlocks the app.'); return false; });
+    }).catch(function () { toast('Biometric setup could not start. Your Mindvora PIN/password still unlocks the app.'); return false; });
   }
   function setLockError(message) {
     var error = document.getElementById('mv-lock-error');

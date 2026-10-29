@@ -223,6 +223,8 @@
           <button type="button" onclick="doForgotPassword()" style="background:none;border:none;font-size:12px;color:rgba(34,197,94,.8);cursor:pointer;letter-spacing:.5px;font-family:'DM Sans',sans-serif;padding:0;text-decoration:underline;text-underline-offset:3px;">Forgot password?</button>
         </div>
         <button class="btn-auth" id="btn-login" onclick="doLogin()" type="button">Enter Mindvora →</button>
+        <button type="button" onclick="openGuestAriaPreview()" style="width:100%;margin-top:10px;padding:10px;border:1px solid rgba(34,197,94,.35);border-radius:10px;background:rgba(34,197,94,.08);color:var(--green3);font:600 12px 'DM Sans',sans-serif;cursor:pointer">Try one free ARIA question</button>
+        <p style="font-size:10px;color:var(--muted);text-align:center;margin:5px 0 0">No account required · one question · avoid sharing sensitive information</p>
       <div style="display:flex;align-items:center;gap:10px;margin:14px 0">
         <div style="flex:1;height:1px;background:rgba(255,255,255,.1)"></div>
         <span style="font-size:11px;color:rgba(225,225,225,.1);letter-spacing:1px">OR</span>
@@ -392,6 +394,24 @@
     <div class="showcase-brand">
       <span style="font-family:'Great Vibes',cursive;font-size:28px;color:var(--cream)">Mindvora</span>
       <span style="font-size:11px;color:rgba(254,252,232,.4);letter-spacing:2px">Where Minds Connect</span>
+    </div>
+  </div>
+</div>
+
+<!-- LOGGED-OUT ARIA PREVIEW -->
+<div class="modal-overlay" id="modal-guest-aria" role="dialog" aria-modal="true" aria-labelledby="guest-aria-title">
+  <div class="modal-box" style="max-width:520px">
+    <div class="m-head"><div class="m-title" id="guest-aria-title">Try ARIA</div><button type="button" class="m-close" onclick="closeGuestAriaPreview()" aria-label="Close ARIA preview">✕</button></div>
+    <div class="m-body">
+      <p class="mv-settings-help">Ask one question without creating an account. Your question is sent to Mindvora’s ARIA service; do not include passwords, payment details, or other sensitive information.</p>
+      <label class="m-label" for="guest-aria-inp">Your question</label>
+      <textarea class="m-input" id="guest-aria-inp" maxlength="800" rows="3" placeholder="What would you like help with?" style="resize:vertical"></textarea>
+      <div id="guest-aria-response" class="guest-aria-response" role="status" aria-live="polite" style="display:none;white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:10px;max-height:240px;overflow:auto"></div>
+      <p id="guest-aria-limit-note" class="mv-settings-help" aria-live="polite">This preview is limited to one question.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn-pay" id="guest-aria-send" style="flex:1">Ask ARIA</button>
+        <button type="button" class="mv-settings-btn" id="guest-aria-join">Join Mindvora</button>
+      </div>
     </div>
   </div>
 </div>
@@ -662,6 +682,7 @@
   <div class="modal-box">
     <div class="m-head"><div class="m-title">Mindvora Premium 💎</div><button class="m-close" onclick="closeModal('modal-prem')">✕</button></div>
     <div class="m-body">
+      <p class="mv-settings-help">Compare the listed benefits and price units: Basic, Pro, and Creator are billed monthly when recurring consent is selected; Verified Badge Only is a one-time purchase.</p>
       <div class="plan-card" id="pc-basic" onclick="selPlan('basic',5,'Mindvora Basic')">
         <div class="pl-name">Mindvora Basic</div>
         <div class="pl-price">$5<span>/month</span></div>
@@ -783,9 +804,10 @@
         </div>
 
 <!-- AMOUNT (shared) -->
-        <label class="m-label">Amount (USD)</label>
+        <label class="m-label">Gross amount to withdraw (USD)</label>
         <input class="m-input" id="wd-amt" type="number" placeholder="Minimum $20" min="20" style="margin-bottom:4px" oninput="showWithdrawalPreview(parseFloat(this.value)||0)">
         <div id="wd-currency-preview" style="font-size:11px;color:var(--green3);margin-bottom:6px;font-weight:600"></div>
+        <div style="font-size:10px;color:var(--muted);margin-bottom:12px">A 2% withdrawal fee applies to non-subscribers. Any active paid subscription waives this fee; the server confirms the final fee and net.</div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:12px">Min $20 · Your balance: <span id="wd-bal-display" style="color:var(--green3)">$0.00</span></div>
 
         <div class="m-err" id="wd-err"></div>
@@ -3827,6 +3849,8 @@
           <input class="m-input" id="paid-ad-url" placeholder="https://yourwebsite.com" type="url">
           <label class="m-label">Emoji / Icon</label>
           <input class="m-input" id="paid-ad-emoji" placeholder="⚡" maxlength="2">
+          <label class="m-label" for="paid-ad-billing-email">Billing email for Paystack receipts and subscription management</label>
+          <input class="m-input" id="paid-ad-billing-email" type="email" autocomplete="email" placeholder="you@example.com" style="margin-bottom:10px">
           <label class="m-label">Select Campaign Budget</label>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
             <div class="pkg-card sel" data-budget="5" data-impressions="500" onclick="selBudget(this)"><div class="pkg-size" style="font-size:16px">$5</div><div class="pkg-dur">~500 views</div></div>
@@ -3836,8 +3860,10 @@
             <div class="pkg-card" data-budget="100" data-impressions="20000" onclick="selBudget(this)"><div class="pkg-size" style="font-size:16px">$100</div><div class="pkg-dur">~20,000 views</div></div>
             <div class="pkg-card" data-budget="250" data-impressions="60000" onclick="selBudget(this)"><div class="pkg-size" style="font-size:16px">$250</div><div class="pkg-dur">~60,000 views</div></div>
           </div>
+          <p style="font-size:11px;color:var(--muted);line-height:1.6;margin:0 0 10px">The selected package renews monthly at the same price and adds the same view allotment each month. Unused views carry over. You can stop all future subscription renewals in Settings.</p>
+          <label style="display:flex;gap:8px;align-items:flex-start;font-size:11px;color:var(--moon);line-height:1.5;margin-bottom:12px"><input id="paid-ad-renew-consent" type="checkbox" style="margin-top:2px;accent-color:var(--green3)"><span>I agree to monthly recurring billing for this ad package.</span></label>
           <div class="m-err" id="paid-ad-err"></div>
-          <button class="btn-pay" id="btn-submit-paid">⚡ Pay & Launch Ad →</button>
+          <button class="btn-pay" id="btn-submit-paid">⚡ Subscribe & Launch Ad →</button>
         </div>
       </div>
 
@@ -3877,6 +3903,7 @@
         <button class="f-pill" onclick="switchAdminTab('users',this)">👥 Users</button>
         <button class="f-pill" onclick="switchAdminTab('approved',this)">✅ Approved</button>
         <button class="f-pill" onclick="switchAdminTab('rejected',this)">❌ Rejected</button>
+        <button class="f-pill" onclick="switchAdminTab('withdrawals',this)">💸 Withdrawals</button>
         <button class="f-pill" onclick="switchAdminTab('overview',this)">📊 Overview</button>
         <button class="f-pill" type="button" data-bug-watch-tab="1" onclick="switchAdminTab('bug-watch',this)">🐞 Bug Watch</button>
         
@@ -3885,6 +3912,10 @@
 <!-- PENDING ADS -->
       <div id="admin-pending">
         <div id="pending-ads-list"><div style="text-align:center;padding:30px;color:var(--muted)">Loading pending ads…</div></div>
+      </div>
+      <div id="admin-withdrawals" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-size:12px;color:var(--muted)">Pending requests show gross, fee and net payout. Rejecting returns the gross amount to the user's earnings.</div><button class="f-pill active" type="button" onclick="loadAdminWithdrawals()">🔄 Refresh</button></div>
+        <div id="admin-withdrawals-list"><div style="text-align:center;padding:24px;color:var(--muted)">Loading withdrawal requests…</div></div>
       </div>
 
 <!-- APPROVED ADS -->
@@ -4167,8 +4198,12 @@
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
 <script src="media-quota.js"></script>
-<script src="script.js?v=18"></script>
-<script src="settings.js?v=4"></script>
+<script src="script.js?v=20"></script>
+<script src="aria-ui.js?v=1"></script>
+<script src="settings.js?v=6"></script>
+<script src="search-fix.js?v=1"></script>
+<script src="profile-preview.js?v=1"></script>
+<script src="guest-aria-preview.js?v=1"></script>
 <script src="bug-monitor.js?v=2"></script>
 <script src="fixes.js?v=7"></script>
 <script src="calls.js?v=19"></script>

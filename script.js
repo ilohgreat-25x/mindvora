@@ -1347,7 +1347,7 @@ switchAdminTab = function(tab, btn){
   if(tab === 'security'){
     document.querySelectorAll('#modal-admin .admin-tabs .f-pill').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
-    ['pending','approved','rejected','overview','security','users'].forEach(function(t){
+    ['pending','approved','rejected','withdrawals','overview','security','users'].forEach(function(t){
       var el = document.getElementById('admin-'+t);
       if(el) el.style.display = t===tab?'block':'none';
     });
@@ -1791,7 +1791,8 @@ function handleSubscriptionCheckoutReturn(user) {
   var params;
   try { params = new URLSearchParams(window.location.search); } catch (_) { return; }
   var reference = params.get('reference') || params.get('trxref') || '';
-  if (!/^MV-SUB-[\w.-]{3,90}$/.test(reference)) return;
+  var isAdSubscription = /^MV-AD-SUB-[\w.-]{3,90}$/.test(reference);
+  if (!isAdSubscription && !/^MV-SUB-[\w.-]{3,90}$/.test(reference)) return;
   window._mvSubscriptionReturnHandled = reference;
   try {
     var cleanUrl = new URL(window.location.href);
@@ -1799,7 +1800,12 @@ function handleSubscriptionCheckoutReturn(user) {
     history.replaceState(null, document.title, cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
   } catch (_) {}
   confirmPaystackPayment(reference).then(function (result) {
-    if (result && result.status) showToast('Your Premium payment is confirmed. Manage auto-renew in Settings.');
+    if (result && result.status) {
+      if (isAdSubscription) {
+        showToast('Your recurring ad payment is confirmed. Unused views carry over; manage renewals in Settings.');
+        if (typeof window.loadAds === 'function') window.loadAds();
+      } else showToast('Your Premium payment is confirmed. Manage auto-renew in Settings.');
+    }
   }).catch(function (error) {
     showToast('⚠️ ' + ((error && error.message) || 'Payment confirmation is still pending. Check Settings shortly.'));
   });
@@ -3539,114 +3545,66 @@ function switchWdTab(method, btn) {
   });
 }
 
+var wdSubscriptionStatus = null;
+function localHasPremiumCoverage(){
+  var p=state.profile||{},v=p.premiumExpiresAt,d=v&&typeof v.toDate==='function'?v.toDate():(v?new Date(v):null);
+  return p.isPremium===true&&!!d&&Number.isFinite(d.getTime())&&d.getTime()>Date.now();
+}
+function getWdSubscriptionStatus() {
+  if (wdSubscriptionStatus !== null) return Promise.resolve(wdSubscriptionStatus);
+  if (typeof mvApi !== 'function') return Promise.resolve({ hasActivePaidSubscription: localHasPremiumCoverage() });
+  return mvApi('/api/pay/subscription/status').then(function (data) { wdSubscriptionStatus = data && data.status ? data : { hasActivePaidSubscription: false }; return wdSubscriptionStatus; }).catch(function () { return { hasActivePaidSubscription: localHasPremiumCoverage() }; });
+}
 function loadWdHistory() {
   if(!state.user) return;
-  var bal = parseFloat((state.profile&&state.profile.earnings)||0);
-  var balEl = document.getElementById('wd-bal-display');
+  var bal = parseFloat((state.profile&&state.profile.earnings)||0), balEl = document.getElementById('wd-bal-display');
   if(balEl) balEl.textContent = '$'+bal.toFixed(2);
-
-  var hist = document.getElementById('wd-history');
-  if(!hist) return;
-  db.collection('withdrawals').where('uid','==',state.user.uid).limit(10).get()
-    .then(function(snap){
-      if(snap.empty){ hist.innerHTML='<div style="font-size:11px;color:var(--muted)">No withdrawals yet</div>'; return; }
-      hist.innerHTML = snap.docs.map(function(d){
-        var w=d.data();
-        var statusColor = w.status==='paid'?'var(--green3)':w.status==='rejected'?'#ef4444':'#fbbf24';
-        var statusIcon  = w.status==='paid'?'✅':w.status==='rejected'?'❌':'⏳';
-        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">' +
-          '<div><div style="font-size:12px;color:var(--moon)">$'+w.amount.toFixed(2)+' via '+esc(w.method||'Bank')+'</div>' +
-          '<div style="font-size:10px;color:var(--muted)">'+timeAgo(w.requestedAt)+'</div></div>' +
-          '<span style="font-size:11px;color:'+statusColor+'">'+statusIcon+' '+esc(w.status||'pending')+'</span>' +
-        '</div>';
-      }).join('');
-    }).catch(function(){ hist.innerHTML='<div style="font-size:11px;color:var(--muted)">Could not load history</div>'; });
+  var hist = document.getElementById('wd-history'); if(!hist) return;
+  db.collection('withdrawals').where('uid','==',state.user.uid).get().then(function(snap){
+    if(!snap.docs.length){ hist.innerHTML='<div style="font-size:11px;color:var(--muted)">No withdrawals yet</div>'; return; }
+    var latest=snap.docs.slice().sort(function(a,b){
+      function ms(doc){var d=doc.data(),v=d.requestedAt||d.createdAt;return v&&typeof v.toMillis==='function'?v.toMillis():(v?new Date(v).getTime():0);}
+      return ms(b)-ms(a);
+    }).slice(0,10);
+    hist.innerHTML = latest.map(function(d){
+      var w=d.data(), amount=Number(w.grossAmount != null ? w.grossAmount : w.amount)||0;
+      var net=w.netAmount != null ? Number(w.netAmount) : amount, fee=w.feeAmount != null ? Number(w.feeAmount) : null;
+      var statusColor=w.status==='paid'?'var(--green3)':w.status==='rejected'?'#ef4444':'#fbbf24', statusIcon=w.status==='paid'?'✅':w.status==='rejected'?'❌':'⏳';
+      var detail=fee != null ? ('Gross $'+amount.toFixed(2)+' · Fee $'+fee.toFixed(2)+' · Net $'+net.toFixed(2)) : ('$'+amount.toFixed(2)+' via '+esc(w.method||'Bank'));
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:12px;color:var(--moon)">'+detail+'</div><div style="font-size:10px;color:var(--muted)">'+timeAgo(w.requestedAt)+'</div></div><span style="font-size:11px;color:'+statusColor+'">'+statusIcon+' '+esc(w.status||'pending')+'</span></div>';
+    }).join('');
+  }).catch(function(){ hist.innerHTML='<div style="font-size:11px;color:var(--muted)">Could not load history</div>'; });
 }
-
 function requestWithdrawal() {
-  var amt = parseFloat(document.getElementById('wd-amt').value)||0;
-  var err = document.getElementById('wd-err');
-  err.textContent='';
-
+  var amt=parseFloat(document.getElementById('wd-amt').value)||0, err=document.getElementById('wd-err'); err.textContent='';
   if(amt<20){ err.textContent='Minimum withdrawal is $20'; return; }
-  var userBalance = parseFloat((state.profile&&state.profile.earnings)||0);
+  var userBalance=parseFloat((state.profile&&state.profile.earnings)||0);
   if(amt>userBalance){ err.textContent='Insufficient balance ($'+userBalance.toFixed(2)+' available)'; return; }
-
-  var wdData = {
-    uid: state.user.uid,
-    name: (state.profile&&state.profile.name)||'Mindvora user',
-    email: state.user.email,
-    amount: amt,
-    method: currentWdMethod,
-    status: 'pending',
-    requestedAt: firebase.firestore.FieldValue.serverTimestamp()
-  };
-
+  var wdData={ amount:amt, method:currentWdMethod };
   if(currentWdMethod==='bank'){
-    var acc  = document.getElementById('wd-acc').value.trim();
-    var bank = document.getElementById('wd-bank').value.trim();
-    var accname = document.getElementById('wd-accname').value.trim();
-    if(!acc||!bank||!accname){ err.textContent='Please fill all bank fields'; return; }
-    wdData.bankAccount = acc;
-    wdData.bankName    = bank;
-    wdData.accountName = accname;
-    wdData.details     = accname+' · '+bank+' · '+acc;
-
+    var acc=document.getElementById('wd-acc').value.trim(), bank=document.getElementById('wd-bank').value.trim(), accname=document.getElementById('wd-accname').value.trim();
+    if(!acc||!bank||!accname){err.textContent='Please fill all bank fields';return;}
+    wdData.bankAccount=acc; wdData.bankName=bank; wdData.accountName=accname;
   } else if(currentWdMethod==='crypto'){
-    var wallet = document.getElementById('wd-wallet').value.trim();
-    var coin   = document.getElementById('wd-crypto-coin').value;
-    if(!wallet){ err.textContent='Please enter your wallet address'; return; }
-    if(wallet.length<20){ err.textContent='Wallet address looks too short — check it'; return; }
-    wdData.walletAddress = wallet;
-    wdData.cryptoCoin    = coin;
-    wdData.details       = coin+' · '+wallet.slice(0,12)+'...';
-
+    var wallet=document.getElementById('wd-wallet').value.trim(), coin=document.getElementById('wd-crypto-coin').value;
+    if(!wallet){err.textContent='Please enter your wallet address';return;} if(wallet.length<20){err.textContent='Wallet address looks too short — check it';return;}
+    wdData.walletAddress=wallet; wdData.cryptoCoin=coin;
   } else if(currentWdMethod==='paypal'){
-    var ppEmail = document.getElementById('wd-paypal-email').value.trim();
-    if(!ppEmail||ppEmail.indexOf('@')<0){ err.textContent='Enter a valid PayPal email'; return; }
-    wdData.paypalEmail = ppEmail;
-    wdData.details     = 'PayPal · '+ppEmail;
-
+    var ppEmail=document.getElementById('wd-paypal-email').value.trim(); if(!ppEmail||ppEmail.indexOf('@')<0){err.textContent='Enter a valid PayPal email';return;} wdData.paypalEmail=ppEmail;
   } else if(currentWdMethod==='momo'){
-    var phone    = document.getElementById('wd-momo-phone').value.trim();
-    var provider = document.getElementById('wd-momo-provider').value;
-    var momoName = document.getElementById('wd-momo-name').value.trim();
-    if(!phone||!momoName){ err.textContent='Please fill all mobile money fields'; return; }
-    wdData.momoPhone    = phone;
-    wdData.momoProvider = provider;
-    wdData.momoName     = momoName;
-    wdData.details      = provider.toUpperCase()+' · '+phone;
+    var phone=document.getElementById('wd-momo-phone').value.trim(), provider=document.getElementById('wd-momo-provider').value, momoName=document.getElementById('wd-momo-name').value.trim();
+    if(!phone||!momoName){err.textContent='Please fill all mobile money fields';return;} wdData.momoPhone=phone; wdData.momoProvider=provider; wdData.momoName=momoName;
   }
-
-  var btn = document.getElementById('btn-wd');
-  btn.disabled=true; btn.textContent='Submitting...';
-
-// Deduct balance immediately so user can't double-withdraw
-  db.collection('users').doc(state.user.uid).update({
-    earnings: firebase.firestore.FieldValue.increment(-amt)
-  }).then(function(){
-    return db.collection('withdrawals').add(wdData);
-  }).then(function(){
-// Notify admin
-    db.collection('notifications').add({
-      uid: 'ilohgreat25@gmail.com',
-      type: 'withdrawal_request',
-      text: '💸 '+esc(wdData.name)+' requested $'+amt.toFixed(2)+' via '+currentWdMethod+' ('+esc(wdData.details)+')',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      read: false
-    }).catch(function(){});
+  var btn=document.getElementById('btn-wd'); btn.disabled=true; btn.textContent='Submitting...';
+  mvApi('/api/withdrawals/request', wdData).then(function(result){
+    if(!result||!result.status) throw new Error((result&&result.message)||'Could not submit withdrawal.');
+    var gross=Number(result.grossAmount != null ? result.grossAmount : amt), fee=Number(result.feeAmount)||0, net=Number(result.netAmount != null ? result.netAmount : gross-fee);
     btn.disabled=false; btn.textContent='💸 Request Withdrawal';
-    showToast('✅ Withdrawal submitted! Processing in 24-48 hours.');
-    document.getElementById('wd-amt').value='';
-    loadWdHistory();
-// Refresh balance display
-    if(state.profile) state.profile.earnings = (state.profile.earnings||0) - amt;
-    var balEl = document.getElementById('wd-bal-display');
-    if(balEl) balEl.textContent='$'+Math.max(0,(state.profile&&state.profile.earnings)||0).toFixed(2);
-  }).catch(function(e){
-    btn.disabled=false; btn.textContent='💸 Request Withdrawal';
-    err.textContent='Error submitting request. Try again.';
-  });
+    showToast('✅ Withdrawal submitted. Gross $'+gross.toFixed(2)+' · fee $'+fee.toFixed(2)+' · expected net $'+net.toFixed(2)+'. Processing in 24-48 hours.');
+    document.getElementById('wd-amt').value=''; showWithdrawalPreview(0); loadWdHistory();
+    if(result.availableBalance != null && state.profile) state.profile.earnings=Number(result.availableBalance);
+    var balEl=document.getElementById('wd-bal-display'); if(balEl&&result.availableBalance!=null) balEl.textContent='$'+Number(result.availableBalance).toFixed(2);
+  }).catch(function(error){ btn.disabled=false; btn.textContent='💸 Request Withdrawal'; err.textContent=error.message||'Error submitting request. Try again.'; });
 }
 function copyRef(){ var link=document.getElementById('ref-link').value; if(navigator.clipboard){ navigator.clipboard.writeText(link); showToast('Referral link copied!'); } }
 
@@ -3765,42 +3723,38 @@ document.getElementById('btn-submit-free').addEventListener('click', function(){
   }).catch(function(e){ err.textContent='Failed: '+e.message; btn.disabled=false; btn.textContent='🆓 Submit Free Ad →'; });
 });
 
-// Submit PAID ad
+// Submit PAID ad as an explicitly consented monthly subscription.
 document.getElementById('btn-submit-paid').addEventListener('click', function(){
   var title = document.getElementById('paid-ad-title').value.trim();
   var desc = document.getElementById('paid-ad-desc').value.trim();
   var cta = document.getElementById('paid-ad-cta').value.trim();
   var url = document.getElementById('paid-ad-url').value.trim();
-  if(url && !isSafeUrl(url)){ document.getElementById('paid-ad-err').textContent='Invalid or unsafe URL. Please use a valid https:// link.'; return; }
   var emoji = document.getElementById('paid-ad-emoji').value.trim() || '⚡';
   var err = document.getElementById('paid-ad-err');
+  var consent = document.getElementById('paid-ad-renew-consent');
+  var emailInput = document.getElementById('paid-ad-billing-email');
+  var billingEmail = String((emailInput && emailInput.value) || (state.user && state.user.email) || '').trim();
   err.textContent = '';
+  if(url && !isSafeUrl(url)){ err.textContent='Invalid or unsafe URL. Please use a valid https:// link.'; return; }
   if(!title){ err.textContent='Enter ad title'; return; }
   if(!desc){ err.textContent='Enter ad description'; return; }
   if(!cta){ err.textContent='Enter call to action text'; return; }
   if(!state.user) return;
-  payWithPaystack({
-    amount: usdToNGNKobo(adState.budget), currency:'NGN',
-    ref:'ZAD-'+Date.now(),
-    onSuccess:function(r){
-      db.collection('ads').add({
-        type:'paid', title:title, description:desc, cta:cta, url:url, emoji:emoji,
-        advertiserId:state.user.uid, advertiserName:state.profile.name,
-        advertiserHandle:state.profile.handle, status:'pending',
-        views:0, clicks:0, budget:adState.budget, impressionsTarget:adState.impressions,
-        ref:r.reference, createdAt:firebase.firestore.FieldValue.serverTimestamp()
-      }).then(function(){
-        document.getElementById('paid-ad-title').value='';
-        document.getElementById('paid-ad-desc').value='';
-        document.getElementById('paid-ad-cta').value='';
-        document.getElementById('paid-ad-url').value='';
-        document.getElementById('paid-ad-emoji').value='';
-        showToast('Paid ad launched! $'+adState.budget+' · ~'+adState.impressions.toLocaleString()+' views 🚀');
-        closeModal('modal-ads');
-        loadAds();
-      });
-    },
-    onClose:function(){ showToast('Ad payment cancelled'); }
+  if(!consent || !consent.checked){ err.textContent='Confirm the monthly recurring package before continuing.'; return; }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billingEmail)){ err.textContent='Enter a valid billing email for Paystack subscription receipts.'; if(emailInput) emailInput.focus(); return; }
+  if(emailInput && !emailInput.value.trim()) emailInput.value=billingEmail;
+  var btn=this, original=btn.textContent, budget=Number(adState.budget);
+  btn.disabled=true; btn.textContent='Creating your ad…';
+  var ad={title:title,description:desc,cta:cta,url:url,emoji:emoji,budget:budget,autoRenewConsent:true};
+  mvApi('/api/ads/paid/draft',ad).then(function(d){
+    if(!d||!d.ok||!d.adId) throw new Error((d&&d.message)||'Could not create the ad.');
+    return mvApi('/api/pay/subscription/ad/initialize',{adId:d.adId,budget:d.budget||budget,billingEmail:billingEmail});
+  }).then(function(result){
+    if(!result||!result.status||!result.authorization_url) throw new Error((result&&result.message)||'Could not start recurring ad checkout.');
+    window.location.href=result.authorization_url;
+  }).catch(function(error){
+    btn.disabled=false; btn.textContent=original;
+    err.textContent=(error&&error.message)||'Could not start the ad subscription. Try again.';
   });
 });
 
@@ -3819,7 +3773,21 @@ function loadMyAds(){
     if(snap.empty){ list.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">📣</div>You have no ads yet</div>'; return; }
     list.innerHTML = snap.docs.map(function(d){
       var ad=Object.assign({id:d.id},d.data());
-      return '<div class="my-ad-row"><div class="mar-icon">'+esc(ad.emoji||'📣')+'</div><div style="flex:1"><div class="mar-name">'+esc(ad.title||'Ad')+'</div><div style="font-size:10px;color:var(--muted);margin-top:2px">'+esc(ad.type==='paid'?'Paid · $'+ad.budget:'Free')+'</div></div><div class="mar-status '+(ad.type==='free'?'free':'active')+'">'+esc(ad.status||'active')+'</div><div class="mar-views">👁 '+(ad.views||0)+'</div></div>';
+      var safeCount=function(value){ var n=Number(value); return value!==null && value!=='' && isFinite(n) && n>=0 ? n : null; };
+      var views=safeCount(ad.views);
+      var viewsText=(views===null?0:views).toLocaleString();
+      var progress='';
+      if(ad.type==='paid'){
+        var target=safeCount(ad.impressionsTarget);
+        if(target!==null && target>0){
+          var delivered=views===null?0:views;
+          var percent=Math.min(100,Math.max(0,(delivered/target)*100));
+          progress='<div style="margin-top:6px"><div style="font-size:10px;color:var(--muted)">'+esc(viewsText)+' / '+esc(target.toLocaleString())+' delivered</div><div role="progressbar" aria-label="Ad views delivered: '+esc(viewsText)+' of '+esc(target.toLocaleString())+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+esc(String(percent))+'" style="height:5px;background:var(--border,#e5e7eb);border-radius:4px;overflow:hidden;margin-top:3px"><div style="height:100%;width:'+esc(String(percent))+'%;background:var(--green3,#22c55e)"></div></div></div>';
+        } else {
+          progress='<div style="font-size:10px;color:var(--muted);margin-top:6px">'+esc(viewsText)+' delivered · No impression target set</div>';
+        }
+      }
+      return '<div class="my-ad-row"><div class="mar-icon">'+esc(ad.emoji||'📣')+'</div><div style="flex:1"><div class="mar-name">'+esc(ad.title||'Ad')+'</div><div style="font-size:10px;color:var(--muted);margin-top:2px">'+esc(ad.type==='paid'?'Paid · $'+ad.budget:'Free')+'</div>'+progress+'</div><div class="mar-status '+(ad.type==='free'?'free':'active')+'">'+esc(ad.status||'active')+'</div><div class="mar-views">👁 '+esc(viewsText)+'</div></div>';
     }).join('');
   });
 }
@@ -3857,14 +3825,12 @@ renderFeed = function(){
     adEl.innerHTML='<div class="ad-banner-ph">'+esc(ad.emoji||'📣')+'</div><div class="ad-title">'+esc(ad.title||'')+'</div><div class="ad-desc">'+esc(ad.description||'')+'</div><button class="ad-cta" data-ad-id="'+esc(ad.id)+'" data-ad-url="'+esc(ad.url||'#')+'">'+esc(ad.cta||'Learn More')+' →</button><div class="ad-sponsor">Sponsored by '+esc(ad.advertiserName||'Mindvora User')+'</div>';
     adEl.querySelector('.ad-cta').addEventListener('click',function(){ trackAdClick(this.dataset.adId, this.dataset.adUrl); });
     if(cards[i] && cards[i].parentNode) cards[i].parentNode.insertBefore(adEl, cards[i].nextSibling);
-// Track view
-    db.collection('ads').doc(ad.id).update({views:firebase.firestore.FieldValue.increment(1)}).catch(function(){});
   }
 };
 
 function trackAdClick(adId, url){
-  db.collection('ads').doc(adId).update({clicks:firebase.firestore.FieldValue.increment(1)}).catch(function(){});
-  if(url && url!=='#') window.open(url,'_blank');
+  if(typeof mvApi==='function') mvApi('/api/ads/click',{adId:adId}).catch(function(){});
+  if(url && /^https:\/\//i.test(url)) window.open(url,'_blank','noopener');
 }
 
 // VIDEO AD BEFORE REELS
@@ -3892,8 +3858,6 @@ function showVideoAd(ad, callback){
   skipBtn.textContent='Skip in 5s';
   skipBtn.onclick = null;
   document.getElementById('video-ad-overlay').classList.add('open');
-// Track view
-  db.collection('ads').doc(ad.id).update({views:firebase.firestore.FieldValue.increment(1)}).catch(function(){});
   var secs = 5;
   adState.videoAdTimer = setInterval(function(){
     secs--;
@@ -3967,7 +3931,7 @@ document.getElementById('nav-admin').addEventListener('click', function(){
 function switchAdminTab(tab, btn){
   document.querySelectorAll('#modal-admin .admin-tabs .f-pill').forEach(function(b){ b.classList.remove('active'); });
   btn.classList.add('active');
-  ['pending','approved','rejected','overview','security','users'].forEach(function(t){
+  ['pending','approved','rejected','withdrawals','overview','security','users'].forEach(function(t){
     var el = document.getElementById('admin-'+t);
     if(el) el.style.display = t===tab ? 'block' : 'none';
   });
@@ -3978,9 +3942,43 @@ function loadAdminTab(tab){
   if(tab==='pending') loadAdminAds('pending','pending-ads-list');
   else if(tab==='approved') loadAdminAds('active','approved-ads-list');
   else if(tab==='rejected') loadAdminAds('rejected','rejected-ads-list');
+  else if(tab==='withdrawals') loadAdminWithdrawals();
   else if(tab==='overview') loadAdminOverview();
   else if(tab==='security') loadSecurityAlertsPanel();
   else if(tab==='users') loadUsersPanel();
+}
+
+function loadAdminWithdrawals(){
+  if(!isAdmin()) return;
+  var list=document.getElementById('admin-withdrawals-list');
+  if(!list) return;
+  list.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">Loading withdrawal requests…</div>';
+  mvApi('/api/admin/withdrawals').then(function(result){
+    if(!result||!result.status) throw new Error((result&&result.message)||'Could not load withdrawal requests.');
+    var rows=Array.isArray(result.withdrawals)?result.withdrawals:[];
+    if(!rows.length){list.innerHTML='<div style="text-align:center;padding:28px;color:var(--muted)">No pending withdrawal requests.</div>';return;}
+    list.innerHTML=rows.map(function(w){
+      var gross=Number(w.grossAmount)||0, fee=Number(w.feeAmount)||0, net=Number(w.netAmount!=null?w.netAmount:w.amount)||0;
+      var destination=w.method==='bank'?'Bank: '+(w.bankName||'')+' · '+(w.accountName||'')+' · '+(w.bankAccount||w.accountNumber||''):
+        w.method==='crypto'?'Crypto: '+(w.cryptoCoin||w.network||'')+' · '+(w.walletAddress||''):
+        w.method==='paypal'?'PayPal: '+(w.paypalEmail||''):
+        'Mobile money: '+(w.momoProvider||w.provider||'')+' · '+(w.momoName||w.accountName||'')+' · '+(w.momoPhone||w.phone||'');
+      var who=(w.name||'Mindvora user')+(w.email?' · '+w.email:'');
+      return '<article style="border:1px solid var(--border);border-radius:10px;padding:12px;margin:0 0 10px;background:var(--deep)"><div style="font-size:12px;font-weight:700;color:var(--moon)">'+esc(who)+'</div><div style="font-size:11px;color:var(--muted);margin:6px 0">'+esc(destination)+'</div><div style="font-size:12px;color:var(--moon)">Gross $'+gross.toFixed(2)+' · Fee $'+fee.toFixed(2)+' · Pay recipient $'+net.toFixed(2)+'</div><div style="display:flex;gap:8px;margin-top:10px"><button class="f-pill active" type="button" data-withdrawal-action="paid" data-withdrawal-id="'+esc(w.id)+'">Mark net payout paid</button><button class="f-pill" type="button" data-withdrawal-action="rejected" data-withdrawal-id="'+esc(w.id)+'">Reject & return gross</button></div></article>';
+    }).join('');
+    list.querySelectorAll('[data-withdrawal-action]').forEach(function(button){button.addEventListener('click',function(){resolveWithdrawal(button.getAttribute('data-withdrawal-id'),button.getAttribute('data-withdrawal-action'));});});
+  }).catch(function(error){list.innerHTML='<div style="text-align:center;padding:24px;color:#ef4444">'+esc(error.message||'Could not load withdrawal requests.')+'</div>';});
+}
+function resolveWithdrawal(id,status){
+  if(!isAdmin()||!id) return;
+  var paid=status==='paid';
+  if(!confirm(paid?'Confirm that you have sent the displayed net payout, then mark this request paid?':'Reject this request and return its full gross amount to the user?')) return;
+  var reason=paid?'':(prompt('Reason for rejection (optional):','')||'');
+  mvApi('/api/admin/withdrawals/'+encodeURIComponent(id)+'/resolve',{status:status,reason:reason}).then(function(result){
+    if(!result||!result.status) throw new Error((result&&result.message)||'Could not update withdrawal status.');
+    showToast(paid?'Withdrawal marked paid.':'Withdrawal rejected; gross earnings returned.');
+    loadAdminWithdrawals();
+  }).catch(function(error){showToast(error.message||'Could not update withdrawal status.');});
 }
 
 function loadAdminAds(status, listId){
@@ -9535,20 +9533,18 @@ function convertAndDisplay(amountUSD, elementId) {
 var _origWithdraw = window.submitWithdrawal;
 
 function showWithdrawalPreview(amountUSD) {
-  var preview = document.getElementById('wd-currency-preview');
-  if (!preview) return;
-  var userCurrency = getUserCurrency();
-  var symbol = CURRENCY_SYMBOLS[userCurrency] || userCurrency + ' ';
-  preview.textContent = 'Converting...';
-  getExchangeRate('USD', userCurrency, function(rate) {
-    var converted = (amountUSD * rate);
-    preview.textContent = '$' + amountUSD + ' USD = ' + symbol + converted.toLocaleString(undefined,{maximumFractionDigits:2}) + ' ' + userCurrency;
-    preview.style.color = 'var(--green3)';
+  var preview=document.getElementById('wd-currency-preview'); if(!preview)return;
+  var currency=getUserCurrency(), symbol=CURRENCY_SYMBOLS[currency]||currency+' ';
+  getExchangeRate('USD',currency,function(rate){
+    var converted=amountUSD*rate;
+    getWdSubscriptionStatus().then(function(status){
+      var waived=!!(status&&status.hasActivePaidSubscription), fee=waived?0:amountUSD*0.02, net=amountUSD-fee;
+      var disclosure=waived?'Active paid subscription: 2% withdrawal fee waived.':'2% withdrawal fee: $'+fee.toFixed(2)+'; expected net: $'+net.toFixed(2)+'. Any active paid subscription waives this fee.';
+      preview.textContent='$'+amountUSD.toFixed(2)+' gross requested ('+symbol+converted.toLocaleString(undefined,{maximumFractionDigits:2})+' '+currency+'). '+disclosure;
+      preview.style.color='var(--green3)';
+    });
   });
 }
-
-
-
 // MINDVORA NEW FEATURES v2.0
 // Follow/Unfollow · Typing · Read Receipts · Post Views
 // Block User · Report Post · Profile Edit · Mentions
