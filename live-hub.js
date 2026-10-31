@@ -46,7 +46,7 @@
     { id: 'brazilian-jiu-jitsu', name: 'Brazilian Jiu-Jitsu' }, { id: 'sumo', name: 'Sumo' }, { id: 'fencing', name: 'Fencing' },
     { id: 'motorsport', name: 'Motorsport' }
   ];
-  function dstr(off) { var d = new Date(Date.now() + off * 86400000); return d.toISOString().slice(0, 10); }
+  function dstr(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function statusLabel(m) { return m.live ? '<span style="color:#ef4444;font-weight:700">● LIVE</span>' : esc(m.statusLabel || new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
   function score(v) { return v == null ? '–' : esc(v); }
   function sportScheduleLinks() {
@@ -66,13 +66,15 @@
     };
     return links[selectedSport] || [];
   }
-  function emptySportsMessage() {
+  function emptySportsMessage(sourceUnavailable) {
     var name = (sportCatalog.filter(function (s) { return s.id === selectedSport; })[0] || {}).name || 'This sport';
     var links = sportScheduleLinks().map(function (x) { return '<a class="mv-sports-link" href="' + safeUrl(x[1]) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:10px 6px 0 0;text-decoration:underline">' + esc(x[0]) + ' ↗</a>'; }).join('');
-    return msg('📅', name + ' has no scoreboard events returned for this date', 'Use an official schedule or watch page below; events vary by competition calendar and region.') + '<div style="text-align:center;padding:0 10px 25px">' + links + '</div>';
+    var heading = sourceUnavailable ? name + ' event feed is temporarily unavailable' : name + ' has no scheduled events for this date';
+    var detail = sourceUnavailable ? 'The score feed did not respond. Check the official schedule below and try again shortly.' : 'Some sports, especially combat sports, do not have events every day. Check another date or the official schedule below.';
+    return msg(sourceUnavailable ? '⚠️' : '📅', heading, detail) + '<div style="text-align:center;padding:0 10px 25px">' + links + '</div>';
   }
   function eventCard(m) {
-    var links = (m.watch || []).map(function (w) { return '<a class="mv-sports-link" href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:7px 8px 0 0;font-size:11px">▶ ' + esc(w.name) + ' ↗</a>'; }).join('');
+    var links = (m.watch || []).map(function (w) { return '<a class="mv-sports-link" href="' + safeUrl(w.url) + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;margin:7px 8px 0 0;font-size:11px">' + esc(w.name) + ' ↗</a>'; }).join('');
     return '<div style="display:block;width:100%;text-align:left;color:inherit;background:none;border:1px solid var(--border,rgba(255,255,255,.1));border-radius:12px;padding:10px 12px;margin-top:8px">' +
       '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
       '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
@@ -83,11 +85,11 @@
     var body = m.querySelector('[data-body]'), meta = m.querySelector('[data-meta]');
     if (!quiet) body.innerHTML = msg('🏟️', 'Loading ' + (sportCatalog.filter(function (s) { return s.id === selectedSport; })[0] || {}).name + '…');
     getJSON('/api/sports/events?sport=' + encodeURIComponent(selectedSport) + '&date=' + sportDate).then(function (d) {
-      meta.textContent = 'Updated ' + new Date(d.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (d.stale ? ' (delayed)' : '');
-      if (!d.events.length) { body.innerHTML = emptySportsMessage(); return; }
+      meta.textContent = 'Updated ' + new Date(d.fetchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + (d.source ? ' · ' + d.source : '') + (d.stale ? ' (delayed)' : '');
+      if (!d.events.length) { body.innerHTML = emptySportsMessage(!!d.sourceUnavailable); return; }
       var head = d.live ? '<div style="margin-top:8px;font-size:12px;color:#ef4444;font-weight:700">' + d.live + ' live now</div>' : '';
       m._sportEvents = {}; d.events.forEach(function (e) { m._sportEvents[e.id] = e; });
-      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Choose an official broadcaster or competition link above to watch the live event. The link opens in a new tab.</p>';
+      body.innerHTML = head + d.events.map(eventCard).join('') + '<p style="font-size:11px;opacity:.55;margin-top:14px">Open an official broadcaster or event-organizer page above for viewing options. Live rights and availability vary by country.</p>';
     }).catch(function (e) { if (!quiet) body.innerHTML = msg('⚠️', 'Sports are unavailable right now', e.message); });
   }
   window.openLiveSports = function () {

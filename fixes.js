@@ -452,9 +452,9 @@ function injectSocialFeatures() {
   window.postStory = function postStory(){ var text=prompt('Share a story (disappears in 48h):'); if(!text||!text.trim()||!state.user) return; db.collection('stories').add({text:text.trim(),uid:state.user.uid,authorId:state.user.uid,authorName:state.profile.name,authorHandle:state.profile.handle,authorColor:state.profile.color,seenBy:[],createdAt:firebase.firestore.FieldValue.serverTimestamp(),expiresAt:new Date(Date.now()+48*60*60*1000)}).then(function(){ showToast('Story posted! 48h ⏱'); loadStories(); }); };
 })();
 
-// ROUND 6 — LIVE FOOTBALL + ANIME MOVIES menu entries (index.html stays untouched; panels live in live-hub.js)
+// ROUND 6 — LIVE FOOTBALL + ANIME MOVIES menu entries (panels live in live-hub.js)
 (function(){
-  var sc = document.createElement('script'); sc.src = '/live-hub.js?v=1'; sc.defer = true; document.head.appendChild(sc);
+  var sc = document.createElement('script'); sc.src = '/live-hub.js?v=2'; sc.defer = true; document.head.appendChild(sc);
   function run(name) {
     try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
     if (typeof window[name] === 'function') return window[name]();
@@ -468,8 +468,9 @@ function injectSocialFeatures() {
     if (document.getElementById('mv-dr-football')) return;
     var anchor = document.querySelector('.drawer-item[onclick*="openMindvoraTV"]') || document.querySelector('.drawer-item[onclick*="openSoundboard"]');
     if (!anchor) return;
-    [['mv-dr-anime', 'openAnimeMovies', '🎬 Stream Live Anime Movies'], ['mv-dr-football', 'openLiveSports', '🏟️ Stream Live Sports']].forEach(function (d) {
-      var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = d[0]; b.textContent = d[2];
+    [['mv-dr-anime', 'openAnimeMovies', 'anime', 'Stream Live Anime Movies'], ['mv-dr-football', 'openLiveSports', 'sports', 'Stream Live Sports']].forEach(function (d) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = d[0];
+      b.innerHTML = (window.mvDrawerIcon ? window.mvDrawerIcon(d[2]) : '') + '<span>' + d[3] + '</span>';
       b.addEventListener('click', function () { run(d[1]); });
       anchor.parentNode.insertBefore(b, anchor.nextSibling);
     });
@@ -572,9 +573,9 @@ function injectSocialFeatures() {
 // Advertise run by the server (Oct 7): verified payments, exact unique views, auto-moderation + auto-refund, live admin alerts.
 (function(){ var sc = document.createElement('script'); sc.src = '/ads-v2.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();
 
-// ROUND 9 — "📰 Stream Live News" (directly under Stream Live Anime Movies, 10 official channels) +
+// ROUND 9 — Stream Live News (directly under Stream Live Anime Movies, 10 official channels) +
 // owner referral switch that saves via the backend and notifies every user when turned ON.
-(function(){ var sc = document.createElement('script'); sc.src = '/live-news.js?v=3'; sc.defer = true; document.head.appendChild(sc); })();
+(function(){ var sc = document.createElement('script'); sc.src = '/live-news.js?v=4'; sc.defer = true; document.head.appendChild(sc); })();
 
 // ROUND 10 — personalised "For You" ranking of the All feed (learns from watch time, re-watches, likes, comments, saves, shares).
 (function(){ var sc = document.createElement('script'); sc.src = '/for-you.js?v=1'; sc.defer = true; document.head.appendChild(sc); })();

@@ -9863,6 +9863,20 @@ function adaptVideoDisplay(video) {
 
   var blur = wrap.querySelector('.sk-media-blur');
 
+  // Wide screens have room to show the complete frame; the former 340px/cover
+  // landscape cap could cut off post videos on laptops and desktop monitors.
+  var wideScreen = window.matchMedia ? window.matchMedia('(min-width: 1024px)').matches : window.innerWidth >= 1024;
+  if (wideScreen) {
+    var fullFrameMax = Math.min(900, Math.max(340, Math.round(window.innerHeight * 0.82)));
+    wrap.style.maxHeight = fullFrameMax + 'px';
+    wrap.style.background = '#000';
+    if (blur) blur.style.display = 'none';
+    video.style.objectFit = 'contain';
+    video.style.maxHeight = fullFrameMax + 'px';
+    video.style.width = '100%';
+    return;
+  }
+
   if (ratio < 0.8) {
 // PORTRAIT video (tall like TikTok/Reels 9:16)
 // Blur background fills wrap, video centered

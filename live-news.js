@@ -2,7 +2,7 @@
  * MINDVORA — STREAM LIVE NEWS + OWNER REFERRAL SWITCH  ·  live-news.js  (loaded from fixes.js)
  *
  * 1) "📰 Stream Live News" in the slide-out menu, directly under "🎬 Stream Live Anime Movies".
- *    10 official 24/7 news channels (8 international, 2 Nigerian), list served by the backend
+ *    10 official 24/7 news channels (7 international, 3 Nigerian), list served by the backend
  *    (/api/news/live) which keeps each channel's current live stream ID fresh. Played with
  *    YouTube's official embed player — the broadcasters' own streams, nothing re-hosted.
  *
@@ -20,7 +20,7 @@
   // ── LIVE NEWS ───────────────────────────────────────────────────────
   var FALLBACK = [
     ['aljazeera', 'Al Jazeera English', 'Qatar', 'world', 'UCNye-wNBqNL5ZzHSJj3l8Bg', 'gCNeDWCI0vo'],
-    ['bbc', 'BBC News', 'United Kingdom', 'world', 'UC16niRr50-MSBwiO3YDb3RA', '-NabWfv-VdA'],
+    ['tvc', 'TVC News Nigeria', 'Nigeria', 'nigeria', 'UCgp4A6I8LCWrhUzn-5SbKvA', 'b-Yzp0l8cAM'],
     ['sky', 'Sky News', 'United Kingdom', 'world', 'UCoMdktPbSTixAyNGwb-UYkQ', 'umLWFz4izTM'],
     ['dw', 'DW News', 'Germany', 'world', 'UCknLrEdhRCp1aegoMqRaCZg', 'LuKwFajn37U'],
     ['france24', 'FRANCE 24 English', 'France', 'world', 'UCQfwfsi5VrQ8yKZ-UWmAEFg', 'HvZt-nh9sGg'],
@@ -48,7 +48,7 @@
       '<b style="flex:1;font-size:16px">📰 Live News</b><span style="font-size:11px;color:#ef4444;font-weight:700">● LIVE</span></div>' +
       '<div data-player style="background:#000;display:none"><div style="position:relative;width:100%;max-width:calc(50vh * 16 / 9);margin:0 auto;aspect-ratio:16/9"><iframe data-if title="Live news" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen style="position:absolute;inset:0;width:100%;height:100%;border:0"></iframe></div>' +
       '<div data-now style="padding:8px 12px;font-size:13px;background:var(--bg2,#111)"></div></div>' +
-      '<div data-tools style="padding:8px 12px">' + [['all', 'All (10)'], ['world', '🌍 International (8)'], ['nigeria', '🇳🇬 Nigeria (2)']].map(function (r) {
+      '<div data-tools style="padding:8px 12px">' + [['all', 'All (10)'], ['world', '🌍 International (7)'], ['nigeria', '🇳🇬 Nigeria (3)']].map(function (r) {
         return '<button type="button" data-r="' + r[0] + '" style="margin-right:6px;padding:6px 12px;border-radius:16px;border:1px solid var(--border,rgba(255,255,255,.15));background:' + (r[0] === 'all' ? 'var(--green,#16a34a)' : 'transparent') + ';color:inherit;font-size:12px">' + r[1] + '</button>';
       }).join('') + '</div>' +
       '<div data-body style="flex:1;overflow-y:auto;padding:0 12px 24px;-webkit-overflow-scrolling:touch"></div>';
@@ -120,7 +120,8 @@
     if (document.getElementById('mv-dr-news')) return true;
     var anime = document.getElementById('mv-dr-anime');
     if (!anime) return false;
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-news'; b.textContent = '📰 Stream Live News';
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-news';
+    b.innerHTML = (window.mvDrawerIcon ? window.mvDrawerIcon('news') : '') + '<span>Stream Live News</span>';
     b.addEventListener('click', function () { try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {} window.openLiveNews(); });
     anime.parentNode.insertBefore(b, anime.nextSibling);
     return true;

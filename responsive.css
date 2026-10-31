@@ -24,6 +24,44 @@ body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-ins
   .dm-left { width: 300px; }
 }
 
+/* Larger displays: keep the entire post media visible and avoid stretched feed cards. */
+@media (min-width: 1024px) {
+  .sk-media-img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: min(82vh, 900px);
+    background: #000;
+  }
+  .sk-media-img-wrap > .sk-media {
+    width: 100% !important;
+    height: auto !important;
+    max-height: min(82vh, 900px) !important;
+    object-fit: contain !important;
+    object-position: center;
+  }
+  .sk-media-wrap { max-height: min(82vh, 900px) !important; }
+  .sk-media-wrap > .sk-media-main {
+    max-height: min(82vh, 900px) !important;
+    object-fit: contain !important;
+    object-position: center;
+  }
+}
+
+@media (min-width: 1200px) {
+  .app-body { justify-content: center; }
+  .feed-col {
+    flex: 0 1 900px !important;
+    width: min(900px, calc(100% - 300px)) !important;
+    max-width: 900px !important;
+    min-width: 0 !important;
+    padding: 20px 24px 32px !important;
+  }
+  .right-sidebar { flex: 0 0 280px !important; width: 280px !important; max-width: 280px !important; }
+  .compose-box { margin: 0 0 14px !important; border: 1px solid var(--border) !important; border-radius: 18px !important; }
+  .spark-card { margin: 0 0 14px !important; border: 1px solid var(--border) !important; border-radius: 18px !important; }
+}
+
 /* ── Tablet ──────────────────────────────────────────────────────────── */
 @media (min-width: 641px) and (max-width: 1024px) {
   .sidebar { width: 72px; padding: 10px 6px; }

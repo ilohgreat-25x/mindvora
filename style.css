@@ -1086,6 +1086,8 @@ img, video { max-width: 100%; height: auto; }
   transition: background .15s;
   border-radius: 0;
 }
+.drawer-icon-defs { position: absolute !important; width: 0 !important; height: 0 !important; overflow: hidden !important; pointer-events: none !important; }
+.drawer-item .drawer-icon { display: inline-block; width: 18px; height: 18px; flex: 0 0 18px; color: currentColor; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
 .drawer-item:hover, .drawer-item:active {
   background: var(--deep);
   color: var(--green3);
