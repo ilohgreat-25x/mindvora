@@ -198,3 +198,84 @@ body.light-mode nav.bottom-nav .nav-item.active, body.light nav.bottom-nav .nav-
   box-shadow: inset 0 2px 0 rgba(117, 69, 43, .18) !important;
 }
 body.light-mode .bottom-nav .nav-ic, body.light .bottom-nav .nav-ic { color: inherit !important; }
+
+/* Phones: keep the feed inside the viewport with equal, safe-area-aware gutters. */
+@media (max-width: 767px) {
+  html, body { width: 100%; max-width: 100%; margin: 0; overflow-x: hidden; }
+  #app-screen, .app-body { width: 100%; max-width: 100%; min-width: 0; overflow-x: hidden !important; }
+  .feed-col {
+    flex: 1 1 0% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 calc(10px + env(safe-area-inset-right, 0px)) calc(84px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-left, 0px)) !important;
+    overflow-x: hidden !important;
+  }
+  .spark-card, .compose-box {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 12px !important;
+    border-left: 1px solid var(--border) !important;
+    border-right: 1px solid var(--border) !important;
+    border-radius: 15px !important;
+  }
+  .stories-bar, .filter-bar { box-sizing: border-box; width: 100%; max-width: 100%; margin-left: 0; margin-right: 0; }
+  .sk-head, .sk-actions { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+  .sk-name, .sk-handle, .sk-body { max-width: 100%; overflow-wrap: anywhere; }
+  .sk-actions .s-btn { max-width: 100%; min-width: 0; }
+  .sk-media-img-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    max-width: 100%;
+    max-height: min(72vh, 560px);
+    border-radius: 12px !important;
+    background: #000;
+  }
+  .sk-media-img-wrap > .sk-media {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 560px !important;
+    max-height: min(72vh, 560px) !important;
+    object-fit: contain !important;
+    object-position: center;
+  }
+  .sk-media-wrap {
+    width: 100% !important;
+    max-width: 100%;
+    max-height: 560px !important;
+    max-height: min(72vh, 560px) !important;
+    border-radius: 12px !important;
+  }
+  .sk-media-wrap > .sk-media-main {
+    max-width: 100% !important;
+    max-height: 560px !important;
+    max-height: min(72vh, 560px) !important;
+    object-fit: contain !important;
+    object-position: center;
+  }
+}
+
+.mv-install-guide-backdrop {
+  position: fixed; inset: 0; z-index: 100005; display: grid; place-items: center;
+  padding: 16px; background: rgba(2, 8, 17, .76); backdrop-filter: blur(8px);
+}
+.mv-install-guide-dialog {
+  position: relative; width: min(520px, 100%); max-height: min(86vh, 820px); overflow: auto;
+  padding: 24px; border: 1px solid var(--border, rgba(255,255,255,.18)); border-radius: 18px;
+  background: var(--card, #102139); color: var(--white, #f4f8ff); box-shadow: var(--shadow, 0 18px 60px rgba(0,0,0,.4));
+}
+.mv-install-guide-dialog h2 { margin: 0 36px 10px 0; font-size: 19px; }
+.mv-install-guide-dialog h3 { margin: 16px 0 5px; font-size: 14px; color: var(--green3, #d8ff67); }
+.mv-install-guide-dialog p, .mv-install-guide-dialog li { font-size: 13px; line-height: 1.6; }
+.mv-install-guide-dialog ol { padding-left: 20px; margin: 8px 0; }
+.mv-install-guide-close {
+  position: absolute; top: 10px; right: 10px; min-width: 40px; min-height: 40px;
+  border: 1px solid var(--border, rgba(255,255,255,.18)); border-radius: 10px;
+  background: transparent; color: inherit; font-size: 22px; cursor: pointer;
+}

@@ -10,7 +10,7 @@
 <title>Mindvora — Where Minds Connect</title>
 
 <meta name="theme-color" content="#07111f">
-<link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/manifest.json?v=2">
 <meta name="application-name" content="Mindvora">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -40,7 +40,7 @@
 <script src="https://upload-widget.cloudinary.com/global/all.js" defer></script>
 <link rel="stylesheet" href="auth.css">
 <link rel="stylesheet" href="style.css?v=2">
-<link rel="stylesheet" href="responsive.css?v=8">
+<link rel="stylesheet" href="responsive.css?v=9">
 <style id="mv-adv-search-css">#modal-adv-search input,#adv-search-inp,body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important;opacity:1}</style>
 </head>
 <body>
@@ -4218,6 +4218,7 @@
     <button class="drawer-item" onclick="openLanguage();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-language"></use></svg>Language</button>
     <button class="drawer-item" onclick="toggleAccessibility();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-accessibility"></use></svg>Accessibility</button>
     <button class="drawer-item" onclick="openSupportModal();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-support"></use></svg>Contact Support</button>
+    <button class="drawer-item" type="button" onclick="installMindvoraApp();closeDrawer()"><svg class="drawer-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11m-5-5 5 5 5-5M5 16v4h14v-4"/></svg>Install Mindvora</button>
     <button class="drawer-item" id="drawer-admin-btn" style="display:none" onclick="document.getElementById('nav-admin').click();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-admin"></use></svg>Admin Panel</button>
     <button class="drawer-item" id="drawer-referral-btn" style="display:none" onclick="toggleReferralSystem();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-referral"></use></svg>Referral: <span id="drawer-referral-lbl">ON</span></button>
     <button class="drawer-item" onclick="confirmDeleteAccount();closeDrawer()" style="color:#fca5a5"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-delete"></use></svg>Delete Account</button>
@@ -4245,7 +4246,7 @@
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
 <script src="media-quota.js"></script>
-<script src="script.js?v=20"></script>
+<script src="script.js?v=21"></script>
 <script src="aria-ui.js?v=1"></script>
 <script src="settings.js?v=6"></script>
 <script src="search-fix.js?v=1"></script>

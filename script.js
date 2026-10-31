@@ -7250,7 +7250,7 @@ document.addEventListener('touchstart', function(e) {
   }
 }, {passive:true});
 
-// IntersectionObserver: autoplay when scrolled into view, pause when out
+// Autoplay only after explicit opt-in; pause playing videos when they leave view.
 if('IntersectionObserver' in window) {
   var vidObserver = new IntersectionObserver(function(entries){
     entries.forEach(function(entry){
@@ -7258,11 +7258,11 @@ if('IntersectionObserver' in window) {
       if(!vid.dataset || !vid.dataset.vid) return;
       applySmartBlur(vid);
       if(entry.isIntersecting && entry.intersectionRatio > 0.6) {
-        if(window.MVSettings && window.MVSettings.get && window.MVSettings.get('autoplay') === false) return;
+        if(!window.MVSettings || !window.MVSettings.get || window.MVSettings.get('autoplay') !== true) return;
 // Only autoplay if no other video is playing
         var anyPlaying = Array.from(document.querySelectorAll('.sk-media-main')).some(function(v){ return !v.paused; });
         if(!anyPlaying) {
-          vid.muted = true; // autoplay requires muted
+          vid.muted = false; // Never silently mute user-posted video; audio autoplay remains browser-policy dependent.
           vid.play().catch(function(){});
           updateVidBtn(vid);
           var wrap = vid.closest('.sk-media-wrap');
@@ -11834,6 +11834,44 @@ setInterval(function(){
 // PWA INSTALL PROMPT
 var deferredPrompt = null;
 var installPromptShown = false;
+function showMindvoraInstallGuide() {
+  if (document.getElementById('mv-install-guide')) return;
+  var overlay = document.createElement('div');
+  overlay.id = 'mv-install-guide';
+  overlay.className = 'mv-install-guide-backdrop';
+  overlay.innerHTML = '<section class="mv-install-guide-dialog" role="dialog" aria-modal="true" aria-labelledby="mv-install-guide-title" tabindex="-1">' +
+    '<button class="mv-install-guide-close" type="button" aria-label="Close installation guide" data-mv-install-close>×</button>' +
+    '<h2 id="mv-install-guide-title">Use Mindvora as an app</h2>' +
+    '<p>Mindvora is an installable web app for Windows, Linux, macOS, iPhone and Android. It uses the same account and secure website; a separate desktop installer is not required.</p>' +
+    '<h3>Windows and Linux</h3><ol><li>Open Mindvora in Chrome or Edge.</li><li>Choose the install icon in the address bar, or open the browser menu and select <strong>Install Mindvora</strong> (sometimes under “Save and share”).</li></ol>' +
+    '<h3>macOS</h3><ol><li>In Chrome or Edge, use the browser menu to install Mindvora.</li><li>In a supported version of Safari, use <strong>File → Add to Dock</strong>.</li></ol>' +
+    '<h3>iPhone and Android</h3><ol><li>On iPhone or iPad Safari, choose Share, then Add to Home Screen.</li><li>On Android Chrome, use the browser menu and choose Install app or Add to Home screen.</li></ol>' +
+    '<p>Other desktop browsers can still use Mindvora directly in the browser. Online features require an internet connection.</p>' +
+    '</section>';
+  function closeGuide() { overlay.remove(); }
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay || (e.target.closest && e.target.closest('[data-mv-install-close]'))) closeGuide();
+  });
+  overlay.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeGuide(); });
+  document.body.appendChild(overlay);
+  var dialog = overlay.querySelector('.mv-install-guide-dialog');
+  if (dialog) dialog.focus();
+}
+window.installMindvoraApp = function() {
+  var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  if (standalone) { showToast('Mindvora is already installed.'); return; }
+  if (!deferredPrompt) { showMindvoraInstallGuide(); return; }
+  var promptEvent = deferredPrompt;
+  deferredPrompt = null;
+  try {
+    promptEvent.prompt();
+    promptEvent.userChoice.then(function(choice) {
+      if (choice && choice.outcome === 'accepted') installPromptShown = true;
+    }).catch(function(){});
+  } catch (e) {
+    showMindvoraInstallGuide();
+  }
+};
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault();
   deferredPrompt = e;
@@ -11841,19 +11879,12 @@ window.addEventListener('beforeinstallprompt', function(e){
   setTimeout(function(){
     if (installPromptShown) return;
     installPromptShown = true;
-    showToast('📲 Install Mindvora on your device for the full app experience!');
+    showToast('Install Mindvora from the menu for a desktop or mobile app experience.');
   }, 12000);
 });
 window.addEventListener('appinstalled', function(){
   deferredPrompt = null;
   installPromptShown = true;
-  showToast('✅ Mindvora installed! Enjoy! 🌿');
+  showToast('Mindvora is installed and ready to use.');
 });
-window.addEventListener('install-prompt-request', function(){
-  if (!deferredPrompt) { showToast('⚠️ Your browser does not support installation. Open via Chrome on Android or Safari on iPhone.'); return; }
-  deferredPrompt.prompt();
-  deferredPrompt.userChoice.then(function(){
-    deferredPrompt = null;
-    installPromptShown = true;
-  });
-});
+window.addEventListener('install-prompt-request', window.installMindvoraApp);
