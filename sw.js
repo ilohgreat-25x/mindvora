@@ -14,11 +14,12 @@ firebase.initializeApp({
   appId:             "1:720726547858:web:3175ba8d0b7c987e31754b"
 });
 
-const CACHE = 'mindvora-v34';
+const CACHE = 'mindvora-v35';
 const OFFLINE_URL = '/';
 const MAX_ENTRIES = 40;              // keeps the cache to a few MB instead of growing forever
-const SHELL = ['/', '/index.html', '/manifest.json?v=2', '/style.css?v=2', '/auth.css', '/responsive.css?v=9',
-               '/script.js?v=21', '/aria-ui.js?v=1', '/fixes.js?v=8', '/calls.js?v=19', '/app-update.js?v=7', '/icons/icon-192.png'];
+const SHELL = ['/', '/index.html', '/manifest.json?v=2', '/style.css?v=2', '/auth.css', '/responsive.css?v=10',
+               '/script.js?v=21', '/aria-ui.js?v=1', '/fixes.js?v=8', '/calls.js?v=19', '/app-update.js?v=7',
+               '/drawer-return.js?v=1', '/icons/icon-192.png'];
 
 self.addEventListener('install', function(e) {
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(SHELL).catch(function(){}); })
@@ -132,4 +133,3 @@ self.addEventListener('message', function(e) {
     self.skipWaiting();
   }
 });
-

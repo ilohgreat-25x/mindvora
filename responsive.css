@@ -62,6 +62,30 @@ body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-ins
   .spark-card { margin: 0 0 14px !important; border: 1px solid var(--border) !important; border-radius: 18px !important; }
 }
 
+/* Desktop: use the available screen width instead of centering a narrow feed. */
+@media (min-width: 1200px) {
+  .app-body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    justify-content: flex-start !important;
+  }
+  .feed-col {
+    flex: 1 1 0% !important;
+    width: 0 !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 20px clamp(14px, 1.75vw, 24px) 32px !important;
+  }
+  .right-sidebar {
+    flex: 0 0 280px !important;
+    width: 280px !important;
+    max-width: 280px !important;
+    margin: 0 !important;
+  }
+}
+
 /* ── Tablet ──────────────────────────────────────────────────────────── */
 @media (min-width: 641px) and (max-width: 1024px) {
   .sidebar { width: 72px; padding: 10px 6px; }
