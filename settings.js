@@ -295,9 +295,9 @@
     var body = ensureModal().querySelector('#mv-settings-body');
     body.innerHTML = '<section class="mv-settings-section"><h3>Privacy & presence</h3>' +
       settingRow('appLock', 'App Lock', 'Require a PIN/password or supported device biometric when Mindvora opens. Private-message locking is controlled separately by Lock Chat in each conversation.') +
-      settingRow('seenMark', 'SeenMark', 'Show read receipts and mark incoming messages as read when a chat opens.') +
+      settingRow('seenMark', 'SeenMark', 'Share and show read receipts; turning this off also disables typing status and prevents messages from being marked read.') +
       settingRow('onlineVisibility', 'Online visibility', 'Let other people see when you are online.') +
-      settingRow('typingIndicator', 'Typing indicator', 'Show typing activity in conversations.') + '</section>' +
+      settingRow('typingIndicator', 'Typing indicator', 'Show typing activity only when SeenMark is enabled.') + '</section>' +
       '<section class="mv-settings-section"><h3>Subscription billing</h3><div id="mv-billing-status"><p class="mv-settings-help">Checking subscription status…</p></div></section>' +
       '<section class="mv-settings-section"><h3>Notifications</h3>' +
       settingRow('notifications', 'Notifications', 'Allow Mindvora notifications.') +

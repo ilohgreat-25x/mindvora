@@ -6,9 +6,60 @@
 (function () {
   'use strict';
   if (window.MVChatActions || typeof window.openChat !== 'function') return;
+  var liveSeenUnsub = null, seenPending = Object.create(null);
+  function seenMarkEnabled() { return !window.MVSettings || typeof window.MVSettings.get !== 'function' || window.MVSettings.get('seenMark') !== false; }
+  function dmIsVisible(dmId) {
+    var modal = document.getElementById('modal-dm'), wrap = modal && modal.querySelector('.dm-wrap');
+    var box = document.getElementById('cm-' + dmId), settings = document.getElementById('modal-settings');
+    if (!seenMarkEnabled() || document.hidden || !modal || !modal.classList.contains('open') || !wrap || !wrap.classList.contains('chat-open') || !box) return false;
+    if (settings && settings.classList.contains('open')) return false;
+    var overlays = document.querySelectorAll('.modal-overlay.open');
+    for (var i = 0; i < overlays.length; i++) if (overlays[i].id !== 'modal-dm') return false;
+    var r = box.getBoundingClientRect(); return r.width > 0 && r.height > 0;
+  }
+  function stopLiveSeen() { if (liveSeenUnsub) { try { liveSeenUnsub(); } catch (e) {} liveSeenUnsub = null; } }
+  function startLiveSeen(dmId, otherId) {
+    stopLiveSeen();
+    if (!seenMarkEnabled() || !dmId || !otherId || !fdb()) return;
+    var box = document.getElementById('cm-' + dmId), lastSnap = null, timer = null;
+    if (!box) return;
+    function clearPending(ids) { ids.forEach(function (id) { delete seenPending[id]; }); }
+    function markVisible() {
+      if (!lastSnap || !lastSnap.docs.length || !dmIsVisible(dmId)) return;
+      var bounds = box.getBoundingClientRect(), visible = Object.create(null), ids = [];
+      box.querySelectorAll('.msg[data-mid]').forEach(function (el) {
+        var r = el.getBoundingClientRect();
+        if (r.bottom > bounds.top && r.top < bounds.bottom && r.bottom > 0 && r.top < window.innerHeight) visible[el.getAttribute('data-mid')] = true;
+      });
+      var batch = fdb().batch(), count = 0;
+      lastSnap.docs.forEach(function (doc) {
+        if (!visible[doc.id]) return;
+        var key = dmId + '/' + doc.id;
+        if (seenPending[key]) return;
+        seenPending[key] = true; ids.push(key); count++;
+        batch.update(doc.ref, { read: true, readAt: SV() });
+      });
+      if (!count) return;
+      batch.commit().then(function () { clearPending(ids); }).catch(function () { clearPending(ids); });
+    }
+    function scheduleMark() { clearTimeout(timer); timer = setTimeout(markVisible, 120); }
+    var queryUnsub = fdb().collection('dms').doc(dmId).collection('messages')
+      .where('fromId', '==', otherId).where('read', '==', false)
+      .onSnapshot(function (snap) { lastSnap = snap; scheduleMark(); }, function (err) { console.warn('[chat] SeenMark listener', err); });
+    box.addEventListener('scroll', scheduleMark, { passive: true });
+    window.addEventListener('focus', scheduleMark);
+    document.addEventListener('visibilitychange', scheduleMark);
+    var visibilityObserver = new MutationObserver(scheduleMark);
+    visibilityObserver.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
+    liveSeenUnsub = function () {
+      clearTimeout(timer); try { queryUnsub(); } catch (e) {}
+      box.removeEventListener('scroll', scheduleMark); window.removeEventListener('focus', scheduleMark);
+      document.removeEventListener('visibilitychange', scheduleMark); visibilityObserver.disconnect();
+    };
+  }
   var baseOpen = function(dmId,otherId,otherName,otherColor){ if(state.user) watchDMForScam(dmId, otherId);
 // Mark all unread messages from other user as read
-  if(state.user) {
+  if(state.user && seenMarkEnabled()) {
     db.collection('dms').doc(dmId).collection('messages')
       .where('fromId','==',otherId)
       .where('read','==',false)
@@ -31,13 +82,13 @@
       '</div>' : '';
 // Read receipts — show ticks on sender's messages
     var readReceipt = '';
-    if (mine) {
+    if (mine && seenMarkEnabled()) {
       if (m.read) {
 // Double blue tick — message was read
-        readReceipt = '<span style="color:#22c55e;font-size:11px;margin-left:4px" title="Read">✓✓</span>';
+        readReceipt = '<span class="mv-read-receipt" style="color:#22c55e;font-size:11px;margin-left:4px" title="Read">✓✓</span>';
       } else {
 // Single grey tick — sent but not read
-        readReceipt = '<span style="color:var(--muted);font-size:11px;margin-left:4px" title="Sent">✓</span>';
+        readReceipt = '<span class="mv-read-receipt" style="color:var(--muted);font-size:11px;margin-left:4px" title="Sent">✓</span>';
       }
     }
     var quote = (m.replyTo && m.replyTo.id) ? '<div class="mv-quote" data-to="'+esc(m.replyTo.id)+'"><b>'+esc(m.replyTo.name||'')+'</b> '+esc(m.replyTo.text||'')+'</div>' : '';
@@ -312,6 +363,7 @@
     return ready(dmId).then(function (d) {
       function go() {
         baseOpen.apply(self, args);
+        startLiveSeen(dmId, otherId);
         if (d[key('unread')]) { var o = {}; o[key('unread')] = false; upd(dmId, o).catch(function () {}); }
         decorate();
       }
@@ -319,6 +371,14 @@
       go();
     });
   };
+  var lastSeenMark = seenMarkEnabled();
+  document.addEventListener('mv:settings-changed', function () {
+    var enabled = seenMarkEnabled();
+    if (enabled === lastSeenMark) return;
+    lastSeenMark = enabled;
+    document.querySelectorAll('.mv-read-receipt').forEach(function (el) { el.style.display = enabled ? '' : 'none'; });
+    if (enabled && cur) startLiveSeen(cur.dmId, cur.otherId); else stopLiveSeen();
+  });
 
   // ── conversation list filters ───────────────────────────────────────
   function listed(id, dm) {

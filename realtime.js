@@ -15,6 +15,7 @@
   function h(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
   function toastMsg(t) { if (typeof showToast === 'function') showToast(t); }
   function pref(name, fallback) { return window.MVSettings && typeof MVSettings.get === 'function' ? MVSettings.get(name) : fallback; }
+  function statusEnabled() { return pref('seenMark', true) !== false && pref('typingIndicator', true) !== false; }
 
   // ── instant messages ────────────────────────────────────────────────
   var origSend = window.sendMsg;
@@ -34,14 +35,20 @@
     if (window.MVChatActions && MVChatActions.blocked(m.from || other(m.dmId))) return; // I blocked the sender
     var box = document.getElementById('cm-' + m.dmId);
     hideTyping(m.dmId);
-    if (box) {
+    var modal = document.getElementById('modal-dm'), wrap = modal && modal.querySelector('.dm-wrap');
+    var settings = document.getElementById('modal-settings'), active = !!(box && !document.hidden && modal && modal.classList.contains('open') && wrap && wrap.classList.contains('chat-open') && !(settings && settings.classList.contains('open')));
+    if (active) {
+      var overlays = document.querySelectorAll('.modal-overlay.open');
+      for (var i = 0; i < overlays.length; i++) if (overlays[i].id !== 'modal-dm') active = false;
+    }
+    if (active) {
       // Shown at once; the saved copy replaces it a moment later when the chat refreshes.
       var el = document.createElement('div');
       el.className = 'msg';
       el.innerHTML = '<div class="msg-av" style="background:' + h(m.color || '#555') + '">' + h((m.name || 'U').charAt(0)) + '</div>' +
         '<div><div class="msg-bub">' + h(m.text) + '</div><div class="msg-t">now</div></div>';
       box.appendChild(el); box.scrollTop = box.scrollHeight;
-    } else if (!(window.MVChatActions && MVChatActions.isMuted(m.dmId))) {
+    } else if (!(window.MVChatActions && MVChatActions.isMuted(m.dmId)) && pref('notifications', true) && pref('messageNotifications', true)) {
       toastMsg('💬 ' + (m.name || 'New message') + ': ' + String(m.text || '').slice(0, 80));
     }
   }
@@ -50,12 +57,12 @@
   var lastTypingSent = {}, stopTimers = {}, hideTimers = {};
   function typingStop(dmId) {
     clearTimeout(stopTimers[dmId]);
-    if (!pref('typingIndicator', true)) { lastTypingSent[dmId] = 0; return; }
-    if (lastTypingSent[dmId]) { lastTypingSent[dmId] = 0; var o = other(dmId); if (o) send({ type: 'RT_TYPING', to: o, dmId: dmId, stop: true }); }
+    var wasTyping = !!lastTypingSent[dmId]; lastTypingSent[dmId] = 0;
+    if (wasTyping) { var o = other(dmId); if (o) send({ type: 'RT_TYPING', to: o, dmId: dmId, stop: true }); }
   }
   document.addEventListener('input', function (e) {
     var t = e.target; if (!t || !t.id || t.id.indexOf('ci-') !== 0) return;
-    if (!pref('typingIndicator', true)) return;
+    if (!statusEnabled()) return;
     var dmId = t.id.slice(3), o = other(dmId); if (!o || !me()) return;
     if (!t.value.trim()) { typingStop(dmId); return; }
     var now = Date.now();
@@ -63,6 +70,12 @@
     clearTimeout(stopTimers[dmId]); stopTimers[dmId] = setTimeout(function () { typingStop(dmId); }, 4000);
   }, true);
   document.addEventListener('blur', function (e) { var t = e.target; if (t && t.id && t.id.indexOf('ci-') === 0) typingStop(t.id.slice(3)); }, true);
+  document.addEventListener('mv:settings-changed', function () {
+    if (statusEnabled()) return;
+    Object.keys(lastTypingSent).forEach(typingStop);
+    Object.keys(hideTimers).forEach(hideTyping);
+    document.querySelectorAll('[id^="rt-sub-"]').forEach(function (tag) { tag.dataset.typing = ''; tag.textContent = tag.dataset.presence || ''; tag.style.color = ''; });
+  });
 
   function headerFor(dmId) {
     var box = document.getElementById('cm-' + dmId); if (!box) return null;
@@ -76,7 +89,7 @@
     return tag;
   }
   function showTyping(m) {
-    if (!pref('typingIndicator', true)) return;
+    if (!statusEnabled()) return;
     var tag = headerFor(m.dmId);
     if (!tag) return;
     tag.dataset.typing = '1'; tag.textContent = (m.name || 'They') + ' is typing…'; tag.style.color = '#2ecc71';

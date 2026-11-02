@@ -30,8 +30,8 @@
     '.msg.mine .mv-rx{justify-content:flex-end}' +
     '.mv-rx span{background:var(--card,#1c1f24);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:1px 7px;font-size:12px;cursor:pointer;user-select:none}' +
     '.mv-rx span.on{border-color:var(--green3,#22c55e)}' +
-    '.mv-bar{position:fixed;z-index:99999;display:flex;gap:2px;align-items:center;background:#111418;border:1px solid rgba(255,255,255,.15);border-radius:24px;padding:5px 8px;box-shadow:0 6px 24px rgba(0,0,0,.5)}' +
-    '.mv-bar button{background:none;border:0;font-size:20px;cursor:pointer;padding:3px 4px;line-height:1;color:#fff}' +
+    '.mv-bar{position:fixed;z-index:99999;display:flex;gap:2px;align-items:center;background:var(--card,#111418);color:var(--text,#fff);border:1px solid var(--border,rgba(255,255,255,.15));border-radius:24px;padding:5px 8px;box-shadow:0 6px 24px rgba(0,0,0,.5)}' +
+    '.mv-bar button{background:none;border:0;font-size:20px;cursor:pointer;padding:3px 4px;line-height:1;color:var(--text,#fff)}' +
     '.mv-bar button.tx{font-size:12px;font-weight:600;padding:4px 8px;border-left:1px solid rgba(255,255,255,.15)}' +
     '.mv-quote{font-size:11px;border-left:3px solid var(--green3,#22c55e);background:rgba(255,255,255,.06);border-radius:6px;padding:4px 8px;margin-bottom:3px;max-width:260px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted,#9aa0a6)}' +
     '.mv-quote b{color:var(--green3,#22c55e);font-weight:600}' +
@@ -152,7 +152,34 @@
     cb.parentNode.insertBefore(el, cb);
   }
 
+  // A short upward swipe on a message starts a reply; ordinary vertical scrolling is unchanged.
+  var touchStart = null, suppressTapUntil = 0;
+  function closestMessageBubble(target) {
+    return target && target.closest ? target.closest('.chat-msgs .msg[data-mid] .msg-bub') : null;
+  }
+  document.addEventListener('touchstart', function (e) {
+    var bubble = closestMessageBubble(e.target);
+    if (!bubble || e.touches.length !== 1 || e.target.closest('a,button,input,textarea,audio,video')) { touchStart = null; return; }
+    touchStart = { bubble: bubble, x: e.touches[0].clientX, y: e.touches[0].clientY, at: Date.now() };
+  }, { capture: true, passive: true });
+  document.addEventListener('touchend', function (e) {
+    var start = touchStart; touchStart = null;
+    if (!start || !e.changedTouches.length) return;
+    var point = e.changedTouches[0], dx = point.clientX - start.x, dy = point.clientY - start.y;
+    if (dy > -68 || Math.abs(dx) > 55 || Date.now() - start.at > 1000) return;
+    var msg = start.bubble.closest('.msg[data-mid]'), box = msg && msg.closest('.chat-msgs');
+    if (!msg || !box) return;
+    var nameEl = document.querySelector('#dm-right .chat-hd > div:nth-child(3)');
+    var name = msg.classList.contains('mine') ? 'You' : (nameEl ? nameEl.textContent : 'Them');
+    setReply(box.id.slice(3), { id: msg.getAttribute('data-mid'), text: (start.bubble.textContent || '').slice(0, 140), name: name });
+    closeBar();
+    suppressTapUntil = Date.now() + 800;
+    toast('Reply selected — type your message');
+  }, { capture: true, passive: true });
+  document.addEventListener('touchcancel', function () { touchStart = null; }, { capture: true, passive: true });
+
   document.addEventListener('click', function (e) {
+    if (Date.now() < suppressTapUntil && closestMessageBubble(e.target)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (bar && !bar.contains(e.target)) closeBar();
     var chip = e.target.closest('.mv-rx span[data-mvrx]');
     if (chip) { var m = chip.closest('.msg[data-mid]'), bx = chip.closest('.chat-msgs'); if (m && bx) react(bx.id.slice(3), m.getAttribute('data-mid'), chip.getAttribute('data-mvrx')); return; }
