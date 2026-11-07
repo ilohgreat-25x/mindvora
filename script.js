@@ -4913,7 +4913,7 @@ function openQRCode(){
   openModal('modal-qr');
   var wrap=document.getElementById('qr-wrap');
   wrap.innerHTML='<div style="padding:20px;color:#999">Generating...</div>';
-  var profileUrl=window.location.origin+'?user='+((state.profile&&state.profile.handle)||'');
+  var profileUrl=window.location.origin+'/?action=profile&uid='+encodeURIComponent(state.user.uid);
   var qrUrl='https://api.qrserver.com/v1/create-qr-code/?size=200x200&data='+encodeURIComponent(profileUrl);
   var img=document.createElement('img');
   img.src=qrUrl;
@@ -4926,7 +4926,7 @@ function downloadQR(){
   var img=document.querySelector('#qr-wrap img');
   if(!img){showToast('Please wait for QR to load');return;}
   var a=document.createElement('a');
-  a.href=img.src;a.download='zync-qr-code.png';a.click();
+  a.href=img.src;a.download='mindvora-qr-code.png';a.click();
 }
 
 function openStoryViews(storyId){
