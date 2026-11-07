@@ -478,6 +478,30 @@ function injectSocialFeatures() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
 })();
 
+// EVOLVE — unified intelligence dashboard, loaded separately so the existing app shell stays stable.
+(function(){
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/evolve.css?v=1'; document.head.appendChild(css);
+  var sc = document.createElement('script'); sc.src = '/evolve.js?v=1'; sc.defer = true; document.head.appendChild(sc);
+  function run(){
+    try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
+    if (typeof window.openMindvoraEvolve === 'function') return window.openMindvoraEvolve();
+    var tries = 0, t = setInterval(function(){
+      if (typeof window.openMindvoraEvolve === 'function') { clearInterval(t); window.openMindvoraEvolve(); }
+      else if (++tries > 40) { clearInterval(t); try { showToast('⚠️ Evolve could not load. Check your connection and try again.'); } catch (e) {} }
+    }, 250);
+  }
+  window.openMindvoraEvolveFromDrawer = run;
+  function add(){
+    if (document.getElementById('mv-dr-evolve')) return;
+    var anchor = document.querySelector('.drawer-item[onclick*="openMindvoraTV"]') || document.querySelector('.drawer-item[onclick*="openSoundboard"]');
+    if (!anchor) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-evolve';
+    b.innerHTML = (window.mvDrawerIcon ? window.mvDrawerIcon('analytics') : '') + '<span>Mindvora Evolve</span>';
+    b.addEventListener('click', run); anchor.parentNode.insertBefore(b, anchor.nextSibling);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
+})();
+
 // ROUND 7 — ONE call system on ONE WebSocket. script.js still contains an old Firestore-based call system
 // (calls collection + onSnapshot listener started 3s after login). Nothing starts calls with it any more, but its
 // listener still popped a second "incoming call" banner for old 'ringing' docs. Route everything to MVCall

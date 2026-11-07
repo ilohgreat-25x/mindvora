@@ -49,6 +49,23 @@
   function dstr(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function statusLabel(m) { return m.live ? '<span style="color:#ef4444;font-weight:700">● LIVE</span>' : esc(m.statusLabel || new Date(m.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })); }
   function score(v) { return v == null ? '–' : esc(v); }
+  function youtubeEmbed(url) {
+    try {
+      var u = new URL(String(url || ''), window.location.href), id = '';
+      if (u.hostname === 'youtu.be') id = u.pathname.slice(1).split('/')[0];
+      else if (/youtube(?:-nocookie)?\.com$/i.test(u.hostname)) {
+        if (u.pathname.indexOf('/embed/') === 0) id = u.pathname.split('/')[2];
+        else id = u.searchParams.get('v') || '';
+      }
+      return /^[a-zA-Z0-9_-]{6,20}$/.test(id) ? 'https://www.youtube-nocookie.com/embed/' + id + '?rel=0' : '';
+    } catch (e) { return ''; }
+  }
+  function inAppPlayer(m) {
+    if (!m.live) return '';
+    var stream = (m.watch || []).map(function (w) { return { name: w.name, url: youtubeEmbed(w.url) }; }).filter(function (w) { return w.url; })[0];
+    if (!stream) return '<div class="mv-sports-player-note">No embeddable official stream was published for this event. Use an official broadcaster below; availability depends on your country and the event rights.</div>';
+    return '<div class="mv-sports-player"><div class="mv-sports-player-label">▶ Watch inside Mindvora · ' + esc(stream.name) + '</div><iframe title="Official live sports stream" src="' + esc(stream.url) + '" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+  }
   function sportScheduleLinks() {
     var links = {
       soccer: [['Premier League', 'https://www.premierleague.com/fixtures'], ['UEFA', 'https://www.uefa.com/uefachampionsleague/fixtures/'], ['SuperSport', 'https://supersport.com/football/']],
@@ -79,7 +96,7 @@
       '<div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-bottom:6px"><span>' + esc(m.league) + '</span><span>' + statusLabel(m) + '</span></div>' +
       '<div style="display:flex;align-items:center;gap:8px"><img src="' + safeUrl(m.home && m.home.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.home && m.home.name) + '</span><b>' + score(m.home && m.home.score) + '</b></div>' +
       '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><img src="' + safeUrl(m.away && m.away.logo) + '" alt="" style="width:22px;height:22px;object-fit:contain" onerror="this.style.visibility=\'hidden\'"><span style="flex:1">' + esc(m.away && m.away.name) + '</span><b>' + score(m.away && m.away.score) + '</b></div>' +
-      (links || '<div style="margin-top:7px;font-size:11px;opacity:.6">No official watch link is listed for this event.</div>') + '</div>';
+      inAppPlayer(m) + (links || '<div style="margin-top:7px;font-size:11px;opacity:.6">No official watch link is listed for this event.</div>') + '</div>';
   }
   function loadSports(m, quiet) {
     var body = m.querySelector('[data-body]'), meta = m.querySelector('[data-meta]');

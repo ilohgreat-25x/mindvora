@@ -180,6 +180,7 @@ body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-ins
 .mv-update .later { background: transparent; opacity: .7; }
 
 @media (prefers-reduced-motion: reduce) { * { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+@media (prefers-reduced-motion: reduce) { .float-card, .earn-showcase, .feat-pill, .fc1, .fc2, .fc3 { animation-duration: 4s !important; } }
 
 /* ── v5: bottom menu only after login (hidden on login / sign-up / code screens) ── */
 body:not(.mv-authed) .bottom-nav { display: none !important; }
