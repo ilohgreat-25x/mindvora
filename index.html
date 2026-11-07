@@ -20,11 +20,11 @@
 <meta property="og:title" content="Mindvora — Where Minds Connect">
 <meta property="og:description" content="Join Mindvora — the social platform where creators connect, share, earn and grow.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="/icons/icon-512.png">
+<meta property="og:image" content="/icons/mindvora-logo.png">
 <meta property="og:image:width" content="512">
 <meta property="og:image:height" content="512">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+<link rel="icon" type="image/png" href="/icons/mindvora-logo.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
 <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png">
 <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png">
@@ -39,7 +39,7 @@
 <script src="https://js.paystack.co/v1/inline.js"></script>
 <script src="https://upload-widget.cloudinary.com/global/all.js" defer></script>
 <link rel="stylesheet" href="auth.css">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 <link rel="stylesheet" href="responsive.css?v=10">
 <style id="mv-adv-search-css">#modal-adv-search input,#adv-search-inp,body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important;opacity:1}</style>
 </head>
@@ -197,17 +197,12 @@
     </div>
 
 <!-- Bottom brand on showcase -->
-    <div class="showcase-brand">
-      <span style="font-family:'Great Vibes',cursive;font-size:28px;color:var(--cream)">Mindvora</span>
-      <span style="font-size:11px;color:rgba(254,252,232,.5);letter-spacing:2px;text-transform:uppercase">Where Minds Connect</span>
-    </div>
+    <div class="showcase-brand"><img class="mv-brand-image mv-brand-showcase" src="/icons/mindvora-logo.png" alt="Mindvora — Connect · Collaborate · Create"></div>
   </div>
 
 <!-- RIGHT SIDE: Auth form -->
   <div class="auth-right">
-    <div class="auth-logo-sm">
-      <span style="font-family:'Great Vibes',cursive;font-size:36px;color:var(--green3)">Mindvora</span>
-    </div>
+    <div class="auth-logo-sm"><img class="mv-brand-image mv-brand-auth" src="/icons/mindvora-logo.png" alt="Mindvora — Where Great Minds Spark Ideas"></div>
     <div class="auth-box">
       <div class="auth-tabs">
         <button class="auth-tab active" id="tab-login" onclick="showAuthTab('login')">Sign In</button>
@@ -391,10 +386,7 @@
       <div class="dot" onclick="goToSlideRight(1)"></div>
       <div class="dot" onclick="goToSlideRight(2)"></div>
     </div>
-    <div class="showcase-brand">
-      <span style="font-family:'Great Vibes',cursive;font-size:28px;color:var(--cream)">Mindvora</span>
-      <span style="font-size:11px;color:rgba(254,252,232,.4);letter-spacing:2px">Where Minds Connect</span>
-    </div>
+    <div class="showcase-brand"><img class="mv-brand-image mv-brand-showcase" src="/icons/mindvora-logo.png" alt="Mindvora — Connect · Collaborate · Create"></div>
   </div>
 </div>
 
@@ -473,7 +465,7 @@
     <button class="hamburger-btn" id="hamburger-btn" onclick="toggleDrawer()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
-    <div class="tb-logo"><span style="font-size:42px">M</span>indvora</div>
+    <div class="tb-logo"><img class="mv-brand-image mv-brand-topbar" src="/icons/mindvora-logo.png" alt="Mindvora"></div>
     <div class="tb-sw"><input id="search-inp" type="text" placeholder="Search sparks…"></div>
     <div class="tb-right">
       <button class="tb-pill" onclick="openModal('modal-topup')">📱 Data & Airtime</button>
@@ -4150,7 +4142,7 @@
 <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="app-drawer">
   <div class="drawer-header">
-    <div class="drawer-header-logo">Mindvora</div>
+    <div class="drawer-header-logo"><img class="mv-brand-image mv-brand-drawer" src="/icons/mindvora-logo.png" alt="Mindvora"></div>
     <button onclick="closeDrawer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px">✕</button>
   </div>
 

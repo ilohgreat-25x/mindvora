@@ -3404,3 +3404,21 @@ body.light .s-add:hover,body.light-mode .s-add:hover{border-color:#874a30!import
 body.light .phone-auth-box,body.light-mode .phone-auth-box{background:#fffaf3!important;border-color:rgba(135,74,48,.24)!important;color:#211915!important}
 body.light .phone-auth-box .phone-auth-note,body.light-mode .phone-auth-box .phone-auth-note{color:#62564d!important}
 body.light .phone-auth-box .fi,body.light-mode .phone-auth-box .fi{background:#fff!important;border-color:rgba(76,52,36,.24)!important;color:#211915!important}
+
+/* Supplied Mindvora logo asset */
+.mv-brand-image{display:block;width:100%;height:100%;object-fit:contain;object-position:center}
+.mv-brand-showcase{width:min(390px,80%);height:auto;max-height:150px;margin:0 auto;filter:drop-shadow(0 8px 22px rgba(34,197,94,.22))}
+.mv-brand-auth{width:220px;height:92px;margin:0 auto;border-radius:12px;object-fit:contain}
+.tb-logo{width:118px;height:43px;display:flex;align-items:center;flex:0 0 118px}
+.mv-brand-topbar{border-radius:8px}
+.drawer-header-logo{width:128px;height:48px;display:flex;align-items:center}
+.mv-brand-drawer{border-radius:7px}
+.mv-evolve-field select,.mv-evolve-mode select{color:#f8fafc!important;background:#10251a!important;border-color:rgba(110,231,161,.55)!important;color-scheme:dark}
+.mv-evolve-field select option,.mv-evolve-mode select option{background:#10251a!important;color:#f8fafc!important}
+body.light .mv-evolve-field select,body.light-mode .mv-evolve-field select,body.light .mv-evolve-mode select,body.light-mode .mv-evolve-mode select{color:#211915!important;background:#fffaf3!important;border-color:rgba(135,74,48,.55)!important;color-scheme:light}
+body.light .mv-evolve-field select option,body.light-mode .mv-evolve-field select option,body.light .mv-evolve-mode select option,body.light-mode .mv-evolve-mode select option{background:#fffaf3!important;color:#211915!important}
+.mv-learn-course-badge{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:150px;padding:18px;border:1px solid rgba(110,231,161,.3);border-radius:15px;background:rgba(0,0,0,.16);color:#d1fae5;text-align:center;font-size:30px}.mv-learn-course-badge strong{font-size:12px}.mv-learn-course-badge small{font-size:10px;color:#86efac}
+.mv-learn-source p{margin:2px 0 0;color:rgba(255,255,255,.56);font-size:11px;line-height:1.45}.mv-learn-source small{color:#86efac!important}
+body.light .mv-learn-course-badge,body.light-mode .mv-learn-course-badge{background:#fffaf3;color:#874a30;border-color:rgba(135,74,48,.28)}body.light .mv-learn-course-badge small,body.light-mode .mv-learn-course-badge small{color:#713e2a}body.light .mv-learn-source p,body.light-mode .mv-learn-source p{color:#655349}
+#mv-cb-share.on{background:#0e7490!important;box-shadow:0 0 0 3px rgba(79,227,255,.22),0 0 18px rgba(79,227,255,.35)}
+@media(max-width:600px){.mv-brand-showcase{max-width:280px;max-height:105px}.mv-brand-auth{width:180px;height:72px}.tb-logo{width:92px;height:36px;flex-basis:92px}.drawer-header-logo{width:108px;height:42px}.mv-learn-course-badge{margin-top:16px}}

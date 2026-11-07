@@ -51,7 +51,7 @@
     s.nexora.workflows = s.nexora.workflows || [];
     s.nexora.runs = s.nexora.runs || [];
     s.pulse.interests = s.pulse.interests || [];
-    s.pulse.cards = s.pulse.cards || [];
+    s.pulse.cards = (s.pulse.cards || []).filter(function (x) { var t = String(x && (x.title || x) || '').toLowerCase(); return !/live news|live sports|anime/.test(t); });
     s.core.files = s.core.files || [];
     s.core.snapshots = s.core.snapshots || [];
     return s;
@@ -109,8 +109,8 @@
   }
   function pulse() {
     var interests = state.pulse.interests.map(function (x, i) { return '<button type="button" class="mv-evolve-tag" data-action="remove-interest-' + i + '">' + esc(x) + ' ×</button>'; }).join('');
-    var cards = (state.pulse.cards.length ? state.pulse.cards : ['Live news brief for your interests', 'Live sports and match context', 'Anime discovery with official sources', 'A practical idea to try today']).map(function (x) { return '<article class="mv-evolve-pulse-card"><span>Pulse signal · ' + esc(state.mode) + '</span><strong>' + esc(x.title || x) + '</strong><small>' + esc(x.detail || 'Tailored to your selected interests.') + '</small>' + (x.action ? button(x.actionLabel || 'Open', x.action, 'subtle') : '') + '</article>'; }).join('');
-    return head('Pulse', 'Personal information intelligence', 'Pulse is a living stream, not a static list: choose interests, refresh signals, and jump into Mindvora’s live sources.') + '<section class="mv-evolve-tool"><h3>Your live interest stream</h3><div class="mv-evolve-tags">' + (interests || '<span class="muted">Add your first interest.</span>') + '</div><div class="mv-evolve-inline">' + field('Add an interest', 'pulse-interest', '', 'text') + button('Add interest', 'add-interest', 'primary') + button('Refresh Pulse', 'refresh-pulse', 'subtle') + '</div><div class="mv-evolve-inline">' + button('Watch live news', 'pulse-news', 'subtle') + button('Watch live sports', 'pulse-sports', 'subtle') + button('Explore anime', 'pulse-anime', 'subtle') + '</div></section><div class="mv-evolve-pulse-grid">' + cards + '</div>';
+    var cards = (state.pulse.cards.length ? state.pulse.cards : ['Ideas tailored to your interests', 'A practical next step for your goals', 'A new skill worth exploring', 'A useful question to investigate']).map(function (x) { return '<article class="mv-evolve-pulse-card"><span>Pulse signal · ' + esc(state.mode) + '</span><strong>' + esc(x.title || x) + '</strong><small>' + esc(x.detail || 'Tailored to your selected interests.') + '</small>' + (x.action ? button(x.actionLabel || 'Open', x.action, 'subtle') : '') + '</article>'; }).join('');
+    return head('Pulse', 'Personal information intelligence', 'Pulse is a living stream of ideas and actions: choose interests, refresh signals, and shape what deserves your attention.') + '<section class="mv-evolve-tool"><h3>Your interest stream</h3><div class="mv-evolve-tags">' + (interests || '<span class="muted">Add your first interest.</span>') + '</div><div class="mv-evolve-inline">' + field('Add an interest', 'pulse-interest', '', 'text') + button('Add interest', 'add-interest', 'primary') + button('Refresh Pulse', 'refresh-pulse', 'subtle') + '</div></section><div class="mv-evolve-pulse-grid">' + cards + '</div>';
   }
   function identity() {
     var data = state.identity;
@@ -149,9 +149,6 @@
     if (/^remove-interest-/.test(actionName)) { state.pulse.interests.splice(Number(actionName.split('-').pop()), 1); save(); render(el, 'pulse'); return; }
     if (actionName === 'refresh-pulse') { var subjects = state.pulse.interests.length ? state.pulse.interests : ['Mindvora']; state.pulse.cards = subjects.slice(0, 5).map(function (x) { return { title: 'New ideas and conversations about ' + x, detail: 'A fresh signal generated from your interest profile.', action: 'open-nexora', actionLabel: 'Give to Nexora' }; }); save(); render(el, 'pulse'); return; }
     if (actionName === 'open-nexora') { render(el, 'nexora'); return; }
-    if (actionName === 'pulse-news' && typeof window.openLiveNews === 'function') return window.openLiveNews();
-    if (actionName === 'pulse-sports' && typeof window.openLiveSports === 'function') return window.openLiveSports();
-    if (actionName === 'pulse-anime' && typeof window.openAnimeMovies === 'function') return window.openAnimeMovies();
     if (actionName === 'save-identity') { state.identity.displayName = value(el, 'identity-name'); state.identity.role = value(el, 'identity-role') || (MODES[state.mode] || MODES.professional).label; state.identity.sharing = value(el, 'identity-sharing'); var verify = el.querySelector('[data-identity-verify]'); state.identity.verify = !!(verify && verify.checked); state.identity.updatedAt = Date.now(); save(); if (cloudReady()) db.collection('users').doc(window.state.user.uid).set({ evolveIdentity: state.identity }, { merge: true }).catch(function () {}); result(el, 'identity', '<strong>Identity saved.</strong><p>Your Evolve identity is now stored in your Mindvora account. Sharing is set to <b>' + esc(state.identity.sharing) + '</b>; only matching profile surfaces may use it.</p>'); return; }
     if (actionName === 'add-task') { item = value(el, 'life-task'); if (!item) return toast('Enter a task first.'); state.orbit.tasks.push({ text: item, done: false, createdAt: Date.now() }); save(); render(el, 'orbit'); return; }
     if (/^delete-task-/.test(actionName)) { state.orbit.tasks.splice(Number(actionName.split('-').pop()), 1); save(); render(el, 'orbit'); return; }

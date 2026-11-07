@@ -504,9 +504,9 @@ function injectSocialFeatures() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
 })();
 
-// LEARN — live media discovery and real education sources.
+// LEARN — real course discovery and Orbit/Nexora study handoff.
 (function(){
-  var sc = document.createElement('script'); sc.src = '/learn.js?v=2'; sc.defer = true; document.head.appendChild(sc);
+  var sc = document.createElement('script'); sc.src = '/learn.js?v=3'; sc.defer = true; document.head.appendChild(sc);
   function run(){
     try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
     if (typeof window.openMindvoraLearnFromDrawer === 'function') return window.openMindvoraLearnFromDrawer();

@@ -601,22 +601,27 @@ var MVCall = (function () {
   // ── two-way screen sharing (video calls; same connection, track swap, no renegotiation) ──
   function canShare() { return !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia); }
   function videoSender() { return call && call.pc && call.pc.getSenders().find(function (x) { return x.track && x.track.kind === 'video'; }); }
+  function audioSender() { return call && call.pc && call.pc.getSenders().find(function (x) { return x.track && x.track.kind === 'audio'; }); }
   function toggleShare() {
     if (!call || !call.pc || call.media !== 'video') return;
     if (call.screen) { stopShare(); return; }
     if (!canShare()) { toast('Screen sharing is not supported on this device. It works in Chrome/Edge on a computer.'); return; }
-    navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: false }).then(function (s) {
+    navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 30 } }, audio: true }).then(function (s) {
       if (!call) { s.getTracks().forEach(function (t) { t.stop(); }); return; }
-      var tr = s.getVideoTracks()[0], snd = videoSender();
+      var tr = s.getVideoTracks()[0], snd = videoSender(), screenAudio = s.getAudioTracks()[0], micSender = audioSender();
       if (!tr || !snd) { s.getTracks().forEach(function (t) { t.stop(); }); toast('Could not share the screen.'); return; }
       try { tr.contentHint = 'detail'; } catch (e) {}
       snd.replaceTrack(tr).then(function () {
         call.screen = s;
+        call.screenAudio = screenAudio && micSender ? screenAudio : null;
+        if (call.screenAudio) return micSender.replaceTrack(call.screenAudio);
+      }).then(function () {
+        if (!call) return;
         tr.onended = function () { stopShare(); };
         $('mv-call-local').srcObject = s;
         var b = $('mv-cb-share'); if (b) b.classList.add('on');
         send({ type: 'CALL_SIGNAL', callId: call.id, data: { screen: true } });
-        toast('You are sharing your screen.');
+        toast(screenAudio && micSender ? 'You are sharing your screen and tab audio.' : 'You are sharing your screen.');
       }).catch(function () { s.getTracks().forEach(function (t) { t.stop(); }); toast('Could not share the screen.'); });
     }).catch(function (e) { if (e && e.name !== 'NotAllowedError') toast('Could not share the screen.'); });
   }
@@ -626,6 +631,9 @@ var MVCall = (function () {
     s.getTracks().forEach(function (t) { t.stop(); });
     var cam = call.local && call.local.getVideoTracks()[0], snd = videoSender() || (call.pc && call.pc.getSenders().find(function (x) { return !x.track || x.track.kind === 'video'; }));
     if (snd && cam) snd.replaceTrack(cam).then(function () { tuneVideoSender(snd); }).catch(function () {});
+    var mic = call.local && call.local.getAudioTracks()[0], as = audioSender();
+    if (call.screenAudio && as && mic) as.replaceTrack(mic).catch(function () {});
+    call.screenAudio = null;
     if (call.local) $('mv-call-local').srcObject = call.local;
     var b = $('mv-cb-share'); if (b) b.classList.remove('on');
     send({ type: 'CALL_SIGNAL', callId: call.id, data: { screen: false } });
