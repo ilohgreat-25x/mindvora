@@ -484,9 +484,11 @@ function injectSocialFeatures() {
   var sc = document.createElement('script'); sc.src = '/evolve.js?v=1'; sc.defer = true; document.head.appendChild(sc);
   function run(){
     try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
+    if (typeof window.mvConfigureEvolveFromDrawer === 'function') return window.mvConfigureEvolveFromDrawer();
     if (typeof window.openMindvoraEvolve === 'function') return window.openMindvoraEvolve();
     var tries = 0, t = setInterval(function(){
-      if (typeof window.openMindvoraEvolve === 'function') { clearInterval(t); window.openMindvoraEvolve(); }
+      if (typeof window.mvConfigureEvolveFromDrawer === 'function') { clearInterval(t); window.mvConfigureEvolveFromDrawer(); }
+      else if (typeof window.openMindvoraEvolve === 'function') { clearInterval(t); window.openMindvoraEvolve(); }
       else if (++tries > 40) { clearInterval(t); try { showToast('⚠️ Evolve could not load. Check your connection and try again.'); } catch (e) {} }
     }, 250);
   }
@@ -497,6 +499,31 @@ function injectSocialFeatures() {
     if (!anchor) return;
     var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-evolve';
     b.innerHTML = (window.mvDrawerIcon ? window.mvDrawerIcon('analytics') : '') + '<span>Mindvora Evolve</span>';
+    b.addEventListener('click', run); anchor.parentNode.insertBefore(b, anchor.nextSibling);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();
+})();
+
+// LEARN — academic tracks and hands-on practice workspace.
+(function(){
+  var sc = document.createElement('script'); sc.src = '/learn.js?v=1'; sc.defer = true; document.head.appendChild(sc);
+  function run(){
+    try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
+    if (typeof window.openMindvoraLearnFromDrawer === 'function') return window.openMindvoraLearnFromDrawer();
+    if (typeof window.openMindvoraLearn === 'function') return window.openMindvoraLearn();
+    var tries = 0, t = setInterval(function(){
+      if (typeof window.openMindvoraLearnFromDrawer === 'function') { clearInterval(t); window.openMindvoraLearnFromDrawer(); }
+      else if (typeof window.openMindvoraLearn === 'function') { clearInterval(t); window.openMindvoraLearn(); }
+      else if (++tries > 40) { clearInterval(t); try { showToast('⚠️ Learn could not load. Check your connection and try again.'); } catch (e) {} }
+    }, 250);
+  }
+  window.openMindvoraLearnFromDrawer = run;
+  function add(){
+    if (document.getElementById('mv-dr-learn')) return;
+    var anchor = document.getElementById('mv-dr-evolve') || document.querySelector('.drawer-item[onclick*="openMindvoraTV"]');
+    if (!anchor) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-learn';
+    b.innerHTML = (window.mvDrawerIcon ? window.mvDrawerIcon('learn') : '📚') + '<span>Learn</span>';
     b.addEventListener('click', run); anchor.parentNode.insertBefore(b, anchor.nextSibling);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', add); else add();

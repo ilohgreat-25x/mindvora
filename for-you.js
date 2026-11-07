@@ -217,7 +217,7 @@
   function addMenu() {
     if (document.getElementById('mv-dr-reset-rec')) return true;
     var anchor = document.getElementById('mv-dr-news'); if (!anchor) return false;
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-reset-rec'; b.textContent = '🔄 Reset recommendations';
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'drawer-item'; b.id = 'mv-dr-reset-rec'; b.innerHTML = (window.mvDrawerIcon ? window.mvDrawerIcon('refresh') : '🔄') + '<span>Reset recommendations</span>';
     b.addEventListener('click', function () {
       try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
       if (confirm('Reset your recommendations? Your feed will start learning your taste from scratch.')) window.mvResetInterests();

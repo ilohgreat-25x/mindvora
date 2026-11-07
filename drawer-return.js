@@ -6,7 +6,8 @@
     '.modal-overlay', '[id^="modal-"]', '[role="dialog"]', '[aria-modal="true"]', 'dialog[open]',
     '[class*="overlay"]', '[class*="modal"]', '[class*="viewer"]', '[class*="hub"]',
     '.game-container', '#game-container', '#live-host-view', '#live-watch-view',
-    '#mv-sports', '#mv-news-live', '#mv-install-guide'
+    '#mv-sports', '#mv-news-live', '#mv-install-guide', '#mv-evolve', '#mv-learn',
+    '.mv-evolve-shell', '.mv-learn-shell'
   ].join(',');
   var current = null;
 

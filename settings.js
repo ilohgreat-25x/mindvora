@@ -463,6 +463,9 @@
     });
     overlay.addEventListener('keydown', function (event) { if (event.key === 'Escape') event.preventDefault(); });
     overlay.querySelector('[data-lock-pin]').focus();
+    if (hasCredential()) window.setTimeout(function () {
+      if (lockOverlay === overlay && document.body.contains(overlay)) attempt('biometric');
+    }, 180);
   }
   function watchForStartupLock() {
     var timer = setInterval(function () { if (appIsVisible()) { clearInterval(timer); showStartupLock(); } }, 500);
