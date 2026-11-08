@@ -480,7 +480,7 @@ function injectSocialFeatures() {
 
 // EVOLVE — unified intelligence dashboard, loaded separately so the existing app shell stays stable.
 (function(){
-  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/evolve.css?v=1'; document.head.appendChild(css);
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = '/evolve.css?v=2'; document.head.appendChild(css);
   var sc = document.createElement('script'); sc.src = '/evolve.js?v=2'; sc.defer = true; document.head.appendChild(sc);
   function run(){
     try { if (typeof closeDrawer === 'function') closeDrawer(); } catch (e) {}
