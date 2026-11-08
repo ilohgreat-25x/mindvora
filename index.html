@@ -41,6 +41,7 @@
 <link rel="stylesheet" href="auth.css">
 <link rel="stylesheet" href="style.css?v=2">
 <link rel="stylesheet" href="responsive.css?v=10">
+<link rel="stylesheet" href="evolve.css?v=2">
 <style id="mv-adv-search-css">#modal-adv-search input,#adv-search-inp,body.light #adv-search-inp{color:#fff!important;-webkit-text-fill-color:#fff!important;caret-color:#22c55e!important;background:#0f1418!important}#adv-search-inp::placeholder{color:#9aa0a6!important;-webkit-text-fill-color:#9aa0a6!important;opacity:1}</style>
 </head>
 <body>
@@ -4198,6 +4199,9 @@
 
 <!-- TOOLS -->
     <div class="drawer-section-title">Tools</div>
+    <button class="drawer-item drawer-item-feature" onclick="mvConfigureEvolveFromDrawer();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-analytics"></use></svg><span><b>Evolve</b><small>Workspace intelligence & storage</small></span></button>
+    <button class="drawer-item drawer-item-feature" onclick="openMindvoraService('esim');closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-phone"></use></svg><span><b>Get/recharge foreign eSIMs</b><small>Travel data, delivered in-app</small></span></button>
+    <button class="drawer-item drawer-item-feature" onclick="openMindvoraService('email');closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-news"></use></svg><span><b>Get business emails</b><small>Professional mailbox setup</small></span></button>
     <button class="drawer-item" onclick="document.getElementById('nav-aria').click();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-aria"></use></svg>ARIA AI</button>
     <button class="drawer-item" onclick="document.getElementById('nav-analytics').click();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-analytics"></use></svg>Analytics</button>
     <button class="drawer-item" onclick="openGames();closeDrawer()"><svg class="drawer-icon" aria-hidden="true"><use href="#mv-i-games"></use></svg>Games</button>
@@ -4248,6 +4252,8 @@
   window.RECAPTCHA_SITE_KEY = '6LdAlK8tAAAAAKVYBINVagCGBsV--r9CVu4bTXO_';
 </script>
 <script src="media-quota.js"></script>
+<script src="evolve.js?v=2"></script>
+<script src="service-marketplace.js?v=1"></script>
 <script src="script.js?v=21"></script>
 <script src="aria-ui.js?v=1"></script>
 <script src="settings.js?v=7"></script>

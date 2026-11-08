@@ -14,11 +14,11 @@ firebase.initializeApp({
   appId:             "1:720726547858:web:3175ba8d0b7c987e31754b"
 });
 
-const CACHE = 'mindvora-v36';
+const CACHE = 'mindvora-v37';
 const OFFLINE_URL = '/';
 const MAX_ENTRIES = 40;              // keeps the cache to a few MB instead of growing forever
-const SHELL = ['/', '/index.html', '/manifest.json?v=2', '/style.css?v=2', '/auth.css', '/responsive.css?v=10',
-               '/script.js?v=21', '/aria-ui.js?v=1', '/settings.js?v=7', '/fixes.js?v=9', '/chat-actions.js?v=4', '/realtime.js?v=16', '/chat-core.js?v=15', '/calls.js?v=20', '/app-update.js?v=7',
+const SHELL = ['/', '/index.html', '/manifest.json?v=2', '/style.css?v=2', '/auth.css', '/responsive.css?v=10', '/evolve.css?v=2',
+               '/script.js?v=21', '/evolve.js?v=2', '/service-marketplace.js?v=1', '/aria-ui.js?v=1', '/settings.js?v=7', '/fixes.js?v=9', '/chat-actions.js?v=4', '/realtime.js?v=16', '/chat-core.js?v=15', '/calls.js?v=20', '/app-update.js?v=7',
                '/drawer-return.js?v=1', '/icons/icon-192.png'];
 
 self.addEventListener('install', function(e) {

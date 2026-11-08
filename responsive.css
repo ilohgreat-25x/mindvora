@@ -224,6 +224,29 @@ body.light-mode nav.bottom-nav .nav-item.active, body.light nav.bottom-nav .nav-
 }
 body.light-mode .bottom-nav .nav-ic, body.light .bottom-nav .nav-ic { color: inherit !important; }
 
+/* Drawer service shortcuts and provider handoff dialog. */
+.drawer-item-feature { align-items: flex-start !important; gap: 10px; }
+.drawer-item-feature span { display: flex; flex-direction: column; min-width: 0; }
+.drawer-item-feature b { font-size: 12px; font-weight: 700; }
+.drawer-item-feature small { margin-top: 2px; color: var(--muted); font-size: 10px; line-height: 1.35; }
+.mv-service-modal { position: fixed; inset: 0; z-index: 100030; display: grid; place-items: center; padding: 18px; background: rgba(2, 8, 17, .78); backdrop-filter: blur(10px); }
+.mv-service-card { position: relative; width: min(560px, 100%); max-height: min(88dvh, 720px); overflow-y: auto; padding: 28px; border: 1px solid var(--borderhi, rgba(79,227,255,.3)); border-radius: 22px; background: var(--card, #102139); color: var(--white, #f4f8ff); box-shadow: 0 24px 80px rgba(0,0,0,.45); }
+.mv-service-card h2 { margin: 7px 40px 10px 0; font-size: clamp(22px, 4vw, 30px); }
+.mv-service-card p { color: var(--muted, #9aa8b8); font-size: 13px; line-height: 1.65; }
+.mv-service-kicker { color: var(--green3, #86efac); font-size: 10px; font-weight: 800; letter-spacing: .15em; }
+.mv-service-close { position: absolute; top: 12px; right: 14px; border: 0; background: transparent; color: inherit; font-size: 28px; cursor: pointer; }
+.mv-service-links { display: flex; gap: 9px; flex-wrap: wrap; margin: 18px 0; }
+.mv-service-links a, .mv-service-done { display: inline-block; border: 1px solid rgba(34,197,94,.35); border-radius: 11px; padding: 10px 13px; background: rgba(34,197,94,.1); color: var(--green3, #86efac); font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.mv-service-next { padding: 14px; border: 1px solid var(--border, rgba(255,255,255,.14)); border-radius: 14px; background: rgba(255,255,255,.035); }
+.mv-service-next strong { font-size: 12px; }
+.mv-service-next p { margin: 7px 0 0; font-size: 12px; }
+.mv-service-done { position: static; margin-top: 16px; color: #fff; background: #16834a; }
+body.light .mv-service-card, body.light-mode .mv-service-card { background: #fffaf3; color: #211915; border-color: rgba(135,74,48,.25); }
+body.light .mv-service-card p, body.light-mode .mv-service-card p, body.light .drawer-item-feature small, body.light-mode .drawer-item-feature small { color: #655349; }
+body.light .mv-service-kicker, body.light-mode .mv-service-kicker, body.light .mv-service-links a, body.light-mode .mv-service-links a { color: #874a30; }
+body.light .mv-service-next, body.light-mode .mv-service-next { background: #fff; border-color: rgba(135,74,48,.2); }
+@media (max-width: 480px) { .mv-service-card { padding: 22px 18px; border-radius: 18px; } }
+
 /* Phones: keep the feed inside the viewport with equal, safe-area-aware gutters. */
 @media (max-width: 767px) {
   html, body { width: 100%; max-width: 100%; margin: 0; overflow-x: hidden; }

@@ -2453,7 +2453,7 @@ auth.onAuthStateChanged(function(user){
             checkAdminAccess();
             checkPendingAds();
             setTimeout(checkBirthday, 2000);
-            setTimeout(function(){ initPushNotifications(); listenForIncomingCalls(); }, 3000);
+            setTimeout(function(){ initPushNotifications(); }, 3000);
           }).catch(function(error) {
             console.error('[Mindvora] Profile setup could not start:', error);
             showToast('Please complete your profile to continue.');
@@ -2485,7 +2485,7 @@ auth.onAuthStateChanged(function(user){
         checkAdminAccess();
         checkPendingAds();
         setTimeout(checkBirthday,2000);
-        setTimeout(function(){ initPushNotifications(); listenForIncomingCalls(); },3000);
+        setTimeout(function(){ initPushNotifications(); },3000);
       } else {
         console.log('[Mindvora] New user profile created in Firestore');
         var color=COLORS[Math.floor(Math.random()*COLORS.length)];
